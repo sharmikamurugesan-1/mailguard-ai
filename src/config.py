@@ -12,10 +12,15 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 RAW_DATA_PATH = Path(os.getenv("RAW_DATA_PATH", str(DATA_DIR / "raw" / "enron_spam_data.csv")))
+PROCESSED_DATA_PATH = Path(os.getenv("PROCESSED_DATA_PATH", str(DATA_DIR / "processed" / "cleaned_emails.csv")))
 MODELS_DIR = BASE_DIR / "models"
 MODEL_PATH = Path(os.getenv("MODEL_PATH", str(MODELS_DIR / "spam_pipeline.joblib")))
 METADATA_PATH = Path(os.getenv("METADATA_PATH", str(MODELS_DIR / "metadata.json")))
+REPORTS_DIR = BASE_DIR / "reports"
+DATASET_REPORT_JSON = REPORTS_DIR / "dataset_report.json"
+DATASET_REPORT_MD = REPORTS_DIR / "dataset_report.md"
 STATIC_DIR = BASE_DIR / "static"
+
 
 # Classification & Uncertain Band Thresholds
 # If P(spam) in [UNCERTAIN_LOWER, UNCERTAIN_UPPER], classify as "uncertain"

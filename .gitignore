@@ -26,9 +26,12 @@ wheels/
 venv/
 ENV/
 
-# Data (Raw datasets are large and excluded from git)
+# Data (Raw and processed datasets are large and excluded from git)
 data/raw/*
 !data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
 
 # Pytest / Coverage
 .pytest_cache/
