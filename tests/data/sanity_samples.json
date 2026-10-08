@@ -1,0 +1,102 @@
+[
+  {
+    "id": 1,
+    "true_class": "spam",
+    "subject": "URGENT: Your PayPal account has been restricted",
+    "body": "Dear valued customer, unauthorized activity was detected on your account. Please click http://paypal-security-verification.com/login immediately to verify your identity and restore access.",
+    "expected_prediction": "spam",
+    "expected_label": "Likely spam",
+    "is_known_miss": false,
+    "notes": "not analysed"
+  },
+  {
+    "id": 2,
+    "true_class": "spam",
+    "subject": "Package Delivery Failed: Reschedule your shipment",
+    "body": "Your parcel #98234-US could not be delivered due to an incorrect postal address. Visit http://express-postal-redelivery.org/update within 24 hours or package will be returned to sender.",
+    "expected_prediction": "spam",
+    "expected_label": "Likely spam",
+    "is_known_miss": false,
+    "notes": "not analysed"
+  },
+  {
+    "id": 3,
+    "true_class": "spam",
+    "subject": "You've won a $1,000 Amazon Gift Card! Claim now",
+    "body": "Congratulations! You were randomly selected as our grand prize recipient of a $1000 Amazon Shopping Voucher. Click here http://claim-rewards-online.biz/amazon to claim your voucher code immediately.",
+    "expected_prediction": "spam",
+    "expected_label": "Likely spam",
+    "is_known_miss": false,
+    "notes": "not analysed"
+  },
+  {
+    "id": 4,
+    "true_class": "spam",
+    "subject": "Guaranteed 500% daily returns with crypto trading",
+    "body": "Earn passive income instantly! Our algorithmic crypto bot makes 500% profit every 24 hours guaranteed with no risk. Deposit 0.1 BTC today at http://crypto-magic-profit.io/deposit to get started.",
+    "expected_prediction": "spam",
+    "expected_label": "Likely spam",
+    "is_known_miss": false,
+    "notes": "not analysed"
+  },
+  {
+    "id": 5,
+    "true_class": "spam",
+    "subject": "Overdue invoice attached - wire transfer instructions",
+    "body": "Please review the attached invoice INV-9042 for legal advisory services rendered last month. Send the wire payment to account #4492048 by end of business today.",
+    "expected_prediction": "ham",
+    "expected_label": "Likely legitimate",
+    "is_known_miss": true,
+    "notes": "not analysed"
+  },
+  {
+    "id": 6,
+    "true_class": "ham",
+    "subject": "Engineering team weekly sync - Agenda & Notes",
+    "body": "Hi team, attached is the agenda for tomorrow's standup meeting. We will review the Q3 roadmap, API refactor milestones, and the upcoming staging release. Please update your tickets before 10 AM.",
+    "expected_prediction": "ham",
+    "expected_label": "Likely legitimate",
+    "is_known_miss": false,
+    "notes": "not analysed"
+  },
+  {
+    "id": 7,
+    "true_class": "ham",
+    "subject": "Lunch plans today?",
+    "body": "Hey Sarah, are you free to grab lunch around 12:30 today? The team was thinking about checking out the new taco place on 4th street. Let me know!",
+    "expected_prediction": "ham",
+    "expected_label": "Likely legitimate",
+    "is_known_miss": false,
+    "notes": "not analysed"
+  },
+  {
+    "id": 8,
+    "true_class": "ham",
+    "subject": "Flight Confirmation: SFO to JFK",
+    "body": "Thank you for booking with Delta Airlines. Your flight DL492 from San Francisco (SFO) to New York (JFK) is confirmed for departure on October 18 at 8:15 AM. Your confirmation code is H7K92P.",
+    "expected_prediction": "ham",
+    "expected_label": "Likely legitimate",
+    "is_known_miss": false,
+    "notes": "not analysed"
+  },
+  {
+    "id": 9,
+    "true_class": "ham",
+    "subject": "Quarterly budget review attached",
+    "body": "Hi Marcus, please find attached the spreadsheet for our Q3 financial review. Let me know if you have any questions before Monday's presentation with the VP.",
+    "expected_prediction": "ham",
+    "expected_label": "Likely legitimate",
+    "is_known_miss": false,
+    "notes": "not analysed"
+  },
+  {
+    "id": 10,
+    "true_class": "ham",
+    "subject": "Feedback on the new product design mockups",
+    "body": "Hi Alex, I went through the latest Figma mockups for the onboarding flow. Overall it looks great, but could we make the primary CTA button slightly more prominent on mobile? Let's discuss in our 1:1.",
+    "expected_prediction": "ham",
+    "expected_label": "Likely legitimate",
+    "is_known_miss": false,
+    "notes": "not analysed"
+  }
+]

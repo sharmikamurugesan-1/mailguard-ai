@@ -1,7 +1,7 @@
 {
   "dataset_name": "Enron Spam Dataset",
   "dataset_source_url": "https://github.com/MWiechmann/enron_spam_data",
-  "dataset_license": "GPL-3.0 / Public Domain (CALO Enron Corpus)",
+  "dataset_license": "GNU General Public License v3.0",
   "dataset_type": "email",
   "n_samples": 30462,
   "n_train": 24369,
@@ -11,33 +11,75 @@
     "spam": 14552
   },
   "language": "en",
-  "trained_at": "2026-10-06T16:35:15.543656+00:00",
+  "trained_at": "2026-10-07T14:34:49.307108+00:00",
   "sklearn_version": "1.9.1",
   "selection_criterion": "Spam precision >= 0.98 first, then highest recall on spam, then F1 score. Never select by accuracy alone.",
+  "selection_basis": "5-Fold Stratified Cross-Validation on TRAIN set",
   "selected_model": "Calibrated Linear SVM",
-  "test_metrics": {
-    "accuracy": 0.9898,
-    "precision": 0.9883,
-    "recall": 0.9904,
-    "f1": 0.9894,
-    "confusion_matrix": {
-      "true_negatives": 3148,
-      "false_positives": 34,
-      "false_negatives": 28,
-      "true_positives": 2883
+  "selection_rationale": "Selection based on 5-Fold Cross-Validation metrics on the training set: Qualifying models with CV Precision >= 0.98: ['Multinomial Naive Bayes', 'Calibrated Linear SVM']. Selected 'Calibrated Linear SVM' based on Priority 2 (Highest CV Recall: 0.9929) and Priority 3 (Highest CV F1: 0.9900). Logistic Regression achieved CV Precision 0.9765 and was disqualified under Priority 1.",
+  "cv_5fold_metrics": {
+    "Multinomial Naive Bayes": {
+      "mean_precision": 0.9824,
+      "std_precision": 0.0028,
+      "mean_recall": 0.9852,
+      "std_recall": 0.0011,
+      "mean_f1": 0.9838,
+      "std_f1": 0.0009,
+      "mean_accuracy": 0.9845,
+      "std_accuracy": 0.0009
+    },
+    "Logistic Regression": {
+      "mean_precision": 0.9765,
+      "std_precision": 0.0025,
+      "mean_recall": 0.9941,
+      "std_recall": 0.0021,
+      "mean_f1": 0.9852,
+      "std_f1": 0.001,
+      "mean_accuracy": 0.9857,
+      "std_accuracy": 0.001
+    },
+    "Calibrated Linear SVM": {
+      "mean_precision": 0.9872,
+      "std_precision": 0.0022,
+      "mean_recall": 0.9929,
+      "std_recall": 0.0027,
+      "mean_f1": 0.99,
+      "std_f1": 0.001,
+      "mean_accuracy": 0.9904,
+      "std_accuracy": 0.001
     }
   },
-  "all_candidate_metrics": {
+  "test_metrics": {
+    "accuracy": 0.99,
+    "precision": 0.9883,
+    "recall": 0.9907,
+    "f1": 0.9895,
+    "false_positives": 34,
+    "false_negatives": 27,
+    "true_positives": 2884,
+    "true_negatives": 3148,
+    "confusion_matrix": {
+      "true_positives": 2884,
+      "false_positives": 34,
+      "true_negatives": 3148,
+      "false_negatives": 27
+    }
+  },
+  "all_candidate_test_metrics": {
     "Multinomial Naive Bayes": {
       "accuracy": 0.9849,
       "precision": 0.9832,
       "recall": 0.9852,
       "f1": 0.9842,
+      "false_positives": 49,
+      "false_negatives": 43,
+      "true_positives": 2868,
+      "true_negatives": 3133,
       "confusion_matrix": {
-        "true_negatives": 3133,
+        "true_positives": 2868,
         "false_positives": 49,
-        "false_negatives": 43,
-        "true_positives": 2868
+        "true_negatives": 3133,
+        "false_negatives": 43
       }
     },
     "Logistic Regression": {
@@ -45,146 +87,190 @@
       "precision": 0.9797,
       "recall": 0.9931,
       "f1": 0.9864,
+      "false_positives": 60,
+      "false_negatives": 20,
+      "true_positives": 2891,
+      "true_negatives": 3122,
       "confusion_matrix": {
-        "true_negatives": 3122,
+        "true_positives": 2891,
         "false_positives": 60,
-        "false_negatives": 20,
-        "true_positives": 2891
+        "true_negatives": 3122,
+        "false_negatives": 20
       }
     },
     "Calibrated Linear SVM": {
-      "accuracy": 0.9898,
+      "accuracy": 0.99,
       "precision": 0.9883,
-      "recall": 0.9904,
-      "f1": 0.9894,
+      "recall": 0.9907,
+      "f1": 0.9895,
+      "false_positives": 34,
+      "false_negatives": 27,
+      "true_positives": 2884,
+      "true_negatives": 3148,
       "confusion_matrix": {
-        "true_negatives": 3148,
+        "true_positives": 2884,
         "false_positives": 34,
-        "false_negatives": 28,
-        "true_positives": 2883
+        "true_negatives": 3148,
+        "false_negatives": 27
       }
     }
+  },
+  "threshold_tuning": {
+    "validation_strategy": "5-Fold Out-of-Fold Cross-Validation on TRAIN set only",
+    "total_train_samples": 24369,
+    "uncertain_lower": 0.4,
+    "uncertain_upper": 0.6,
+    "uncertain_band_count": 113,
+    "uncertain_band_percentage": 0.46,
+    "uncertain_band_class_breakdown": {
+      "ham": 58,
+      "spam": 55
+    },
+    "accuracy_outside_uncertain_band": 0.992,
+    "precision_outside_uncertain_band": 0.989,
+    "recall_outside_uncertain_band": 0.9944,
+    "risk_thresholds": {
+      "low": {
+        "max_prob": 0.4,
+        "description": "Spam probability < 0.40 (Likely legitimate)"
+      },
+      "medium": {
+        "min_prob": 0.4,
+        "max_prob": 0.6,
+        "description": "Spam probability 0.40 - 0.60 (Uncertain / Needs review)"
+      },
+      "high": {
+        "min_prob": 0.6,
+        "description": "Spam probability > 0.60 (Likely spam)"
+      }
+    },
+    "tuning_rationale": "Empirical out-of-fold validation on 24,369 training samples demonstrated that classifying emails within [0.40, 0.60] as uncertain isolates ambiguous samples (113 emails, 58 ham vs 55 spam, nearly 50/50), boosting decision accuracy on the remaining emails to 99.20% with 98.90% spam precision."
+  },
+  "class_weight_usage": {
+    "Logistic Regression": "class_weight='balanced'",
+    "Calibrated Linear SVM": "class_weight='balanced' in base LinearSVC",
+    "Multinomial Naive Bayes": "empirically balanced via class priors"
   },
   "top_global_spam_terms": [
     {
       "term": "your",
-      "weight": 1.805
+      "weight": 1.7985
     },
     {
       "term": "remove",
-      "weight": 1.7931
+      "weight": 1.7917
     },
     {
       "term": "http",
-      "weight": 1.6112
+      "weight": 1.597
     },
     {
       "term": "no",
-      "weight": 1.5618
+      "weight": 1.5466
     },
     {
       "term": "software",
-      "weight": 1.5218
+      "weight": 1.5197
     },
     {
       "term": "here",
-      "weight": 1.4154
+      "weight": 1.4232
     },
     {
       "term": "hello",
-      "weight": 1.306
+      "weight": 1.3038
     },
     {
       "term": "you",
-      "weight": 1.2718
+      "weight": 1.2688
     },
     {
       "term": "online",
-      "weight": 1.2164
+      "weight": 1.2118
     },
     {
       "term": "life",
-      "weight": 1.2066
+      "weight": 1.2048
     },
     {
       "term": "site",
-      "weight": 1.2021
+      "weight": 1.1996
     },
     {
       "term": "sex",
-      "weight": 1.1491
+      "weight": 1.1499
     },
     {
       "term": "account",
-      "weight": 1.1237
+      "weight": 1.125
     },
     {
       "term": "re __number__",
-      "weight": 1.1046
-    },
-    {
-      "term": "viagra",
-      "weight": 1.0544
+      "weight": 1.1079
     },
     {
       "term": "subject get",
-      "weight": 1.0538
+      "weight": 1.0556
+    },
+    {
+      "term": "viagra",
+      "weight": 1.053
     },
     {
       "term": "goodbye",
-      "weight": 1.0155
+      "weight": 1.0116
     },
     {
       "term": "de",
-      "weight": 0.9918
+      "weight": 0.9955
     },
     {
       "term": "money",
-      "weight": 0.9906
+      "weight": 0.9901
     },
     {
       "term": "ra",
-      "weight": 0.99
+      "weight": 0.9847
     },
     {
       "term": "our",
-      "weight": 0.9728
+      "weight": 0.9698
     },
     {
       "term": "mobile",
-      "weight": 0.9586
+      "weight": 0.9549
     },
     {
       "term": "pro",
-      "weight": 0.9364
+      "weight": 0.9377
     },
     {
       "term": "spam",
-      "weight": 0.9232
+      "weight": 0.9288
     },
     {
       "term": "body",
-      "weight": 0.9137
+      "weight": 0.9119
     },
     {
       "term": "rolex",
-      "weight": 0.91
+      "weight": 0.9116
     },
     {
       "term": "over __number__",
-      "weight": 0.9068
+      "weight": 0.9085
     },
     {
       "term": "subject you",
-      "weight": 0.9
+      "weight": 0.8983
     },
     {
       "term": "never",
-      "weight": 0.8957
+      "weight": 0.8956
     },
     {
       "term": "free",
-      "weight": 0.8871
+      "weight": 0.8822
     }
   ],
   "qualifier_notice": "Metrics are measured on a held-out test set of THIS dataset only. Real-world email performance may be lower."
