@@ -1,0 +1,191 @@
+{
+  "dataset_name": "Enron Spam Dataset",
+  "dataset_source_url": "https://github.com/MWiechmann/enron_spam_data",
+  "dataset_license": "GPL-3.0 / Public Domain (CALO Enron Corpus)",
+  "dataset_type": "email",
+  "n_samples": 30462,
+  "n_train": 24369,
+  "n_test": 6093,
+  "class_counts": {
+    "ham": 15910,
+    "spam": 14552
+  },
+  "language": "en",
+  "trained_at": "2026-10-06T15:51:37.538025+00:00",
+  "sklearn_version": "1.9.1",
+  "selection_criterion": "Spam precision >= 0.98 first, then highest recall on spam, then F1 score. Never select by accuracy alone.",
+  "selected_model": "Logistic Regression",
+  "test_metrics": {
+    "accuracy": 0.9895,
+    "precision": 0.9821,
+    "recall": 0.9962,
+    "f1": 0.9891,
+    "confusion_matrix": {
+      "true_negatives": 3129,
+      "false_positives": 53,
+      "false_negatives": 11,
+      "true_positives": 2900
+    }
+  },
+  "all_candidate_metrics": {
+    "Multinomial Naive Bayes": {
+      "accuracy": 0.9862,
+      "precision": 0.9819,
+      "recall": 0.9894,
+      "f1": 0.9856,
+      "confusion_matrix": {
+        "true_negatives": 3129,
+        "false_positives": 53,
+        "false_negatives": 31,
+        "true_positives": 2880
+      }
+    },
+    "Logistic Regression": {
+      "accuracy": 0.9895,
+      "precision": 0.9821,
+      "recall": 0.9962,
+      "f1": 0.9891,
+      "confusion_matrix": {
+        "true_negatives": 3129,
+        "false_positives": 53,
+        "false_negatives": 11,
+        "true_positives": 2900
+      }
+    },
+    "Calibrated Linear SVM": {
+      "accuracy": 0.9918,
+      "precision": 0.9894,
+      "recall": 0.9935,
+      "f1": 0.9914,
+      "confusion_matrix": {
+        "true_negatives": 3151,
+        "false_positives": 31,
+        "false_negatives": 19,
+        "true_positives": 2892
+      }
+    }
+  },
+  "top_global_spam_terms": [
+    {
+      "term": "http",
+      "weight": 4.2948
+    },
+    {
+      "term": "2004",
+      "weight": 4.067
+    },
+    {
+      "term": "2005",
+      "weight": 3.95
+    },
+    {
+      "term": "money",
+      "weight": 3.4802
+    },
+    {
+      "term": "life",
+      "weight": 3.3905
+    },
+    {
+      "term": "mobile",
+      "weight": 3.249
+    },
+    {
+      "term": "software",
+      "weight": 3.2426
+    },
+    {
+      "term": "online",
+      "weight": 3.0442
+    },
+    {
+      "term": "remove",
+      "weight": 3.0379
+    },
+    {
+      "term": "account",
+      "weight": 2.9813
+    },
+    {
+      "term": "click",
+      "weight": 2.7803
+    },
+    {
+      "term": "email",
+      "weight": 2.5501
+    },
+    {
+      "term": "hello",
+      "weight": 2.4856
+    },
+    {
+      "term": "meds",
+      "weight": 2.4489
+    },
+    {
+      "term": "quality",
+      "weight": 2.4308
+    },
+    {
+      "term": "stop",
+      "weight": 2.4056
+    },
+    {
+      "term": "viagra",
+      "weight": 2.3743
+    },
+    {
+      "term": "low",
+      "weight": 2.3602
+    },
+    {
+      "term": "site",
+      "weight": 2.3582
+    },
+    {
+      "term": "man",
+      "weight": 2.3551
+    },
+    {
+      "term": "free",
+      "weight": 2.3539
+    },
+    {
+      "term": "sex",
+      "weight": 2.3375
+    },
+    {
+      "term": "info",
+      "weight": 2.3069
+    },
+    {
+      "term": "subject",
+      "weight": 2.2156
+    },
+    {
+      "term": "net",
+      "weight": 2.1719
+    },
+    {
+      "term": "php",
+      "weight": 2.0852
+    },
+    {
+      "term": "cheap",
+      "weight": 2.0578
+    },
+    {
+      "term": "com",
+      "weight": 2.0459
+    },
+    {
+      "term": "utf",
+      "weight": 2.0121
+    },
+    {
+      "term": "goodbye",
+      "weight": 1.9764
+    }
+  ],
+  "qualifier_notice": "Metrics are measured on a held-out test set of THIS dataset only. Real-world email performance may be lower."
+}
