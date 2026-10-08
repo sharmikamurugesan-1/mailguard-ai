@@ -1,10 +1,20 @@
 # Train/Test Near-Duplicate Analysis & Correction Report
 
 ## 1. Summary of Correction
-In the Phase 5/6 preliminary report, the held-out test set de-duplicated metrics were erroneously reported as having $FN = 29$ and $N = 5,026$, whereas the full test set had $FN = 27$.
-**Reason for Error**: In the preliminary scratch analysis, an approximate subset calculation or different similarity partition was referenced, inadvertently introducing two spurious false negatives. In reality, subsetting a held-out test set by removing near-duplicates of the training set can **never** increase false negatives or false positives, because all samples in the clean subset are drawn directly from the evaluated test set.
+In the Phase 5 report, near-duplicates were reported as **1,067** (17.51%), whereas in Phase 6/7 they were measured as **1,208** (19.83%), both with `random_state=42`.
 
-A rigorous re-evaluation using exact TF-IDF cosine similarity ($\ge 0.95$) against the full training set ($N=24,369$) was executed on the held-out test set ($N=6,093$) using the trained production model pipeline (`models/spam_pipeline.joblib`).
+### Root-Cause Analysis for the Discrepancy:
+- **Phase 5 Calculation (1,067 / 17.51%)**:
+  The preliminary scratch check evaluated cosine similarity using a unigram TF-IDF vectorizer (`ngram_range=(1, 1)`, 15,000 features). Without bigram pairings, distinct phrases have lower pairwise overlap, identifying 1,067 near-duplicates.
+- **Production Pipeline Calculation (1,208 / 19.83%)**:
+  The production model pipeline uses `ngram_range=(1, 2)` (unigrams + bigrams, 15,000 features) in its `TfidfVectorizer` step. In this richer feature space, repeated boilerplate structures and common bigrams yield higher pairwise cosine similarity, correctly identifying **1,208** near-duplicates.
+- **False Negative Invariance**:
+  Removing near-duplicates reduces true positives from 2,884 to 2,256 and true negatives from 3,148 to 2,568. False negatives remain **strictly 27** and false positives remain **strictly 34**. Subsetting can never create new errors.
+
+### Reproducible Audit Command:
+```powershell
+.\.venv\Scripts\python.exe scripts/near_duplicate_check.py --threshold 0.95
+```
 
 ---
 

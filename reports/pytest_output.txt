@@ -1,0 +1,52 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\LENOVO\.gemini\antigravity\scratch\mailguard-ai\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\LENOVO\.gemini\antigravity\scratch\mailguard-ai
+configfile: pytest.ini
+testpaths: tests
+collecting ... collected 42 items
+
+tests/test_api.py::test_index_page_serves_html PASSED                    [  2%]
+tests/test_api.py::test_health_check_endpoint PASSED                     [  4%]
+tests/test_api.py::test_404_error_handler PASSED                         [  7%]
+tests/test_api.py::test_415_unsupported_media_type PASSED                [  9%]
+tests/test_api.py::test_413_payload_too_large_content_length PASSED      [ 11%]
+tests/test_api.py::test_413_payload_too_large_character_limit PASSED     [ 14%]
+tests/test_api.py::test_400_malformed_json PASSED                        [ 16%]
+tests/test_api.py::test_400_missing_body PASSED                          [ 19%]
+tests/test_api.py::test_400_empty_body PASSED                            [ 21%]
+tests/test_api.py::test_400_invalid_types PASSED                         [ 23%]
+tests/test_api.py::test_get_model_info PASSED                            [ 26%]
+tests/test_api.py::test_predict_realistic_spam PASSED                    [ 28%]
+tests/test_api.py::test_predict_realistic_ham PASSED                     [ 30%]
+tests/test_api.py::test_predictor_singleton_load_once PASSED             [ 33%]
+tests/test_data.py::test_validate_columns_success PASSED                 [ 35%]
+tests/test_data.py::test_validate_columns_failure PASSED                 [ 38%]
+tests/test_data.py::test_clean_and_format_dataset_handling PASSED        [ 40%]
+tests/test_data.py::test_invalid_label_rejection PASSED                  [ 42%]
+tests/test_data.py::test_dataset_report_content_integrity PASSED         [ 45%]
+tests/test_model.py::test_model_artifact_exists_and_loads PASSED         [ 47%]
+tests/test_model.py::test_realistic_spam_prediction PASSED               [ 50%]
+tests/test_model.py::test_realistic_ham_prediction PASSED                [ 52%]
+tests/test_model.py::test_fresh_process_load_works PASSED                [ 54%]
+tests/test_model.py::test_metadata_l2_compliance PASSED                  [ 57%]
+tests/test_model.py::test_version_mismatch_warning PASSED                [ 59%]
+tests/test_model.py::test_sanity_samples_exact_behavior PASSED           [ 61%]
+tests/test_preprocessing.py::test_empty_and_null_inputs PASSED           [ 64%]
+tests/test_preprocessing.py::test_unicode_normalization PASSED           [ 66%]
+tests/test_preprocessing.py::test_html_like_text PASSED                  [ 69%]
+tests/test_preprocessing.py::test_very_long_text PASSED                  [ 71%]
+tests/test_preprocessing.py::test_token_normalizations PASSED            [ 73%]
+tests/test_preprocessing.py::test_email_cleaner_transformer PASSED       [ 76%]
+tests/test_reliability.py::test_injected_probabilities_uncertain_band PASSED [ 78%]
+tests/test_reliability.py::test_injected_probabilities_outside_band PASSED [ 80%]
+tests/test_reliability.py::test_no_unsafe_terminology PASSED             [ 83%]
+tests/test_reliability.py::test_warning_code_near_decision_boundary PASSED [ 85%]
+tests/test_reliability.py::test_warning_code_short_input PASSED          [ 88%]
+tests/test_reliability.py::test_warning_code_low_vocab_coverage PASSED   [ 90%]
+tests/test_reliability.py::test_warning_code_non_english PASSED          [ 92%]
+tests/test_reliability.py::test_dataset_age_notice_is_persistent PASSED  [ 95%]
+tests/test_reliability.py::test_reliability_levels PASSED                [ 97%]
+tests/test_reliability.py::test_thresholds_change_with_env_vars PASSED   [100%]
+
+============================= 42 passed in 5.60s ==============================

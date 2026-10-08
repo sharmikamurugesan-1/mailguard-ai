@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MailGuard AI - AI-Powered Email Spam Detection</title>
+  <meta name="description" content="Portfolio-grade email spam classification system using NLP and calibrated machine learning models.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-badge" aria-hidden="true">MG</div>
+        <div class="brand-text">
+          <h1 class="brand-title">MailGuard AI</h1>
+          <p class="brand-subtitle">AI-Powered Email Spam Detection</p>
+        </div>
+      </div>
+      <div class="header-status">
+        <span class="status-indicator status-checking" id="status-dot" aria-hidden="true"></span>
+        <span class="status-label" id="status-text">Checking server...</span>
+      </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="main-content">
+      <!-- Input Card -->
+      <section class="card input-card">
+        <div class="card-header">
+          <h2 class="card-title">Analyze Email Message</h2>
+          <p class="card-desc">Enter an email subject and body to evaluate spam probability, risk indicators, and model explanation signals.</p>
+        </div>
+
+        <!-- Sample Loaders -->
+        <div class="samples-wrapper">
+          <span class="samples-label">Load sample email:</span>
+          <div class="samples-buttons" role="group" aria-label="Load sample email templates">
+            <button type="button" class="btn btn-sm btn-outline" id="sample-spam-btn">Spam Sample</button>
+            <button type="button" class="btn btn-sm btn-outline" id="sample-ham-btn">Legitimate Sample</button>
+            <button type="button" class="btn btn-sm btn-outline" id="sample-borderline-btn">Borderline Sample</button>
+          </div>
+        </div>
+
+        <!-- Submission Form -->
+        <form id="email-form" novalidate>
+          <div class="form-group">
+            <label for="subject-input" class="form-label">Subject Line <span class="text-muted">(Optional)</span></label>
+            <input
+              type="text"
+              id="subject-input"
+              class="form-control"
+              placeholder="e.g., Action Required: Security Alert on Your Account"
+              maxlength="2000"
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="form-group">
+            <div class="label-row">
+              <label for="body-input" class="form-label">Email Body <span class="required-indicator">*</span></label>
+              <span class="char-counter" id="char-counter">0 / 20,000</span>
+            </div>
+            <textarea
+              id="body-input"
+              class="form-control textarea-body"
+              rows="8"
+              placeholder="Paste the email body or raw message text here..."
+              required
+            ></textarea>
+            <div class="field-error hidden" id="body-error" role="alert" aria-live="polite"></div>
+          </div>
+
+          <!-- General Alert Box -->
+          <div class="alert alert-danger hidden" id="general-error" role="alert" aria-live="polite">
+            <span class="alert-message" id="general-error-message"></span>
+            <button type="button" class="btn btn-sm btn-outline hidden" id="retry-btn">Try again</button>
+          </div>
+
+          <!-- Cold Start Slow Request Banner -->
+          <div class="alert alert-info hidden" id="waking-banner" role="status" aria-live="polite">
+            <span class="spinner-small" aria-hidden="true"></span>
+            <span>Server is waking up (free hosting). First request can take up to ~60s. Please wait...</span>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button type="submit" id="analyze-btn" class="btn btn-primary">
+              <span class="btn-text" id="analyze-btn-text">Analyze Email</span>
+              <span class="spinner-sm hidden" id="analyze-btn-spinner" aria-hidden="true"></span>
+            </button>
+            <button type="button" id="clear-btn" class="btn btn-secondary">Clear</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Results Card (Visible after analysis) -->
+      <section class="card result-card hidden" id="result-card" aria-live="polite" aria-atomic="true">
+        <div class="result-header" id="verdict-banner">
+          <div class="verdict-summary">
+            <span class="verdict-icon" id="verdict-icon" aria-hidden="true"></span>
+            <div>
+              <span class="verdict-eyebrow">Analysis Verdict</span>
+              <h2 class="verdict-title" id="verdict-title">--</h2>
+            </div>
+          </div>
+          <div class="risk-badge-wrapper">
+            <span class="risk-badge" id="risk-badge">RISK: --</span>
+          </div>
+        </div>
+
+        <div class="result-body">
+          <!-- Confidence Section -->
+          <div class="result-metric-block">
+            <div class="metric-label-row">
+              <span class="metric-title">Model Confidence</span>
+              <div class="tooltip-container">
+                <button type="button" class="tooltip-trigger" aria-label="Confidence explanation tooltip" aria-describedby="confidence-tip">?</button>
+                <div class="tooltip-box" id="confidence-tip" role="tooltip">
+                  Estimated probability from the model. It is not a guarantee, and the model can be wrong, including confident mistakes.
+                </div>
+              </div>
+              <span class="metric-value" id="confidence-value">--%</span>
+            </div>
+            <div class="progress-track" aria-hidden="true">
+              <div class="progress-fill" id="confidence-bar" style="width: 0%;"></div>
+            </div>
+            <div class="probability-subtext" id="probability-subtext">Calibrated spam probability: --</div>
+          </div>
+
+          <!-- Reliability & Warning Heuristics -->
+          <div class="result-section-block">
+            <div class="section-title-row">
+              <h3 class="section-subtitle">Reliability Assessment</h3>
+              <span class="reliability-pill" id="reliability-level-pill">Level: --</span>
+            </div>
+            <ul class="warnings-list" id="warnings-list">
+              <!-- Dynamically populated via textContent only -->
+            </ul>
+          </div>
+
+          <!-- Top Contributing Terms -->
+          <div class="result-section-block">
+            <h3 class="section-subtitle">Top Contributing Terms</h3>
+            <p class="section-desc">Feature weights pushing the statistical prediction toward spam or legitimate email.</p>
+            <div class="signals-list" id="signals-list">
+              <!-- Dynamically populated via DOM createElement only -->
+            </div>
+            <p class="footnote">These are model-derived feature contributions for this message. They show what influenced the score, not proof of why an email is spam.</p>
+          </div>
+
+          <!-- Persistent Dataset Notice -->
+          <div class="notice-callout">
+            <span class="notice-icon" aria-hidden="true">ℹ</span>
+            <p class="notice-text">Trained on older (2000s-era) Enron corporate emails. Results on modern phishing or scam emails may be less accurate.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Model & Data Transparency Section -->
+      <section class="card transparency-card">
+        <details class="accordion" id="model-details-accordion">
+          <summary class="accordion-summary">
+            <span class="accordion-title">Model &amp; Data Transparency Details</span>
+            <span class="accordion-arrow" aria-hidden="true">&#9662;</span>
+          </summary>
+          <div class="accordion-content" id="model-info-container">
+            <div class="transparency-grid">
+              <div class="info-item">
+                <span class="info-label">Architecture</span>
+                <span class="info-val" id="meta-model-type">Loading...</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Vectorizer</span>
+                <span class="info-val" id="meta-vectorizer">Loading...</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Training Corpus</span>
+                <span class="info-val" id="meta-dataset-name">Loading...</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">License</span>
+                <span class="info-val" id="meta-dataset-license">Loading...</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Dataset Split</span>
+                <span class="info-val" id="meta-dataset-samples">Loading...</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Selection Metric</span>
+                <span class="info-val" id="meta-selection-criterion">Loading...</span>
+              </div>
+            </div>
+
+            <!-- Test Performance Table -->
+            <h4 class="meta-section-title">Held-Out Test Set Performance</h4>
+            <div class="table-responsive">
+              <table class="meta-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Accuracy</th>
+                    <th scope="col">Precision</th>
+                    <th scope="col">Recall</th>
+                    <th scope="col">F1 Score</th>
+                    <th scope="col">False Positives (FP)</th>
+                    <th scope="col">False Negatives (FN)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td id="meta-acc">--</td>
+                    <td id="meta-prec">--</td>
+                    <td id="meta-rec">--</td>
+                    <td id="meta-f1">--</td>
+                    <td id="meta-fp">--</td>
+                    <td id="meta-fn">--</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="caveat-banner">Metrics are measured on a held-out test set of THIS dataset only. Real-world email performance may be lower.</p>
+
+            <h4 class="meta-section-title">Operational Limitations</h4>
+            <ul class="limitations-list" id="meta-limitations-list">
+              <!-- Dynamically populated via textContent only -->
+            </ul>
+          </div>
+        </details>
+      </section>
+    </main>
+
+    <!-- App Footer -->
+    <footer class="app-footer">
+      <p>MailGuard AI is an educational/portfolio project. Do not rely on it as your only protection against spam or phishing.</p>
+    </footer>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

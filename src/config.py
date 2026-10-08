@@ -23,6 +23,7 @@ DATASET_REPORT_MD = REPORTS_DIR / "dataset_report.md"
 MODEL_COMPARISON_JSON = REPORTS_DIR / "model_comparison.json"
 MODEL_COMPARISON_MD = REPORTS_DIR / "model_comparison.md"
 STATIC_DIR = BASE_DIR / "static"
+TEMPLATES_DIR = BASE_DIR / "templates"
 
 
 # Classification & Uncertain Band Thresholds

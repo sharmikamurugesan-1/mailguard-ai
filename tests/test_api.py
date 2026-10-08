@@ -24,6 +24,20 @@ def client(app):
 
 
 # -------------------------------------------------------------------------
+# Index Frontend Endpoint
+# -------------------------------------------------------------------------
+
+def test_index_page_serves_html(client):
+    """GET / returns 200 HTML with application title."""
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "text/html" in response.content_type
+    html_text = response.get_data(as_text=True)
+    assert "MailGuard AI" in html_text
+    assert "AI-Powered Email Spam Detection" in html_text
+
+
+# -------------------------------------------------------------------------
 # Health Check Endpoint
 # -------------------------------------------------------------------------
 

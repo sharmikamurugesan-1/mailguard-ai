@@ -20,7 +20,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from werkzeug.exceptions import BadRequest, HTTPException, NotFound, RequestEntityTooLarge, UnsupportedMediaType
 
 from src import config
@@ -34,6 +34,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
     """Create and configure Flask application instance."""
     app = Flask(
         __name__,
+        template_folder=str(config.TEMPLATES_DIR),
         static_folder=str(config.STATIC_DIR),
         static_url_path="",
     )
@@ -119,6 +120,11 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
         }), 500
 
     # --- Routes ---
+
+    @app.route("/", methods=["GET"])
+    def index():
+        """Serve single-page application frontend."""
+        return render_template("index.html")
 
     @app.route("/api/health", methods=["GET"])
     def health_check():
