@@ -1,22 +1,23 @@
 """Offline ML model training script for MailGuard AI.
 
-Follows locked decisions:
-- Training is strictly offline (src/train.py).
-- Stratified train/test split BEFORE fitting anything.
-- Fit TF-IDF on train only (Pipeline + cross-validation). No data leakage.
-- Deduplication of texts to prevent leakage across splits.
-- Compare Naive Bayes, Logistic Regression, and Calibrated Linear SVM.
-- SELECTION CRITERION stated before training:
-    "Spam precision >= 0.98 first, then highest recall on spam, then F1 score.
-     Never select by accuracy alone."
-- Record scikit-learn version, training date, dataset provenance, and held-out test metrics.
+Phase 4: Preprocessing + Training
+- Pipeline architecture: preprocessing (EmailCleanerTransformer) -> TfidfVectorizer -> classifier
+- Cross-platform paths and zero server-start execution
+- Stratified train/test split with fixed random_state=42
+- Cross-split duplicate assertion to guarantee 0 data leakage
+- 5-Fold Stratified Cross-Validation on train set
+- Class imbalance handled (class_weight='balanced')
+- Comparison across 3 models: Multinomial Naive Bayes, Logistic Regression, Calibrated Linear SVM
+- Pre-declared selection criterion:
+    "Spam precision >= 0.98 first, then highest recall on spam, then F1 score. Never select by accuracy alone."
+- Raw comparison metrics saved to reports/model_comparison.json
+- Winning pipeline saved to models/spam_pipeline.joblib and models/metadata.json
 """
 
 from datetime import datetime, timezone
 import json
 import logging
 from pathlib import Path
-import sys
 from typing import Any, Dict, List, Tuple
 
 import joblib
@@ -33,18 +34,24 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
 )
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold, cross_validate, train_test_split
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 
-from src.config import METADATA_PATH, MODEL_PATH, RAW_DATA_PATH
+from src.config import (
+    METADATA_PATH,
+    MODEL_COMPARISON_JSON,
+    MODEL_PATH,
+    RAW_DATA_PATH,
+    REPORTS_DIR,
+)
 from src.preprocess import combine_email
+from src.preprocessing import EmailCleanerTransformer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("MailGuard-Train")
 
-# Selection criterion statement (LOCKED & PRE-DECLARED)
 SELECTION_CRITERION_DOC = (
     "Spam precision >= 0.98 first, then highest recall on spam, then F1 score. "
     "Never select by accuracy alone."
@@ -52,31 +59,19 @@ SELECTION_CRITERION_DOC = (
 
 
 def load_and_clean_data(csv_path: Path) -> Tuple[pd.Series, pd.Series, Dict[str, Any]]:
-    """Load, inspect, clean, and deduplicate raw email dataset.
-
-    Returns:
-        X: Combined text series.
-        y: Integer target series (1 for spam, 0 for ham).
-        provenance: Dataset profile and cleaning audit information.
-    """
+    """Load, inspect, clean, and deduplicate raw email dataset."""
     logger.info(f"Loading raw dataset from {csv_path}...")
     if not csv_path.exists():
         raise FileNotFoundError(f"Raw dataset file not found at {csv_path}")
 
     df = pd.read_csv(csv_path)
     initial_rows = len(df)
-    logger.info(f"Raw rows loaded: {initial_rows}")
-
-    # Inspect nulls
-    null_subject = int(df["Subject"].isnull().sum())
-    null_message = int(df["Message"].isnull().sum())
-    both_null = int((df["Subject"].isnull() & df["Message"].isnull()).sum())
-    logger.info(f"Null audit - Subject: {null_subject}, Message: {null_message}, Both null: {both_null}")
 
     # Remove rows where both Subject and Message are null
-    df = df[~(df["Subject"].isnull() & df["Message"].isnull())].copy()
+    both_null_mask = df["Subject"].isnull() & df["Message"].isnull()
+    both_null_count = int(both_null_mask.sum())
+    df = df[~both_null_mask].copy()
 
-    # Fill NA for combination
     df["Subject"] = df["Subject"].fillna("")
     df["Message"] = df["Message"].fillna("")
 
@@ -88,14 +83,13 @@ def load_and_clean_data(csv_path: Path) -> Tuple[pd.Series, pd.Series, Dict[str,
     # Filter out empty texts
     df = df[df["combined_text"].str.strip().str.len() > 0].copy()
 
-    # Deduplicate texts to prevent data leakage between train and test sets
+    # Deduplicate texts
     duplicates_before = int(df.duplicated(subset=["combined_text"]).sum())
     df = df.drop_duplicates(subset=["combined_text"]).reset_index(drop=True)
     logger.info(f"Deduplication removed {duplicates_before} duplicate email texts.")
 
-    # Parse and encode target labels
-    label_col = "Spam/Ham"
-    raw_labels = df[label_col].astype(str).str.strip().str.lower()
+    # Target encoding
+    raw_labels = df["Spam/Ham"].astype(str).str.strip().str.lower()
     y = (raw_labels == "spam").astype(int)
 
     ham_count = int((y == 0).sum())
@@ -109,9 +103,7 @@ def load_and_clean_data(csv_path: Path) -> Tuple[pd.Series, pd.Series, Dict[str,
         "dataset_license": "GPL-3.0 / Public Domain (CALO Enron Corpus)",
         "dataset_type": "email",
         "initial_rows": initial_rows,
-        "null_subject": null_subject,
-        "null_message": null_message,
-        "both_null_dropped": both_null,
+        "both_null_dropped": both_null_count,
         "duplicates_dropped": duplicates_before,
         "final_samples": final_rows,
         "class_counts": {"ham": ham_count, "spam": spam_count},
@@ -122,23 +114,25 @@ def load_and_clean_data(csv_path: Path) -> Tuple[pd.Series, pd.Series, Dict[str,
 
 
 def build_candidate_pipelines() -> Dict[str, Pipeline]:
-    """Build candidate ML pipelines for comparison.
+    """Build candidate ML pipelines conforming to:
 
-    All models use the same TF-IDF vectorizer configuration fitted on train only.
+    preprocessing -> TfidfVectorizer(ngrams, min_df, max_features) -> classifier.
     """
     tfidf = TfidfVectorizer(
         max_features=15000,
         ngram_range=(1, 2),
-        stop_words="english",
+        min_df=3,
         sublinear_tf=True,
     )
 
     models = {
         "Multinomial Naive Bayes": Pipeline([
+            ("preprocess", EmailCleanerTransformer()),
             ("tfidf", tfidf),
             ("clf", MultinomialNB(alpha=0.1)),
         ]),
         "Logistic Regression": Pipeline([
+            ("preprocess", EmailCleanerTransformer()),
             ("tfidf", tfidf),
             ("clf", LogisticRegression(
                 class_weight="balanced",
@@ -148,6 +142,7 @@ def build_candidate_pipelines() -> Dict[str, Pipeline]:
             )),
         ]),
         "Calibrated Linear SVM": Pipeline([
+            ("preprocess", EmailCleanerTransformer()),
             ("tfidf", tfidf),
             ("clf", CalibratedClassifierCV(
                 estimator=LinearSVC(
@@ -164,26 +159,50 @@ def build_candidate_pipelines() -> Dict[str, Pipeline]:
     return models
 
 
-def evaluate_model(pipeline: Pipeline, X_train: pd.Series, y_train: pd.Series, X_test: pd.Series, y_test: pd.Series) -> Dict[str, Any]:
-    """Train pipeline on X_train and evaluate on held-out X_test.
+def evaluate_model_cv_and_test(
+    name: str,
+    pipeline: Pipeline,
+    X_train: pd.Series,
+    y_train: pd.Series,
+    X_test: pd.Series,
+    y_test: pd.Series,
+    cv_folds: int = 5,
+) -> Dict[str, Any]:
+    """Perform 5-fold cross-validation on train split, then evaluate on held-out test split."""
+    logger.info(f"Running {cv_folds}-Fold Stratified CV for {name}...")
 
-    All metrics are computed on the real held-out test split.
-    """
+    # Cross-validation on train set
+    skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
+    cv_results = cross_validate(
+        pipeline,
+        X_train,
+        y_train,
+        cv=skf,
+        scoring=["precision", "recall", "f1", "accuracy"],
+        n_jobs=-1,
+        return_train_score=False,
+    )
+
+    cv_summary = {
+        "mean_accuracy": float(round(np.mean(cv_results["test_accuracy"]), 4)),
+        "std_accuracy": float(round(np.std(cv_results["test_accuracy"]), 4)),
+        "mean_precision": float(round(np.mean(cv_results["test_precision"]), 4)),
+        "std_precision": float(round(np.std(cv_results["test_precision"]), 4)),
+        "mean_recall": float(round(np.mean(cv_results["test_recall"]), 4)),
+        "std_recall": float(round(np.std(cv_results["test_recall"]), 4)),
+        "mean_f1": float(round(np.mean(cv_results["test_f1"]), 4)),
+        "std_f1": float(round(np.std(cv_results["test_f1"]), 4)),
+    }
+
+    # Fit final pipeline on complete X_train and evaluate on held-out test split
+    logger.info(f"Fitting {name} on full train set and evaluating on held-out test split...")
     pipeline.fit(X_train, y_train)
     y_pred = pipeline.predict(X_test)
-
-    # Probabilities for calibration check
-    if hasattr(pipeline, "predict_proba"):
-        y_prob = pipeline.predict_proba(X_test)[:, 1]
-    elif hasattr(pipeline, "decision_function"):
-        y_prob = pipeline.decision_function(X_test)
-    else:
-        y_prob = None
 
     cm = confusion_matrix(y_test, y_pred)
     tn, fp, fn, tp = cm.ravel()
 
-    metrics = {
+    test_metrics = {
         "accuracy": float(round(accuracy_score(y_test, y_pred), 4)),
         "precision": float(round(precision_score(y_test, y_pred, pos_label=1, zero_division=0), 4)),
         "recall": float(round(recall_score(y_test, y_pred, pos_label=1, zero_division=0), 4)),
@@ -195,7 +214,11 @@ def evaluate_model(pipeline: Pipeline, X_train: pd.Series, y_train: pd.Series, X
             "true_positives": int(tp),
         },
     }
-    return metrics
+
+    return {
+        "cv_5fold": cv_summary,
+        "test_metrics": test_metrics,
+    }
 
 
 def select_best_model(results: Dict[str, Dict[str, Any]]) -> str:
@@ -209,21 +232,28 @@ def select_best_model(results: Dict[str, Dict[str, Any]]) -> str:
     logger.info(f"Applying selection criterion: '{SELECTION_CRITERION_DOC}'")
 
     qualified = {
-        name: res for name, res in results.items() if res["precision"] >= 0.98
+        name: res for name, res in results.items()
+        if res["test_metrics"]["precision"] >= 0.98
     }
 
     if qualified:
-        logger.info(f"Models meeting precision >= 0.98: {list(qualified.keys())}")
-        # Sort by recall (desc), then F1 (desc)
+        logger.info(f"Models meeting test precision >= 0.98: {list(qualified.keys())}")
         best_name = max(
             qualified.keys(),
-            key=lambda k: (qualified[k]["recall"], qualified[k]["f1"])
+            key=lambda k: (
+                qualified[k]["test_metrics"]["recall"],
+                qualified[k]["test_metrics"]["f1"],
+            )
         )
     else:
         logger.warning("No model met precision >= 0.98 threshold. Selecting highest precision model.")
         best_name = max(
             results.keys(),
-            key=lambda k: (results[k]["precision"], results[k]["recall"], results[k]["f1"])
+            key=lambda k: (
+                results[k]["test_metrics"]["precision"],
+                results[k]["test_metrics"]["recall"],
+                results[k]["test_metrics"]["f1"],
+            )
         )
 
     logger.info(f"Selected winner: {best_name}")
@@ -240,10 +270,8 @@ def extract_top_spam_terms(pipeline: Pipeline, top_n: int = 30) -> List[Dict[str
     if isinstance(clf, LogisticRegression):
         weights = clf.coef_[0]
     elif isinstance(clf, MultinomialNB):
-        # Difference in log probabilities between spam (1) and ham (0)
         weights = clf.feature_log_prob_[1] - clf.feature_log_prob_[0]
     elif isinstance(clf, CalibratedClassifierCV):
-        # Average calibrated base estimator weights if available
         base_weights = []
         for calibrated_classifier in clf.calibrated_classifiers_:
             estimator = getattr(calibrated_classifier, "estimator", None)
@@ -264,14 +292,14 @@ def extract_top_spam_terms(pipeline: Pipeline, top_n: int = 30) -> List[Dict[str
     return top_terms
 
 
-def train_and_evaluate() -> None:
-    """Full offline training orchestration."""
+def run_training_pipeline() -> Tuple[Pipeline, Dict[str, Any]]:
+    """Full offline training pipeline orchestration."""
     print("=" * 80)
-    print("MAILGUARD AI - OFFLINE MODEL TRAINING & VALIDATION PIPELINE")
-    print(f"Declared Selection Criterion: {SELECTION_CRITERION_DOC}")
+    print("MAILGUARD AI - PHASE 4: PREPROCESSING & MODEL TRAINING")
+    print(f"Selection Criterion: {SELECTION_CRITERION_DOC}")
     print("=" * 80)
 
-    # 1. Load, clean and audit data
+    # 1. Load, clean, and deduplicate data
     X, y, profile = load_and_clean_data(RAW_DATA_PATH)
 
     # 2. Stratified train/test split BEFORE fitting any transformer
@@ -279,39 +307,77 @@ def train_and_evaluate() -> None:
         X, y, test_size=0.20, random_state=42, stratify=y
     )
     logger.info(f"Train split size: {len(X_train)} (Ham: {(y_train == 0).sum()}, Spam: {(y_train == 1).sum()})")
-    logger.info(f"Held-out Test split size: {len(X_test)} (Ham: {(y_test == 0).sum()}, Spam: {(y_test == 1).sum()})")
+    logger.info(f"Test split size: {len(X_test)} (Ham: {(y_test == 0).sum()}, Spam: {(y_test == 1).sum()})")
 
-    # 3. Candidate models comparison
+    # 3. Cross-split duplicate assertion to guarantee 0 data leakage
+    train_texts = set(X_train)
+    test_overlap = sum(1 for t in X_test if t in train_texts)
+    logger.info(f"Cross-split duplicate check: {test_overlap} overlapping texts found.")
+    assert test_overlap == 0, f"Data leakage detected! {test_overlap} texts appear in both train and test splits."
+
+    # 4. Train and compare 3 models
     candidates = build_candidate_pipelines()
     results: Dict[str, Dict[str, Any]] = {}
 
-    print("\n--- MODEL COMPARISON ON HELD-OUT TEST SPLIT ---")
+    print("\n--- MODEL COMPARISON RESULTS (CV + TEST) ---")
     for name, pipeline in candidates.items():
-        logger.info(f"Fitting and evaluating: {name}...")
-        metrics = evaluate_model(pipeline, X_train, y_train, X_test, y_test)
-        results[name] = metrics
-        cm = metrics["confusion_matrix"]
+        eval_output = evaluate_model_cv_and_test(
+            name, pipeline, X_train, y_train, X_test, y_test, cv_folds=5
+        )
+        results[name] = eval_output
+
+        cv = eval_output["cv_5fold"]
+        tm = eval_output["test_metrics"]
+        cm = tm["confusion_matrix"]
+
         print(f"\nModel: {name}")
-        print(f"  Accuracy:  {metrics['accuracy']:.4f}")
-        print(f"  Precision (Spam): {metrics['precision']:.4f}")
-        print(f"  Recall (Spam):    {metrics['recall']:.4f}")
-        print(f"  F1 Score (Spam):  {metrics['f1']:.4f}")
+        print(f"  5-Fold CV Accuracy:  {cv['mean_accuracy']:.4f} (+/- {cv['std_accuracy']:.4f})")
+        print(f"  5-Fold CV Precision: {cv['mean_precision']:.4f} (+/- {cv['std_precision']:.4f})")
+        print(f"  5-Fold CV Recall:    {cv['mean_recall']:.4f} (+/- {cv['std_recall']:.4f})")
+        print(f"  5-Fold CV F1:        {cv['mean_f1']:.4f} (+/- {cv['std_f1']:.4f})")
+        print(f"  Held-out Test Precision: {tm['precision']:.4f} | Recall: {tm['recall']:.4f} | F1: {tm['f1']:.4f} | Acc: {tm['accuracy']:.4f}")
         print(f"  Confusion Matrix: TP={cm['true_positives']}, FP={cm['false_positives']}, TN={cm['true_negatives']}, FN={cm['false_negatives']}")
 
-    # 4. Model selection
+    # 5. Model selection
     winner_name = select_best_model(results)
     winner_pipeline = candidates[winner_name]
-    winner_metrics = results[winner_name]
+    winner_metrics = results[winner_name]["test_metrics"]
 
-    # 5. Extract global top spam terms
+    # 6. Extract top contributing spam terms
     top_terms = extract_top_spam_terms(winner_pipeline, top_n=30)
 
-    # 6. Save model artifact
+    # 7. Save raw results to reports/model_comparison.json
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    comparison_report = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "selection_criterion": SELECTION_CRITERION_DOC,
+        "stratified_split": {
+            "total_samples": len(X),
+            "train_samples": len(X_train),
+            "test_samples": len(X_test),
+            "random_state": 42,
+            "test_size": 0.20,
+            "cross_split_duplicates": test_overlap,
+        },
+        "models": results,
+        "selected_model": winner_name,
+        "selection_rationale": (
+            f"Selected {winner_name} based on pre-declared criterion: "
+            f"Spam Precision ({winner_metrics['precision']:.4f}) >= 0.98, "
+            f"then highest Spam Recall ({winner_metrics['recall']:.4f}) and F1 ({winner_metrics['f1']:.4f})."
+        ),
+    }
+
+    logger.info(f"Saving model comparison report to {MODEL_COMPARISON_JSON}...")
+    with open(MODEL_COMPARISON_JSON, "w", encoding="utf-8") as f:
+        json.dump(comparison_report, f, indent=2)
+
+    # 8. Save production pipeline artifact
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    logger.info(f"Saving winning model artifact to {MODEL_PATH}...")
+    logger.info(f"Saving winning pipeline artifact to {MODEL_PATH}...")
     joblib.dump(winner_pipeline, MODEL_PATH)
 
-    # 7. Save metadata.json
+    # 9. Save models/metadata.json
     metadata: Dict[str, Any] = {
         "dataset_name": profile["dataset_name"],
         "dataset_source_url": profile["dataset_source_url"],
@@ -327,7 +393,7 @@ def train_and_evaluate() -> None:
         "selection_criterion": SELECTION_CRITERION_DOC,
         "selected_model": winner_name,
         "test_metrics": winner_metrics,
-        "all_candidate_metrics": results,
+        "all_candidate_metrics": {k: v["test_metrics"] for k, v in results.items()},
         "top_global_spam_terms": top_terms,
         "qualifier_notice": (
             "Metrics are measured on a held-out test set of THIS dataset only. "
@@ -335,21 +401,23 @@ def train_and_evaluate() -> None:
         ),
     }
 
-    METADATA_PATH.parent.mkdir(parents=True, exist_ok=True)
-    logger.info(f"Writing metadata to {METADATA_PATH}...")
+    logger.info(f"Saving metadata to {METADATA_PATH}...")
     with open(METADATA_PATH, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
 
     print("\n" + "=" * 80)
-    print("TRAINING & VALIDATION COMPLETE")
+    print("PHASE 4 TRAINING COMPLETE")
     print(f"Selected Model: {winner_name}")
-    print(f"Spam Precision: {winner_metrics['precision']:.4f} (Priority 1)")
-    print(f"Spam Recall:    {winner_metrics['recall']:.4f} (Priority 2)")
-    print(f"Spam F1:        {winner_metrics['f1']:.4f} (Priority 3)")
-    print(f"Artifact Saved: {MODEL_PATH}")
-    print(f"Metadata Saved: {METADATA_PATH}")
+    print(f"Test Precision: {winner_metrics['precision']:.4f} (Priority 1)")
+    print(f"Test Recall:    {winner_metrics['recall']:.4f} (Priority 2)")
+    print(f"Test F1:        {winner_metrics['f1']:.4f} (Priority 3)")
+    print(f"Saved Artifact: {MODEL_PATH}")
+    print(f"Saved Metadata: {METADATA_PATH}")
+    print(f"Comparison:     {MODEL_COMPARISON_JSON}")
     print("=" * 80)
+
+    return winner_pipeline, comparison_report
 
 
 if __name__ == "__main__":
-    train_and_evaluate()
+    run_training_pipeline()

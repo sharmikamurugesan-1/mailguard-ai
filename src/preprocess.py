@@ -10,6 +10,8 @@ from src.config import (
     MIN_TOKEN_COUNT,
     MIN_VOCAB_COVERAGE,
 )
+from src.preprocessing import EmailCleanerTransformer, clean_text_for_nlp
+
 
 # Common English function words used for basic language heuristic validation
 COMMON_ENGLISH_WORDS = {

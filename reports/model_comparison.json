@@ -1,0 +1,88 @@
+{
+  "generated_at": "2026-10-06T16:35:15.287186+00:00",
+  "selection_criterion": "Spam precision >= 0.98 first, then highest recall on spam, then F1 score. Never select by accuracy alone.",
+  "stratified_split": {
+    "total_samples": 30462,
+    "train_samples": 24369,
+    "test_samples": 6093,
+    "random_state": 42,
+    "test_size": 0.2,
+    "cross_split_duplicates": 0
+  },
+  "models": {
+    "Multinomial Naive Bayes": {
+      "cv_5fold": {
+        "mean_accuracy": 0.9845,
+        "std_accuracy": 0.0008,
+        "mean_precision": 0.9824,
+        "std_precision": 0.0027,
+        "mean_recall": 0.9853,
+        "std_recall": 0.0012,
+        "mean_f1": 0.9838,
+        "std_f1": 0.0008
+      },
+      "test_metrics": {
+        "accuracy": 0.9849,
+        "precision": 0.9832,
+        "recall": 0.9852,
+        "f1": 0.9842,
+        "confusion_matrix": {
+          "true_negatives": 3133,
+          "false_positives": 49,
+          "false_negatives": 43,
+          "true_positives": 2868
+        }
+      }
+    },
+    "Logistic Regression": {
+      "cv_5fold": {
+        "mean_accuracy": 0.9858,
+        "std_accuracy": 0.0009,
+        "mean_precision": 0.9764,
+        "std_precision": 0.0025,
+        "mean_recall": 0.9942,
+        "std_recall": 0.0021,
+        "mean_f1": 0.9852,
+        "std_f1": 0.001
+      },
+      "test_metrics": {
+        "accuracy": 0.9869,
+        "precision": 0.9797,
+        "recall": 0.9931,
+        "f1": 0.9864,
+        "confusion_matrix": {
+          "true_negatives": 3122,
+          "false_positives": 60,
+          "false_negatives": 20,
+          "true_positives": 2891
+        }
+      }
+    },
+    "Calibrated Linear SVM": {
+      "cv_5fold": {
+        "mean_accuracy": 0.9904,
+        "std_accuracy": 0.0009,
+        "mean_precision": 0.987,
+        "std_precision": 0.0019,
+        "mean_recall": 0.993,
+        "std_recall": 0.0026,
+        "mean_f1": 0.99,
+        "std_f1": 0.001
+      },
+      "test_metrics": {
+        "accuracy": 0.9898,
+        "precision": 0.9883,
+        "recall": 0.9904,
+        "f1": 0.9894,
+        "confusion_matrix": {
+          "true_negatives": 3148,
+          "false_positives": 34,
+          "false_negatives": 28,
+          "true_positives": 2883
+        }
+      }
+    }
+  },
+  "selected_model": "Calibrated Linear SVM",
+  "selection_rationale": "Selected Calibrated Linear SVM based on pre-declared criterion: Spam Precision (0.9883) >= 0.98, then highest Spam Recall (0.9904) and F1 (0.9894)."
+}

@@ -19,6 +19,7 @@ METADATA_PATH = Path(os.getenv("METADATA_PATH", str(MODELS_DIR / "metadata.json"
 REPORTS_DIR = BASE_DIR / "reports"
 DATASET_REPORT_JSON = REPORTS_DIR / "dataset_report.json"
 DATASET_REPORT_MD = REPORTS_DIR / "dataset_report.md"
+MODEL_COMPARISON_JSON = REPORTS_DIR / "model_comparison.json"
 STATIC_DIR = BASE_DIR / "static"
 
 
