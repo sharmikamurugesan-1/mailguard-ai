@@ -58,15 +58,16 @@ class SpamPredictor:
     def _load_artifacts(self) -> None:
         """Load pipeline artifact and metadata once, checking version compatibility."""
         # 1. Load Metadata
+        metadata_filename = Path(self.metadata_path).name
         if self.metadata_path.exists():
             try:
                 with open(self.metadata_path, "r", encoding="utf-8") as f:
                     self.metadata = json.load(f)
             except Exception as e:
-                logger.warning(f"Could not load metadata from {self.metadata_path}: {e}")
+                logger.warning(f"Could not load metadata from {metadata_filename}: {e}")
                 self.metadata = {}
         else:
-            logger.warning(f"Metadata file not found at {self.metadata_path}")
+            logger.warning(f"Metadata file not found at {metadata_filename}")
             self.metadata = {}
 
         # Check scikit-learn version mismatch
@@ -82,13 +83,14 @@ class SpamPredictor:
             logger.warning(warn_msg)
 
         # 2. Load Pipeline Artifact
+        model_filename = Path(self.model_path).name
         if not self.model_path.exists():
             raise FileNotFoundError(
-                f"Model artifact not found at {self.model_path}. "
-                "Ensure models/spam_pipeline.joblib exists."
+                f"Model artifact not found: {model_filename}. "
+                f"Ensure models/{model_filename} exists."
             )
 
-        logger.info(f"Loading model pipeline from {self.model_path}...")
+        logger.info(f"Loading model pipeline from {model_filename}...")
         self.pipeline = joblib.load(self.model_path)
         self.load_count += 1
         logger.info(f"Model pipeline loaded successfully (load_count={self.load_count}).")

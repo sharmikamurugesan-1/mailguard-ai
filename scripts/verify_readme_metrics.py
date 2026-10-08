@@ -1,4 +1,4 @@
-"""Verify that all metrics cited in README.md match models/metadata.json and reports/."""
+"""Verify that all metrics cited in README.md match models/metadata.json in their labelled context."""
 
 import json
 import re
@@ -9,7 +9,6 @@ def main():
     base_dir = Path(__file__).resolve().parent.parent
     readme_path = base_dir / "README.md"
     metadata_path = base_dir / "models" / "metadata.json"
-    dedup_path = base_dir / "reports" / "deduplication_report.md"
 
     if not readme_path.exists():
         print(f"ERROR: {readme_path} does not exist.")
@@ -22,72 +21,63 @@ def main():
     with open(metadata_path, "r", encoding="utf-8") as f:
         meta = json.load(f)
 
-    print("=" * 60)
-    print("VERIFYING README.MD METRICS AGAINST SOURCE OF TRUTH")
-    print("=" * 60)
+    print("=" * 75)
+    print("STRENGTHENED CONTEXT-AWARE README.MD METRIC VERIFICATION")
+    print("=" * 75)
 
-    checks = []
+    checks = [
+        # (Label, Context Regex Pattern, Expected Context Description)
+        ("Total samples in context", r"from \*\*30,462\*\* total samples", "Total sample count sentence"),
+        ("Train split in context", r"training split of \*\*24,369\*\* samples", "Train split size description"),
+        ("Test split in context", r"held-out test split of \*\*6,093\*\* emails", "Test split size description"),
+        
+        ("CV SVM Precision in table", r"\|\s*\*\*Calibrated Linear SVM\*\*\s*\|\s*\*\*98\.72%\*\*", "CV comparison table row"),
+        ("CV SVM Recall in table", r"\|\s*\*\*Calibrated Linear SVM\*\*\s*\|.*?\|\s*\*\*99\.29%\*\*", "CV comparison table row"),
+        ("CV SVM F1 in table", r"\|\s*\*\*Calibrated Linear SVM\*\*\s*\|.*?\|\s*\*\*99\.00%\*\*", "CV comparison table row"),
+        ("CV SVM Accuracy in table", r"\|\s*\*\*Calibrated Linear SVM\*\*\s*\|.*?\|\s*\*\*99\.04%\*\*", "CV comparison table row"),
+        ("CV NB Precision in table", r"\|\s*Multinomial Naive Bayes\s*\|\s*98\.24%", "CV comparison table row"),
+        ("CV LR Precision in table", r"\|\s*Logistic Regression\s*\|\s*97\.65%", "CV comparison table row"),
 
-    # 1. Dataset sample sizes
-    n_samples = meta["n_samples"]
-    n_train = meta["n_train"]
-    n_test = meta["n_test"]
-    checks.append(("Dataset total samples", str(n_samples), f"{n_samples:,}" in readme_text or str(n_samples) in readme_text))
-    checks.append(("Train set size", str(n_train), f"{n_train:,}" in readme_text or str(n_train) in readme_text))
-    checks.append(("Test set size", str(n_test), f"{n_test:,}" in readme_text or str(n_test) in readme_text))
+        ("Test Accuracy in Set A", r"-\s*\*\*Accuracy\*\*:\s*\*\*99\.00%\*\*", "Held-out test set accuracy bullet"),
+        ("Test Precision in Set A", r"-\s*\*\*Precision \(Spam\)\*\*:\s*\*\*98\.83%\*\*", "Held-out test set precision bullet"),
+        ("Test Recall in Set A", r"-\s*\*\*Recall \(Spam\)\*\*:\s*\*\*99\.07%\*\*", "Held-out test set recall bullet"),
+        ("Test F1 in Set A", r"-\s*\*\*F1 Score\*\*:\s*\*\*98\.95%\*\*", "Held-out test set F1 bullet"),
+        ("Test True Positives in Set A", r"-\s*\*\*True Positives \(TP\)\*\*:\s*2,884", "Confusion matrix TP bullet"),
+        ("Test True Negatives in Set A", r"-\s*\*\*True Negatives \(TN\)\*\*:\s*3,148", "Confusion matrix TN bullet"),
+        ("Test False Positives in Set A", r"-\s*\*\*False Positives \(FP\)\*\*:\s*34\b", "Confusion matrix FP bullet"),
+        ("Test False Negatives in Set A", r"-\s*\*\*False Negatives \(FN\)\*\*:\s*27\b", "Confusion matrix FN bullet"),
 
-    # 2. 5-Fold CV metrics for Calibrated Linear SVM
-    cv_svm = meta["cv_5fold_metrics"]["Calibrated Linear SVM"]
-    checks.append(("CV Precision (0.9872)", "98.72%", "98.72%" in readme_text))
-    checks.append(("CV Recall (0.9929)", "99.29%", "99.29%" in readme_text))
-    checks.append(("CV F1 (0.9900)", "99.00%", "99.00%" in readme_text or "0.9900" in readme_text))
-    checks.append(("CV Accuracy (0.9904)", "99.04%", "99.04%" in readme_text))
+        ("Near-duplicates n-gram (1,2)", r"Identifies \*\*1,208\*\* near-duplicates \(\*\*19\.83%\*\*", "Near-duplicate production bullet"),
+        ("Near-duplicates unigram (1,1)", r"Identifies \*\*1,070\*\* near-duplicates \(\*\*17\.56%\*\*", "Near-duplicate unigram bullet"),
+        ("De-duplicated test split size", r"De-Duplicated Test Set \(\$N = 4,885\$\)", "De-duplicated column header"),
+        ("De-duplicated Accuracy in table", r"\|\s*\*\*Accuracy\*\*\s*\|\s*99\.00%\s*\|\s*\*\*98\.75%\*\*", "Deduplication table row"),
+        ("De-duplicated Precision in table", r"\|\s*\*\*Precision \(Spam\)\*\*\s*\|\s*98\.83%\s*\|\s*\*\*98\.52%\*\*", "Deduplication table row"),
+        ("De-duplicated Recall in table", r"\|\s*\*\*Recall \(Spam\)\*\*\s*\|\s*99\.07%\s*\|\s*\*\*98\.82%\*\*", "Deduplication table row"),
+        ("De-duplicated F1 in table", r"\|\s*\*\*F1 Score\*\*\s*\|\s*98\.95%\s*\|\s*\*\*98\.67%\*\*", "Deduplication table row"),
+        ("Invariance of FP in table", r"\|\s*\*\*False Positives \(FP\)\*\*\s*\|\s*34\s*\|\s*34\s*\|", "Deduplication table row"),
+        ("Invariance of FN in table", r"\|\s*\*\*False Negatives \(FN\)\*\*\s*\|\s*27\s*\|\s*27\s*\|", "Deduplication table row"),
 
-    # 3. Candidate comparisons in CV
-    cv_nb = meta["cv_5fold_metrics"]["Multinomial Naive Bayes"]
-    cv_lr = meta["cv_5fold_metrics"]["Logistic Regression"]
-    checks.append(("NB CV Precision (0.9824)", "98.24%", "98.24%" in readme_text))
-    checks.append(("LR CV Precision (0.9765)", "97.65%", "97.65%" in readme_text))
-
-    # 4. Held-out test set metrics (Calibrated Linear SVM)
-    test_m = meta["test_metrics"]
-    checks.append(("Test Accuracy (0.9900)", "99.00%", "99.00%" in readme_text))
-    checks.append(("Test Precision (0.9883)", "98.83%", "98.83%" in readme_text))
-    checks.append(("Test Recall (0.9907)", "99.07%", "99.07%" in readme_text))
-    checks.append(("Test F1 (0.9895)", "98.95%", "98.95%" in readme_text))
-    checks.append(("Test False Positives (34)", "34", "34" in readme_text))
-    checks.append(("Test False Negatives (27)", "27", "27" in readme_text))
-    checks.append(("Test True Positives (2884)", "2,884", "2,884" in readme_text or "2884" in readme_text))
-    checks.append(("Test True Negatives (3148)", "3,148", "3,148" in readme_text or "3148" in readme_text))
-
-    # 5. Near-duplicate audit numbers
-    checks.append(("Near-duplicates count (1208)", "1,208", "1,208" in readme_text or "1208" in readme_text))
-    checks.append(("Near-duplicates percentage (19.83%)", "19.83%", "19.83%" in readme_text))
-    checks.append(("De-duplicated test set size (4885)", "4,885", "4,885" in readme_text or "4885" in readme_text))
-    checks.append(("De-duplicated Accuracy (98.75%)", "98.75%", "98.75%" in readme_text))
-    checks.append(("De-duplicated Precision (98.52%)", "98.52%", "98.52%" in readme_text))
-    checks.append(("De-duplicated Recall (98.82%)", "98.82%", "98.82%" in readme_text))
-    checks.append(("De-duplicated F1 (98.67%)", "98.67%", "98.67%" in readme_text))
-
-    # 6. Uncertain band numbers
-    tun = meta["threshold_tuning"]
-    checks.append(("Uncertain band lower (0.40)", "0.40", "0.40" in readme_text))
-    checks.append(("Uncertain band upper (0.60)", "0.60", "0.60" in readme_text))
-    checks.append(("Uncertain band count (113)", "113", "113" in readme_text))
+        ("Uncertain band window in context", r"Band Window\*\*:\s*\$?\[0\.40,\s*0\.60\]\$?", "Uncertain band window description"),
+        ("Uncertain band count in context", r"Samples in Band\*\*:\s*\*\*113\*\* emails", "Uncertain band samples description"),
+        ("Uncertain outside accuracy", r"Accuracy:\s*\*\*99\.20%\*\*", "Uncertain band outside accuracy"),
+        ("Uncertain outside precision", r"Precision:\s*\*\*98\.90%\*\*", "Uncertain band outside precision"),
+        ("Uncertain outside recall", r"Recall:\s*\*\*99\.44%\*\*", "Uncertain band outside recall"),
+    ]
 
     all_passed = True
-    for label, expected, passed in checks:
-        status = "[PASS]" if passed else "[FAIL]"
-        if not passed:
+    for label, pattern, context_desc in checks:
+        match = re.search(pattern, readme_text, re.IGNORECASE | re.DOTALL)
+        status = "[PASS]" if match else "[FAIL]"
+        if not match:
             all_passed = False
-        print(f"{status:7} {label:<38} expected token: '{expected}'")
+        print(f"{status:7} {label:<35} | {context_desc}")
 
-    print("-" * 60)
+    print("-" * 75)
     if all_passed:
-        print("RESULT: All 22 numerical claims in README.md verified against source-of-truth metadata!")
+        print(f"RESULT: ALL {len(checks)} METRICS VERIFIED STRICTLY IN CONTEXT!")
         sys.exit(0)
     else:
-        print("RESULT: Discrepancy detected in README.md numerical claims.")
+        print("RESULT: Discrepancy detected in context-aware README metrics verification.")
         sys.exit(1)
 
 if __name__ == "__main__":

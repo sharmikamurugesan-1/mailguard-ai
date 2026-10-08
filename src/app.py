@@ -62,7 +62,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "style-src 'self' 'unsafe-inline'; "
+            "style-src 'self'; "
             "script-src 'self'; "
             "img-src 'self' data:; "
             "font-src 'self'; "
@@ -213,6 +213,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
             "sklearn_version": meta.get("sklearn_version", "unknown"),
             "dataset_name": meta.get("dataset_name", "Enron Spam Dataset"),
             "dataset_source_url": meta.get("dataset_source_url", "https://github.com/MWiechmann/enron_spam_data"),
+            "dataset_repository_license": meta.get("dataset_repository_license", "GNU General Public License v3.0"),
             "dataset_license": meta.get("dataset_license", "GNU General Public License v3.0"),
             "dataset_type": meta.get("dataset_type", "email"),
             "n_samples": meta.get("n_samples", 0),

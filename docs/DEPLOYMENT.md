@@ -22,7 +22,7 @@ Render Blueprints allow infrastructure-as-code deployment driven by the included
    - **Runtime**: `Python`
    - **Plan**: `Free`
    - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120`
+   - **Start Command**: `gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120`
    - **Health Check Path**: `/api/health`
 5. Click **Apply**.
 6. Render will automatically trigger the build pipeline, install dependencies, load model artifacts, and start Gunicorn.
@@ -42,7 +42,7 @@ If you prefer configuring the service manually through Render's UI:
    - **Root Directory**: *(leave blank — defaults to repository root)*
    - **Runtime**: `Python 3`
    - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120`
+   - **Start Command**: `gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120`
    - **Instance Type**: `Free`
 4. Expand **Advanced Settings**:
    - **Health Check Path**: `/api/health`

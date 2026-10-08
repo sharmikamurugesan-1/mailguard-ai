@@ -47,8 +47,25 @@ def run_browser_verification():
         stderr=subprocess.PIPE,
     )
 
-    # Wait for server to bind
-    time.sleep(3.5)
+    # Wait for server to bind and become ready
+    server_ready = False
+    for _ in range(30):
+        if server_process.poll() is not None:
+            stdout, stderr = server_process.communicate()
+            raise RuntimeError(f"Server exited prematurely with code {server_process.returncode}:\nStderr: {stderr.decode(errors='replace')}")
+        try:
+            import urllib.request
+            with urllib.request.urlopen("http://127.0.0.1:5001/api/health", timeout=1.0) as r:
+                if r.status == 200:
+                    server_ready = True
+                    break
+        except Exception:
+            time.sleep(0.5)
+
+    if not server_ready:
+        server_process.terminate()
+        stdout, stderr = server_process.communicate()
+        raise RuntimeError(f"Server did not become ready within 15s:\nStderr: {stderr.decode(errors='replace')}")
 
     try:
         with sync_playwright() as p:
@@ -94,8 +111,10 @@ def run_browser_verification():
             assert headers.get("referrer-policy") == "no-referrer", "Missing Referrer-Policy"
             csp_header = headers.get("content-security-policy", "")
             assert "default-src 'self'" in csp_header, "CSP missing default-src 'self'"
+            assert "style-src 'self'" in csp_header, "CSP style-src must be 'self' only"
+            assert "'unsafe-inline'" not in csp_header, "CSP must not contain 'unsafe-inline'"
             assert "script-src 'self'" in csp_header, "CSP script-src must be 'self' only"
-            print("  ✓ Security headers verified on HTTP response.")
+            print("  ✓ Security headers verified on HTTP response (style-src 'self', no 'unsafe-inline').")
 
             page.wait_for_selector("#status-text")
             page.wait_for_selector("#status-text:has-text('Server Online')")

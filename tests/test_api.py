@@ -336,6 +336,9 @@ def test_security_headers_present(client):
     assert response.headers.get("Referrer-Policy") == "no-referrer"
     csp = response.headers.get("Content-Security-Policy", "")
     assert "default-src 'self'" in csp
+    assert "style-src 'self'" in csp
+    assert "'unsafe-inline'" not in csp
+    assert "script-src 'self'" in csp
     assert "frame-ancestors 'none'" in csp
 
 

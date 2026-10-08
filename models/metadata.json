@@ -1,7 +1,9 @@
 {
   "dataset_name": "Enron Spam Dataset",
   "dataset_source_url": "https://github.com/MWiechmann/enron_spam_data",
+  "dataset_repository_license": "GNU General Public License v3.0",
   "dataset_license": "GNU General Public License v3.0",
+  "dataset_license_notice": "The dataset repository (MWiechmann/enron_spam_data) is published under GPL-3.0; the underlying Enron corpus has its own provenance. The dataset is not redistributed in this repository.",
   "dataset_type": "email",
   "n_samples": 30462,
   "n_train": 24369,
