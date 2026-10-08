@@ -1,0 +1,24 @@
+# ==============================================================================
+# Render Blueprint Specification for MailGuard AI
+# Documentation: https://render.com/docs/blueprint-spec
+# ==============================================================================
+
+services:
+  - type: web
+    name: mailguard-ai
+    runtime: python
+    plan: free
+    region: oregon
+    branch: master
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: FLASK_DEBUG
+        value: 0
+      - key: MODEL_PATH
+        value: models/spam_pipeline.joblib
+      - key: METADATA_PATH
+        value: models/metadata.json
