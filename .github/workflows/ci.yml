@@ -1,0 +1,44 @@
+name: MailGuard AI CI
+
+'on':
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    name: Test & Smoke Test (Ubuntu / Python 3.12)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Check Python compilation and syntax
+        run: |
+          python -W error -m compileall src tests
+
+      - name: Run unit & integration test suite with coverage
+        run: |
+          pytest -v -rs --cov=src --cov-fail-under=50
+
+      - name: Verify README numerical claims against metadata
+        run: |
+          python scripts/verify_readme_metrics.py
+
+      - name: Gunicorn background service smoke test
+        run: |
+          gunicorn app:app --bind 127.0.0.1:5000 --workers 2 --daemon
+          python scripts/smoke_test_deployed.py http://127.0.0.1:5000
