@@ -79,21 +79,4 @@ tests/test_robustness.py::test_frontend_static_security_and_integrity PASSED [ 9
 tests/test_robustness.py::test_concurrency_smoke_test PASSED             [ 98%]
 tests/test_robustness.py::test_prediction_latency_benchmark PASSED       [100%]
 
-=============================== tests coverage ================================
-______________ coverage: platform win32, python 3.12.10-final-0 _______________
-
-Name                   Stmts   Miss  Cover   Missing
-----------------------------------------------------
-src\__init__.py            1      0   100%
-src\app.py               133     25    81%   77-83, 120, 129-130, 139-149, 171-175, 266-269, 352
-src\config.py             27      0   100%
-src\data.py               92     36    61%   49-56, 140, 150-152, 157-203, 208-212, 216-226
-src\evaluate.py          130    130     0%   12-462
-src\predictor.py         108     15    86%   65-70, 108, 114, 118, 130-133, 136, 165, 172
-src\preprocess.py          2      0   100%
-src\preprocessing.py      98     38    61%   89, 136, 149, 155-161, 171-190, 201-239, 257
-src\reliability.py        78      2    97%   45, 59
-src\train.py             153    153     0%   17-423
-----------------------------------------------------
-TOTAL                    822    399    51%
-============================= 71 passed in 11.75s =============================
+============================= 71 passed in 8.43s ==============================
