@@ -29,7 +29,6 @@ from sklearn.svm import LinearSVC
 from src.config import (
     METADATA_PATH,
     MODEL_PATH,
-    MODEL_PKL_PATH,
 )
 from src.preprocessing import clean_text_for_nlp, combine_email, tokenize_text
 from src.reliability import (
@@ -83,23 +82,14 @@ class SpamPredictor:
             logger.warning(warn_msg)
 
         # 2. Load Pipeline Artifact
-        load_path = self.model_path
-        if not load_path.exists():
-            if MODEL_PKL_PATH.exists():
-                load_path = MODEL_PKL_PATH
-            else:
-                raise FileNotFoundError(
-                    f"Model artifact not found at {self.model_path} or {MODEL_PKL_PATH}. "
-                    "Run 'python -m src.evaluate' or 'python -m src.train' to build model."
-                )
+        if not self.model_path.exists():
+            raise FileNotFoundError(
+                f"Model artifact not found at {self.model_path}. "
+                "Ensure models/spam_pipeline.joblib exists."
+            )
 
-        logger.info(f"Loading model pipeline from {load_path}...")
-        try:
-            self.pipeline = joblib.load(load_path)
-        except Exception:
-            with open(load_path, "rb") as f:
-                self.pipeline = pickle.load(f)
-
+        logger.info(f"Loading model pipeline from {self.model_path}...")
+        self.pipeline = joblib.load(self.model_path)
         self.load_count += 1
         logger.info(f"Model pipeline loaded successfully (load_count={self.load_count}).")
 

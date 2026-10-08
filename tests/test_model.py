@@ -7,7 +7,7 @@ import sys
 import pytest
 import sklearn
 
-from src.config import METADATA_PATH, MODEL_PKL_PATH, MODEL_PATH
+from src.config import METADATA_PATH, MODEL_PATH
 from src.predictor import SpamPredictor, get_predictor, predict
 
 
@@ -131,4 +131,12 @@ def test_sanity_samples_exact_behavior():
         if item["is_known_miss"]:
             assert item["true_class"] == "spam"
             assert res["prediction"] == "ham"
+
+
+def test_missing_model_raises_clear_filenotfounderror(tmp_path):
+    """Verify that a missing model artifact raises a clear, descriptive FileNotFoundError."""
+    missing_path = tmp_path / "non_existent_model.joblib"
+    with pytest.raises(FileNotFoundError, match="Model artifact not found"):
+        SpamPredictor(model_path=missing_path)
+
 
