@@ -11,6 +11,12 @@ Documents both:
 """
 
 import argparse
+import sys
+from pathlib import Path
+
+# Ensure project root in sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import joblib
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -46,7 +52,7 @@ def run_check(threshold: float = 0.95):
     vec_train = tfidf.transform(X_train_clean)
     vec_test = tfidf.transform(X_test_clean)
 
-    # 3. Batch cosine similarity
+    # 3. Batch cosine similarity using Production Pipeline Vectorizer (1-2 ngrams)
     n_test = vec_test.shape[0]
     batch_size = 500
     is_near_dup = np.zeros(n_test, dtype=bool)
@@ -56,9 +62,27 @@ def run_check(threshold: float = 0.95):
         sim = cosine_similarity(batch, vec_train)
         is_near_dup[i : i + batch_size] = (sim.max(axis=1) >= threshold)
 
-    n_dups = int(is_near_dup.sum())
-    dup_pct = (n_dups / n_test) * 100
-    print(f"Identified Near-Duplicates (>= {threshold}): {n_dups:,} / {n_test:,} ({dup_pct:.2f}%)")
+    n_dups_prod = int(is_near_dup.sum())
+    dup_pct_prod = (n_dups_prod / n_test) * 100
+    print(f"\n[1] Production Vectorizer (ngram_range=(1, 2), max_features=15000):")
+    print(f"    Near-duplicates (>= {threshold}): {n_dups_prod:,} / {n_test:,} ({dup_pct_prod:.2f}%)")
+
+    # 3b. Comparison with Unigram Vectorizer (1-1 ngrams)
+    unigram_vec = TfidfVectorizer(max_features=15000, ngram_range=(1, 1), sublinear_tf=True)
+    unigram_vec.fit(X_train_clean)
+    vec_train_uni = unigram_vec.transform(X_train_clean)
+    vec_test_uni = unigram_vec.transform(X_test_clean)
+
+    is_near_dup_uni = np.zeros(n_test, dtype=bool)
+    for i in range(0, n_test, batch_size):
+        batch_u = vec_test_uni[i : i + batch_size]
+        sim_u = cosine_similarity(batch_u, vec_train_uni)
+        is_near_dup_uni[i : i + batch_size] = (sim_u.max(axis=1) >= threshold)
+
+    n_dups_uni = int(is_near_dup_uni.sum())
+    dup_pct_uni = (n_dups_uni / n_test) * 100
+    print(f"\n[2] Unigram Vectorizer (ngram_range=(1, 1), max_features=15000):")
+    print(f"    Near-duplicates (>= {threshold}): {n_dups_uni:,} / {n_test:,} ({dup_pct_uni:.2f}%)")
 
     # 4. Compute metrics before and after
     y_pred = pipeline.predict(X_test)

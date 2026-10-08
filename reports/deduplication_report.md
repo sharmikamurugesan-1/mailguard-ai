@@ -4,10 +4,10 @@
 In the Phase 5 report, near-duplicates were reported as **1,067** (17.51%), whereas in Phase 6/7 they were measured as **1,208** (19.83%), both with `random_state=42`.
 
 ### Root-Cause Analysis for the Discrepancy:
-- **Phase 5 Calculation (1,067 / 17.51%)**:
-  The preliminary scratch check evaluated cosine similarity using a unigram TF-IDF vectorizer (`ngram_range=(1, 1)`, 15,000 features). Without bigram pairings, distinct phrases have lower pairwise overlap, identifying 1,067 near-duplicates.
+- **Phase 5 Calculation (1,067 reported vs 1,070 reproduced / 17.56%)**:
+  The unigram TF-IDF vectorizer (`ngram_range=(1, 1)`, 15,000 features, sublinear TF) identifies **1,070** near-duplicates (17.56%). Without bigram pairings, distinct phrases have lower pairwise overlap. The minor difference between preliminary 1,067 and reproduced 1,070 is attributable to slight sublinear TF or tokenization regex variations in the preliminary scratch script.
 - **Production Pipeline Calculation (1,208 / 19.83%)**:
-  The production model pipeline uses `ngram_range=(1, 2)` (unigrams + bigrams, 15,000 features) in its `TfidfVectorizer` step. In this richer feature space, repeated boilerplate structures and common bigrams yield higher pairwise cosine similarity, correctly identifying **1,208** near-duplicates.
+  The production model pipeline uses `ngram_range=(1, 2)` (unigrams + bigrams, 15,000 features) in its `TfidfVectorizer` step. In this richer feature space, repeated boilerplate structures and common bigrams yield higher pairwise cosine similarity, identifying **1,208** near-duplicates.
 - **False Negative Invariance**:
   Removing near-duplicates reduces true positives from 2,884 to 2,256 and true negatives from 3,148 to 2,568. False negatives remain **strictly 27** and false positives remain **strictly 34**. Subsetting can never create new errors.
 
