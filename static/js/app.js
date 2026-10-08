@@ -167,11 +167,9 @@
 
     charCounter.textContent = `${total.toLocaleString()} / ${MAX_INPUT_CHARS.toLocaleString()}`;
     if (total > MAX_INPUT_CHARS) {
-      charCounter.style.color = 'var(--color-spam)';
-      charCounter.style.fontWeight = '700';
+      charCounter.classList.add('counter-exceeded');
     } else {
-      charCounter.style.color = '';
-      charCounter.style.fontWeight = '';
+      charCounter.classList.remove('counter-exceeded');
     }
   }
 

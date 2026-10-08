@@ -234,6 +234,11 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.char-counter.counter-exceeded {
+  color: var(--color-spam);
+  font-weight: 700;
+}
+
 .form-control {
   width: 100%;
   font-family: inherit;
@@ -513,6 +518,7 @@ body {
 }
 
 .progress-fill {
+  width: 0%;
   height: 100%;
   background-color: var(--color-primary);
   border-radius: 9999px;
