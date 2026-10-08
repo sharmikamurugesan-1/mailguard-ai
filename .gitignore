@@ -21,10 +21,12 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual Environment
+# Virtual Environment & Local Environment Variables
 .venv/
 venv/
 ENV/
+.env
+.env.local
 
 # Data (Raw and processed datasets are large and excluded from git)
 data/raw/*

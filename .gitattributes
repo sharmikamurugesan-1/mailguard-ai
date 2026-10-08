@@ -1,0 +1,11 @@
+# Set default behavior to normalize text files across OS platforms
+* text=auto
+
+# Binary files that must never undergo line-ending conversion or merge conflict decoration
+*.joblib binary
+*.pkl binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.sqlite3 binary
