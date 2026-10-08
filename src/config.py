@@ -14,12 +14,14 @@ DATA_DIR = BASE_DIR / "data"
 RAW_DATA_PATH = Path(os.getenv("RAW_DATA_PATH", str(DATA_DIR / "raw" / "enron_spam_data.csv")))
 PROCESSED_DATA_PATH = Path(os.getenv("PROCESSED_DATA_PATH", str(DATA_DIR / "processed" / "cleaned_emails.csv")))
 MODELS_DIR = BASE_DIR / "models"
-MODEL_PATH = Path(os.getenv("MODEL_PATH", str(MODELS_DIR / "spam_pipeline.joblib")))
+MODEL_PKL_PATH = Path(os.getenv("MODEL_PKL_PATH", str(MODELS_DIR / "spam_classifier.pkl")))
+MODEL_PATH = Path(os.getenv("MODEL_PATH", str(MODEL_PKL_PATH if MODEL_PKL_PATH.exists() else MODELS_DIR / "spam_pipeline.joblib")))
 METADATA_PATH = Path(os.getenv("METADATA_PATH", str(MODELS_DIR / "metadata.json")))
 REPORTS_DIR = BASE_DIR / "reports"
 DATASET_REPORT_JSON = REPORTS_DIR / "dataset_report.json"
 DATASET_REPORT_MD = REPORTS_DIR / "dataset_report.md"
 MODEL_COMPARISON_JSON = REPORTS_DIR / "model_comparison.json"
+MODEL_COMPARISON_MD = REPORTS_DIR / "model_comparison.md"
 STATIC_DIR = BASE_DIR / "static"
 
 
@@ -40,5 +42,7 @@ MIN_VOCAB_COVERAGE = float(os.getenv("MIN_VOCAB_COVERAGE", "0.50"))
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "5000"))
 DEBUG = os.getenv("FLASK_DEBUG", "0").lower() in ("1", "true", "yes")
-MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", str(2 * 1024 * 1024)))  # 2 MB limit
+MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", str(2 * 1024 * 1024)))  # 2 MB payload limit
+MAX_INPUT_CHARS = int(os.getenv("MAX_INPUT_CHARS", "20000"))  # 20k characters text limit
+
 
