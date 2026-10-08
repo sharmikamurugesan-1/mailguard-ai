@@ -322,3 +322,138 @@ def test_predictor_singleton_load_once(client):
     client.get("/api/model-info")
 
     assert predictor.load_count == initial_count == 1
+
+
+# -------------------------------------------------------------------------
+# Phase 8 Hardening & Security Tests
+# -------------------------------------------------------------------------
+
+def test_security_headers_present(client):
+    """Assert strict security headers are injected into HTTP responses."""
+    response = client.get("/")
+    assert response.headers.get("X-Content-Type-Options") == "nosniff"
+    assert response.headers.get("X-Frame-Options") == "DENY"
+    assert response.headers.get("Referrer-Policy") == "no-referrer"
+    csp = response.headers.get("Content-Security-Policy", "")
+    assert "default-src 'self'" in csp
+    assert "frame-ancestors 'none'" in csp
+
+
+def test_405_method_not_allowed_get_predict(client):
+    """GET /api/predict returns 405 Method Not Allowed in unified JSON shape."""
+    response = client.get("/api/predict")
+    assert response.status_code == 405
+    assert response.is_json
+    data = response.get_json()
+    assert "error" in data
+    assert data["error"]["code"] == "method_not_allowed"
+    assert "not allowed" in data["error"]["message"].lower()
+
+
+def test_405_method_not_allowed_post_health(client):
+    """POST /api/health returns 405 Method Not Allowed in unified JSON shape."""
+    response = client.post("/api/health", json={"data": "test"})
+    assert response.status_code == 405
+    assert response.is_json
+    data = response.get_json()
+    assert "error" in data
+    assert data["error"]["code"] == "method_not_allowed"
+
+
+@pytest.mark.parametrize("payload", [
+    [],
+    [{"subject": "test", "body": "test"}],
+    12345,
+    "just a string",
+    True,
+])
+def test_400_non_dict_payloads(client, payload):
+    """POST /api/predict with non-dict JSON bodies returns 400 invalid_json."""
+    response = client.post("/api/predict", json=payload)
+    assert response.status_code == 400
+    assert response.is_json
+    data = response.get_json()
+    assert data["error"]["code"] == "invalid_json"
+
+
+def test_exact_boundary_length_20000_vs_20001():
+    """Verify exact character boundary: 20,000 accepted (200), 20,001 rejected (413)."""
+    app = create_app({
+        "TESTING": True,
+        "MAX_CONTENT_LENGTH": 2 * 1024 * 1024,  # High HTTP transport limit
+    })
+    with app.test_client() as c:
+        # Exactly 20,000 characters total (subject: 10, body: 19,990)
+        subject_10 = "S" * 10
+        body_19990 = "B" * 19990
+        assert len(subject_10) + len(body_19990) == 20000
+
+        res_ok = c.post("/api/predict", json={"subject": subject_10, "body": body_19990})
+        assert res_ok.status_code == 200, f"Expected 200, got {res_ok.status_code}: {res_ok.get_data(as_text=True)}"
+        assert res_ok.is_json
+
+        # Exactly 20,001 characters total (subject: 10, body: 19,991)
+        body_19991 = "B" * 19991
+        assert len(subject_10) + len(body_19991) == 20001
+
+        res_too_large = c.post("/api/predict", json={"subject": subject_10, "body": body_19991})
+        assert res_too_large.status_code == 413
+        assert res_too_large.is_json
+        data_large = res_too_large.get_json()
+        assert data_large["error"]["code"] == "payload_too_large"
+        assert "20001" in data_large["error"]["message"]
+
+
+def test_api_uncertain_prediction_flow(client, monkeypatch):
+    """POST /api/predict returns 'uncertain', 'Needs review', and 'medium' risk when prob is 0.50."""
+    predictor = get_predictor()
+
+    # Monkeypatch predict to simulate a borderline case (p=0.50)
+    original_predict = predictor.predict
+
+    def fake_predict(subject, body):
+        res = original_predict(subject, body)
+        res["spam_probability"] = 0.50
+        res["confidence"] = 0.50
+        res["prediction"] = "uncertain"
+        res["label_display"] = "Needs review"
+        res["risk_level"] = "medium"
+        return res
+
+    monkeypatch.setattr(predictor, "predict", fake_predict)
+
+    response = client.post("/api/predict", json={"subject": "Inquiry", "body": "Please review invoice INV-402"})
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["prediction"] == "uncertain"
+    assert data["label_display"] == "Needs review"
+    assert data["risk_level"] == "medium"
+    assert data["spam_probability"] == 0.50
+
+
+def test_root_wsgi_app_import():
+    """Verify root app.py exposes the Flask WSGI instance for Gunicorn."""
+    import app as wsgi_module
+    assert hasattr(wsgi_module, "app")
+    assert wsgi_module.app is not None
+
+
+def test_500_internal_server_error(client, monkeypatch):
+    """Ensure unexpected exceptions return 500 with unified JSON error schema and no path leaks."""
+    def crash_predictor():
+        raise RuntimeError("Simulated internal catastrophic failure")
+
+    monkeypatch.setattr("src.app.get_predictor", crash_predictor)
+
+    response = client.post("/api/predict", json={"subject": "Test", "body": "Crash test body"})
+    assert response.status_code == 500
+    assert response.is_json
+    data = response.get_json()
+    assert data["error"]["code"] in ("prediction_error", "internal_server_error")
+
+    raw_text = response.get_data(as_text=True)
+    assert "\\" not in raw_text
+    assert "C:" not in raw_text
+    assert "Traceback" not in raw_text
+
+

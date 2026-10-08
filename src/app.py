@@ -21,7 +21,14 @@ import os
 from typing import Any, Dict, List, Optional
 
 from flask import Flask, jsonify, render_template, request
-from werkzeug.exceptions import BadRequest, HTTPException, NotFound, RequestEntityTooLarge, UnsupportedMediaType
+from werkzeug.exceptions import (
+    BadRequest,
+    HTTPException,
+    MethodNotAllowed,
+    NotFound,
+    RequestEntityTooLarge,
+    UnsupportedMediaType,
+)
 
 from src import config
 from src.predictor import get_predictor
@@ -46,6 +53,23 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
     if test_config:
         app.config.update(test_config)
 
+    # Security Headers Hook
+    @app.after_request
+    def set_security_headers(response):
+        """Inject strict security and privacy headers into every response."""
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "script-src 'self'; "
+            "img-src 'self' data:; "
+            "font-src 'self'; "
+            "frame-ancestors 'none';"
+        )
+        return response
+
     # --- Error Handlers (Unified {"error": {"code": "...", "message": "..."}} shape) ---
 
     @app.errorhandler(400)
@@ -66,6 +90,16 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
                 "message": "The requested API endpoint was not found.",
             }
         }), 404
+
+    @app.errorhandler(405)
+    @app.errorhandler(MethodNotAllowed)
+    def handle_method_not_allowed(e: Exception):
+        return jsonify({
+            "error": {
+                "code": "method_not_allowed",
+                "message": "The method is not allowed for the requested URL.",
+            }
+        }), 405
 
     @app.errorhandler(413)
     @app.errorhandler(RequestEntityTooLarge)
@@ -202,9 +236,12 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
 
         return jsonify(info), 200
 
-    @app.route("/api/predict", methods=["POST"])
+    @app.route("/api/predict", methods=["GET", "POST"])
     def predict_email():
         """Classify email subject and body as spam, ham, or uncertain."""
+        if request.method != "POST":
+            raise MethodNotAllowed()
+
         # 1. Enforce Content-Type application/json
         if not request.is_json:
             return jsonify({
