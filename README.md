@@ -4,7 +4,8 @@
 [![scikit-learn 1.9.1](https://img.shields.io/badge/scikit--learn-1.9.1-orange.svg)](https://scikit-learn.org/)
 [![Flask 3.1.3](https://img.shields.io/badge/Flask-3.1.3-black.svg)](https://flask.palletsprojects.com/)
 [![Tests](https://img.shields.io/badge/tests-71%20passed-brightgreen.svg)](#testing--quality-assurance)
-[![License: GPL-3.0](https://img.shields.io/badge/dataset%20repo%20license-GPL--3.0-blue.svg)](#dataset--license)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](#1-codebase-license)
+[![Dataset Repo: GPL-3.0](https://img.shields.io/badge/dataset%20repo-GPL--3.0-lightgrey.svg)](#2-dataset-attribution)
 
 > **Portfolio Machine Learning System: Email Spam, Ham, and Ambiguity Classifier**  
 > MailGuard AI is an end-to-end machine learning system exploring the operational challenges of text classification: false-positive minimization, decision calibration, out-of-distribution detection, explainable token attribution, and cold-start UX handling.  
@@ -216,7 +217,7 @@ Returns model metadata, parameters, and evaluation metrics.
 ### 2. Setup Virtual Environment
 ```bash
 # Clone the repository
-git clone https://github.com/<username>/mailguard-ai.git
+git clone https://github.com/sharmikamurugesan/mailguard-ai.git
 cd mailguard-ai
 
 # Create and activate virtual environment
@@ -283,7 +284,7 @@ For complete instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 ## 📜 License & Dataset Attribution
 
 ### 1. Codebase License
-The source code in this repository is licensed under the terms of the [LICENSE](LICENSE) file (selected by the project owner: MIT, Apache-2.0, or GPL-3.0).
+The source code in this repository is licensed under the terms of the [MIT License](LICENSE). Copyright (c) 2026 Sharmika Murugesan.
 
 ### 2. Dataset Attribution
 The dataset repository ([MWiechmann/enron_spam_data](https://github.com/MWiechmann/enron_spam_data)) is published under **GPL-3.0**; the underlying Enron email corpus has its own public domain provenance (CALO Project). The raw dataset is not redistributed in this repository (see `data/README.md` for re-download instructions).
