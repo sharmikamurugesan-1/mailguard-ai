@@ -39,6 +39,7 @@ data/processed/*
 .pytest_cache/
 .coverage
 htmlcov/
+reports/*.local.json
 
 # IDE / OS
 .vscode/

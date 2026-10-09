@@ -306,7 +306,7 @@ def test_prediction_latency_benchmark(client):
         "max_ms": round(max(latencies), 2),
     }
 
-    report_path = config.REPORTS_DIR / "latency_benchmark.json"
+    report_path = config.REPORTS_DIR / "latency_benchmark.local.json"
     report_path.write_text(json.dumps(benchmark_report, indent=2), encoding="utf-8")
 
     # Assert p95 is under 100ms for lightweight local inference
