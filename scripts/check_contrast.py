@@ -121,6 +121,8 @@ def evaluate_stylesheet(css_path: Path) -> List[ContrastResult]:
         ("light", "Legitimate Alert Box Text", "--color-ham", "--color-ham-bg", 4.5),
         ("light", "Uncertain / Review Text", "--color-uncertain", "--color-surface", 4.5),
         ("light", "Uncertain Alert Box Text", "--color-uncertain", "--color-uncertain-bg", 4.5),
+        ("light", "Spam Highlight Token", "--color-token-spam-text", "--color-token-spam-bg", 4.5),
+        ("light", "Legitimate Highlight Token", "--color-token-ham-text", "--color-token-ham-bg", 4.5),
         # Dark Theme Pairs
         ("dark", "Body / Primary Text", "--color-text-main", "--color-surface", 4.5),
         ("dark", "Canvas Body Text", "--color-text-main", "--color-bg", 4.5),
@@ -133,6 +135,8 @@ def evaluate_stylesheet(css_path: Path) -> List[ContrastResult]:
         ("dark", "Legitimate Alert Box Text", "--color-ham", "--color-ham-bg", 4.5),
         ("dark", "Uncertain / Review Text", "--color-uncertain", "--color-surface", 4.5),
         ("dark", "Uncertain Alert Box Text", "--color-uncertain", "--color-uncertain-bg", 4.5),
+        ("dark", "Spam Highlight Token", "--color-token-spam-text", "--color-token-spam-bg", 4.5),
+        ("dark", "Legitimate Highlight Token", "--color-token-ham-text", "--color-token-ham-bg", 4.5),
     ]
 
     results: List[ContrastResult] = []

@@ -21,6 +21,7 @@ import joblib
 import numpy as np
 import sklearn
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
@@ -38,6 +39,17 @@ from src.reliability import (
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("MailGuard-Predictor")
+
+
+def is_stopword_term(term: str) -> bool:
+    """Determine whether a token or n-gram consists entirely of standard English stopwords."""
+    t = term.lower().strip()
+    if t in ENGLISH_STOP_WORDS:
+        return True
+    parts = t.split()
+    if parts and all(p in ENGLISH_STOP_WORDS for p in parts):
+        return True
+    return False
 
 
 class SpamPredictor:
@@ -90,12 +102,17 @@ class SpamPredictor:
                 f"Ensure models/{model_filename} exists."
             )
 
-        logger.info(f"Loading model pipeline from {model_filename}...")
+        logger.info(f"Loading model pipeline from {model_filename}... ")
         self.pipeline = joblib.load(self.model_path)
         self.load_count += 1
         logger.info(f"Model pipeline loaded successfully (load_count={self.load_count}).")
 
-    def _extract_signals(self, text: str, top_k: int = 8) -> List[Dict[str, Any]]:
+    def _extract_signals(
+        self,
+        text: str,
+        top_k: int = 15,
+        filter_stopwords: bool = False,
+    ) -> List[Dict[str, Any]]:
         """Extract model-derived contribution signals for tokens present in this email.
 
         Signals are computed as:
@@ -149,11 +166,16 @@ class SpamPredictor:
             term = str(feature_names[col_idx])
             weight = float(weights[col_idx])
             score = float(tfidf_val * weight)
+            is_stop = is_stopword_term(term)
+
+            if filter_stopwords and is_stop:
+                continue
 
             signals.append({
                 "term": term,
                 "contribution": round(score, 4),
                 "direction": "spam" if weight > 0 else "ham",
+                "is_stopword": is_stop,
                 "note": "top contributing term",
             })
 
@@ -161,7 +183,12 @@ class SpamPredictor:
         signals.sort(key=lambda s: abs(s["contribution"]), reverse=True)
         return signals[:top_k]
 
-    def predict(self, subject: Optional[str] = "", body: str = "") -> Dict[str, Any]:
+    def predict(
+        self,
+        subject: Optional[str] = "",
+        body: str = "",
+        filter_stopwords: bool = False,
+    ) -> Dict[str, Any]:
         """Classify email subject and body, returning decision, calibrated confidence, signals, and reliability."""
         if not self.pipeline:
             raise RuntimeError("Model pipeline is not loaded.")
@@ -188,8 +215,22 @@ class SpamPredictor:
             vectorizer=tfidf,
         )
 
-        # Model-derived signals
-        signals = self._extract_signals(combined_text, top_k=8)
+        # Model-derived signals & top_tokens (max 15)
+        signals = self._extract_signals(
+            combined_text,
+            top_k=15,
+            filter_stopwords=filter_stopwords,
+        )
+
+        top_tokens = [
+            {
+                "token": s["term"],
+                "weight": s["contribution"],
+                "direction": s["direction"],
+                "is_stopword": s["is_stopword"],
+            }
+            for s in signals[:15]
+        ]
 
         # Model version from metadata or default
         model_version = self.metadata.get("trained_at", "1.0.0")
@@ -205,6 +246,7 @@ class SpamPredictor:
             "is_uncertain": (prediction == "uncertain"),
             "signals": signals,
             "top_contributing_terms": signals,
+            "top_tokens": top_tokens,
             "reliability": {
                 "level": reliability["level"],
                 "warnings": reliability["warnings"],
@@ -226,6 +268,10 @@ def get_predictor() -> SpamPredictor:
     return _PREDICTOR_INSTANCE
 
 
-def predict(subject: Optional[str] = "", body: str = "") -> Dict[str, Any]:
+def predict(
+    subject: Optional[str] = "",
+    body: str = "",
+    filter_stopwords: bool = False,
+) -> Dict[str, Any]:
     """Module-level convenience inference function."""
-    return get_predictor().predict(subject, body)
+    return get_predictor().predict(subject, body, filter_stopwords=filter_stopwords)

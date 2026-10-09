@@ -334,9 +334,17 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
             }), 413
 
         # 6. Run prediction
+        predict_kwargs = {}
+        if "filter_stopwords" in data:
+            predict_kwargs["filter_stopwords"] = bool(data["filter_stopwords"])
+
         try:
             predictor = get_predictor()
-            result = predictor.predict(subject=subject or "", body=body)
+            result = predictor.predict(
+                subject=subject or "",
+                body=body,
+                **predict_kwargs,
+            )
             return jsonify(result), 200
         except Exception as e:
             logger.error(f"Inference execution failure: {e}", exc_info=True)

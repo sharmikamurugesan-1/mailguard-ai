@@ -66,18 +66,27 @@
             >
           </div>
 
-          <div class="form-group">
+          <div class="form-group drop-zone" id="drop-zone">
             <div class="label-row">
               <label for="body-input" class="form-label">Email Body <span class="required-indicator">*</span></label>
-              <span class="char-counter" id="body-char-counter">0 / 20,000</span>
+              <div class="body-header-actions">
+                <input type="file" id="file-picker-input" class="file-input-hidden" accept=".txt,.eml" aria-label="Upload email text or EML file">
+                <button type="button" class="btn btn-sm btn-outline file-picker-btn" id="file-picker-btn" title="Load .txt or .eml file directly into analyzer">📁 Import .txt / .eml</button>
+                <span class="char-counter" id="body-char-counter">0 / 20,000</span>
+              </div>
             </div>
-            <textarea
-              id="body-input"
-              class="form-control textarea-body"
-              rows="8"
-              placeholder="Paste the email body or raw message text here..."
-              required
-            ></textarea>
+            <div class="textarea-wrapper">
+              <textarea
+                id="body-input"
+                class="form-control textarea-body"
+                rows="8"
+                placeholder="Paste the email body or drop a .txt/.eml file here..."
+                required
+              ></textarea>
+              <div class="drop-overlay hidden" id="drop-overlay" aria-hidden="true">
+                <span class="drop-overlay-text">Drop .txt or .eml file here to load</span>
+              </div>
+            </div>
             <div class="field-error hidden" id="body-error" role="alert" aria-live="polite"></div>
           </div>
 
@@ -125,12 +134,27 @@
               <h2 class="verdict-title" id="verdict-title" tabindex="-1">--</h2>
             </div>
           </div>
-          <div class="risk-badge-wrapper">
-            <span class="risk-badge" id="risk-badge">RISK: --</span>
+          <div class="verdict-actions-wrapper">
+            <button type="button" class="btn btn-sm btn-outline copy-result-btn" id="copy-result-btn" title="Copy Analysis Summary to Clipboard">
+              <span id="copy-btn-icon" aria-hidden="true">📋</span>
+              <span id="copy-btn-text">Copy Result</span>
+            </button>
+            <div class="risk-badge-wrapper">
+              <span class="risk-badge" id="risk-badge">RISK: --</span>
+            </div>
           </div>
         </div>
 
         <div class="result-body">
+          <!-- Uncertain Zone Callout Banner (Appears when prediction is uncertain) -->
+          <div class="uncertain-banner hidden" id="uncertain-banner" role="status" aria-live="polite">
+            <span class="uncertain-banner-icon" aria-hidden="true">⚖</span>
+            <div class="uncertain-banner-content">
+              <h3 class="uncertain-banner-title">Prediction in Uncertain Decision Band (Needs Review)</h3>
+              <p class="uncertain-banner-text" id="uncertain-banner-text">Calibrated spam probability falls within the [0.40, 0.60] borderline zone. Empirical 5-fold cross-validation on 24,369 training emails showed that 0.46% of messages fall into this band (nearly 50/50 ham vs spam). Automated classification is withheld; human review is recommended.</p>
+            </div>
+          </div>
+
           <!-- Confidence Section -->
           <div class="result-metric-block">
             <div class="metric-label-row">
@@ -158,6 +182,41 @@
             <ul class="warnings-list" id="warnings-list">
               <!-- Dynamically populated via textContent only -->
             </ul>
+          </div>
+
+          <!-- Interactive In-Text Highlights Section -->
+          <div class="result-section-block highlight-section" id="highlight-section">
+            <div class="section-title-row">
+              <div>
+                <h3 class="section-subtitle">In-Text Token Highlights</h3>
+                <p class="section-desc">Key tokens colored by contribution direction. Hover or focus tokens to view model weights.</p>
+              </div>
+              <div class="highlight-controls">
+                <button type="button" class="btn btn-sm btn-outline stopword-toggle-btn" id="stopword-toggle-btn" aria-pressed="true" title="Toggle common words filtering">
+                  <span id="stopword-toggle-icon" aria-hidden="true">🔍</span>
+                  <span id="stopword-toggle-text">Filter Common Words (ON)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Legend with Non-Color Visual Cues -->
+            <div class="highlight-legend" role="region" aria-label="Highlight Legend">
+              <span class="legend-item legend-spam">
+                <mark class="token-highlight token-spam"><span class="token-cue" aria-hidden="true">▲</span> Spam token</mark>
+              </span>
+              <span class="legend-item legend-ham">
+                <mark class="token-highlight token-ham"><span class="token-cue" aria-hidden="true">▼</span> Legitimate token</mark>
+              </span>
+              <span class="legend-item legend-neutral">
+                <span class="token-neutral-sample">Regular text</span>
+              </span>
+              <span class="legend-status" id="stopword-count-badge"></span>
+            </div>
+
+            <!-- Scrollable Token Preview Container -->
+            <div class="highlight-preview-box" id="highlight-preview-box" tabindex="0" aria-label="Highlighted Email Content Preview">
+              <!-- Dynamically populated via document.createTextNode and document.createElement('mark') only -->
+            </div>
           </div>
 
           <!-- Top Contributing Terms -->
@@ -264,6 +323,9 @@
       <p>MailGuard AI is an educational/portfolio project. Do not rely on it as your only protection against spam or phishing.</p>
     </footer>
   </div>
+
+  <!-- Accessible Toast Feedback Container -->
+  <div id="toast-container" class="toast-container" role="status" aria-live="polite"></div>
 
   <script src="/js/app.js"></script>
 </body>
