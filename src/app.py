@@ -214,9 +214,13 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
             "dataset_name": meta.get("dataset_name", "Enron Spam Dataset"),
             "dataset_source_url": meta.get("dataset_source_url", "https://github.com/MWiechmann/enron_spam_data"),
             "dataset_repository_license": meta.get("dataset_repository_license", "GNU General Public License v3.0"),
+            "dataset_repo_license": meta.get("dataset_repository_license", "GNU General Public License v3.0"),
             "dataset_license": meta.get("dataset_license", "GNU General Public License v3.0"),
+            "code_license": meta.get("code_license", "MIT"),
             "dataset_type": meta.get("dataset_type", "email"),
             "n_samples": meta.get("n_samples", 0),
+            "n_train": meta.get("n_train", 24369),
+            "n_test": meta.get("n_test", 6093),
             "class_counts": meta.get("class_counts", {"ham": 0, "spam": 0}),
             "selection_criterion": meta.get("selection_criterion", "Spam precision >= 0.98 first, then highest recall on spam, then F1 score."),
             "test_metrics": {

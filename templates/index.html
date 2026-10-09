@@ -6,8 +6,11 @@
   <title>MailGuard AI - AI-Powered Email Spam Detection</title>
   <meta name="description" content="Portfolio-grade email spam classification system using NLP and calibrated machine learning models.">
   <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/theme-init.js"></script>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
   <div class="app-container">
     <!-- Header -->
     <header class="app-header">
@@ -18,14 +21,20 @@
           <p class="brand-subtitle">AI-Powered Email Spam Detection</p>
         </div>
       </div>
-      <div class="header-status">
-        <span class="status-indicator status-checking" id="status-dot" aria-hidden="true"></span>
-        <span class="status-label" id="status-text">Checking server...</span>
+      <div class="header-actions">
+        <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Toggle color theme" aria-pressed="false">
+          <span id="theme-icon" aria-hidden="true">🌙</span>
+          <span class="theme-text" id="theme-text">Dark</span>
+        </button>
+        <div class="header-status">
+          <span class="status-indicator status-checking" id="status-dot" aria-hidden="true"></span>
+          <span class="status-label" id="status-text">Checking server...</span>
+        </div>
       </div>
     </header>
 
     <!-- Main Content Grid -->
-    <main class="main-content">
+    <main id="main-content" class="main-content">
       <!-- Input Card -->
       <section class="card input-card">
         <div class="card-header">
@@ -60,7 +69,7 @@
           <div class="form-group">
             <div class="label-row">
               <label for="body-input" class="form-label">Email Body <span class="required-indicator">*</span></label>
-              <span class="char-counter" id="char-counter">0 / 20,000</span>
+              <span class="char-counter" id="body-char-counter">0 / 20,000</span>
             </div>
             <textarea
               id="body-input"
@@ -86,23 +95,34 @@
 
           <!-- Form Actions -->
           <div class="form-actions">
-            <button type="submit" id="analyze-btn" class="btn btn-primary">
-              <span class="btn-text" id="analyze-btn-text">Analyze Email</span>
-              <span class="spinner-sm hidden" id="analyze-btn-spinner" aria-hidden="true"></span>
-            </button>
-            <button type="button" id="clear-btn" class="btn btn-secondary">Clear</button>
+            <div class="form-actions-left">
+              <button type="submit" id="analyze-btn" class="btn btn-primary" title="Analyze Email (Ctrl+Enter)">
+                <span class="btn-text" id="analyze-btn-text">Analyze Email</span>
+                <span class="spinner-sm hidden" id="analyze-btn-spinner" aria-hidden="true"></span>
+              </button>
+              <button type="button" id="clear-btn" class="btn btn-secondary">Clear</button>
+            </div>
+            <span class="total-counter" id="total-char-counter">Total: 0 / 20,000</span>
           </div>
         </form>
       </section>
 
+      <!-- Result Loading Skeleton (Eliminates Layout Shift) -->
+      <div class="result-skeleton hidden" id="result-skeleton" aria-hidden="true">
+        <div class="skeleton-shimmer skeleton-header-box"></div>
+        <div class="skeleton-shimmer skeleton-bar-box"></div>
+        <div class="skeleton-shimmer skeleton-text-box"></div>
+        <div class="skeleton-shimmer skeleton-bar-box"></div>
+      </div>
+
       <!-- Results Card (Visible after analysis) -->
-      <section class="card result-card hidden" id="result-card" aria-live="polite" aria-atomic="true">
+      <section class="card result-card hidden" id="result-card" tabindex="-1" aria-live="polite" aria-atomic="true">
         <div class="result-header" id="verdict-banner">
           <div class="verdict-summary">
             <span class="verdict-icon" id="verdict-icon" aria-hidden="true"></span>
             <div>
               <span class="verdict-eyebrow">Analysis Verdict</span>
-              <h2 class="verdict-title" id="verdict-title">--</h2>
+              <h2 class="verdict-title" id="verdict-title" tabindex="-1">--</h2>
             </div>
           </div>
           <div class="risk-badge-wrapper">
@@ -147,7 +167,7 @@
             <div class="signals-list" id="signals-list">
               <!-- Dynamically populated via DOM createElement only -->
             </div>
-            <p class="footnote">These are model-derived feature contributions for this message. They show what influenced the score, not proof of why an email is spam.</p>
+            <p class="footnote">Note: Feature weights reflect statistical score contributions to the linear model, not probability percentages.</p>
           </div>
 
           <!-- Persistent Dataset Notice -->
@@ -180,12 +200,20 @@
                 <span class="info-val" id="meta-dataset-name">Loading...</span>
               </div>
               <div class="info-item">
-                <span class="info-label">License</span>
+                <span class="info-label">Code License</span>
+                <span class="info-val" id="meta-code-license">MIT</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Dataset Repository License</span>
                 <span class="info-val" id="meta-dataset-license">Loading...</span>
               </div>
               <div class="info-item">
-                <span class="info-label">Dataset Split</span>
-                <span class="info-val" id="meta-dataset-samples">Loading...</span>
+                <span class="info-label">Train / Test Split</span>
+                <span class="info-val" id="meta-dataset-split">Loading...</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Class Balance</span>
+                <span class="info-val" id="meta-class-balance">Loading...</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Selection Metric</span>
