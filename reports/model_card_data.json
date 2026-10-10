@@ -1,0 +1,97 @@
+{
+  "metadata": {
+    "model_name": "MailGuard AI - Calibrated Linear SVM",
+    "model_architecture": "LinearSVC + CalibratedClassifierCV (Platt Scaling, 5-Fold)",
+    "vectorizer": "TF-IDF (15,000 features, 1-2 n-grams, sublinear TF scaling)",
+    "dataset_name": "Enron Spam Dataset",
+    "dataset_provenance": "https://github.com/MWiechmann/enron_spam_data",
+    "code_license": "MIT License",
+    "dataset_license": "GNU General Public License v3.0",
+    "generated_at": "2026-10-10T17:34:50.859465+00:00"
+  },
+  "dataset_deduplication": {
+    "raw_total_samples": 33665,
+    "deduplicated_removed": 3203,
+    "cleaned_total_samples": 30462,
+    "train_samples": 24369,
+    "test_samples": 6093,
+    "class_distribution_overall": {
+      "ham": 15910,
+      "spam": 14552
+    },
+    "class_distribution_test": {
+      "ham": 3182,
+      "spam": 2911
+    }
+  },
+  "evaluation_metrics": {
+    "accuracy": 0.99,
+    "precision": 0.9883,
+    "recall": 0.9907,
+    "f1": 0.9895,
+    "pr_auc": 0.9991,
+    "confusion_matrix": {
+      "tn": 3148,
+      "fp": 34,
+      "fn": 27,
+      "tp": 2884
+    }
+  },
+  "bootstrap_95_ci": {
+    "accuracy": [
+      0.9874,
+      0.9923
+    ],
+    "precision": [
+      0.9841,
+      0.992
+    ],
+    "recall": [
+      0.9872,
+      0.9942
+    ],
+    "f1": [
+      0.9868,
+      0.992
+    ],
+    "resamples": 1000
+  },
+  "calibration": {
+    "mean_predicted_probabilities": [
+      0.0029,
+      0.1393,
+      0.2508,
+      0.3582,
+      0.4548,
+      0.5645,
+      0.6469,
+      0.7624,
+      0.8606,
+      0.9949
+    ],
+    "observed_positive_fractions": [
+      0.0023,
+      0.125,
+      0.1765,
+      0.3846,
+      0.5333,
+      0.7143,
+      0.8571,
+      0.7586,
+      0.8864,
+      0.9943
+    ]
+  },
+  "disclaimer_scope": "MailGuard AI is an NLP statistical classifier designed exclusively to identify unsolicited spam and email fraud patterns. It DOES NOT detect malicious software, executable zero-days, ransomware binaries, or operating system-level malware.",
+  "known_failure_modes": [
+    "Historical lexical bias: Enron corpus reflects early-2000s corporate language; novel modern fraud terminology may have lower vocabulary coverage.",
+    "English text orientation: Accent-stripping NFKD normalization decomposes Latin diacritics; non-English scripts are flagged for human review.",
+    "Short message ambiguity: Ultra-short inputs (< 10 words) provide sparse n-gram statistics and trigger borderline uncertainty.",
+    "Adversarial obfuscation: Deliberate spaced typos ('c a s h') or zero-width character insertions may evade TF-IDF tokenization unless pre-cleaned."
+  ],
+  "svgs": {
+    "confusion_matrix": "<svg class=\"model-card-chart-svg\" viewBox=\"0 0 420 300\" width=\"100%\" role=\"img\" aria-label=\"Holdout Test Set Confusion Matrix\">\n  <!-- Title / Headers -->\n  <text x=\"250\" y=\"22\" class=\"cm-title\">Predicted Verdict</text>\n  <text x=\"180\" y=\"44\" class=\"cm-axis\">Pred Safe (Ham)</text>\n  <text x=\"320\" y=\"44\" class=\"cm-axis\">Pred Spam</text>\n\n  <!-- Y-Axis Label (Rotated) -->\n  <text x=\"-165\" y=\"24\" transform=\"rotate(-90)\" class=\"cm-title\">Actual Class (Ground Truth)</text>\n  <text x=\"75\" y=\"115\" class=\"cm-axis\">True Safe</text>\n  <text x=\"75\" y=\"130\" class=\"cm-axis cm-sub-count\">(3,182)</text>\n  <text x=\"75\" y=\"205\" class=\"cm-axis\">True Spam</text>\n  <text x=\"75\" y=\"220\" class=\"cm-axis cm-sub-count\">(2,911)</text>\n\n  <!-- Cell 1: True Negative (Top-Left) -->\n  <g transform=\"translate(115, 60)\">\n    <rect width=\"130\" height=\"90\" class=\"cm-cell-bg\" fill=\"#15803d\" fill-opacity=\"0.22\" stroke=\"#15803d\" stroke-width=\"1.5\" rx=\"6\" ry=\"6\"/>\n    <text x=\"65\" y=\"42\" class=\"cm-val\" fill=\"#15803d\">3,148</text>\n    <text x=\"65\" y=\"62\" class=\"cm-sub\" fill=\"#15803d\">True Negative (98.9%)</text>\n    <text x=\"65\" y=\"78\" class=\"cm-desc\">Correct Ham</text>\n  </g>\n\n  <!-- Cell 2: False Positive (Top-Right) -->\n  <g transform=\"translate(255, 60)\">\n    <rect width=\"130\" height=\"90\" class=\"cm-cell-bg\" fill=\"#b45309\" fill-opacity=\"0.18\" stroke=\"#b45309\" stroke-width=\"1.5\" rx=\"6\" ry=\"6\"/>\n    <text x=\"65\" y=\"42\" class=\"cm-val\" fill=\"#b45309\">34</text>\n    <text x=\"65\" y=\"62\" class=\"cm-sub\" fill=\"#b45309\">False Positive (1.1%)</text>\n    <text x=\"65\" y=\"78\" class=\"cm-desc\">Ham flagged as Spam</text>\n  </g>\n\n  <!-- Cell 3: False Negative (Bottom-Left) -->\n  <g transform=\"translate(115, 160)\">\n    <rect width=\"130\" height=\"90\" class=\"cm-cell-bg\" fill=\"#b91c1c\" fill-opacity=\"0.18\" stroke=\"#b91c1c\" stroke-width=\"1.5\" rx=\"6\" ry=\"6\"/>\n    <text x=\"65\" y=\"42\" class=\"cm-val\" fill=\"#b91c1c\">27</text>\n    <text x=\"65\" y=\"62\" class=\"cm-sub\" fill=\"#b91c1c\">False Negative (0.9%)</text>\n    <text x=\"65\" y=\"78\" class=\"cm-desc\">Spam missed as Ham</text>\n  </g>\n\n  <!-- Cell 4: True Positive (Bottom-Right) -->\n  <g transform=\"translate(255, 160)\">\n    <rect width=\"130\" height=\"90\" class=\"cm-cell-bg\" fill=\"#8b1e3f\" fill-opacity=\"0.22\" stroke=\"#8b1e3f\" stroke-width=\"1.5\" rx=\"6\" ry=\"6\"/>\n    <text x=\"65\" y=\"42\" class=\"cm-val\" fill=\"#8b1e3f\">2,884</text>\n    <text x=\"65\" y=\"62\" class=\"cm-sub\" fill=\"#8b1e3f\">True Positive (99.1%)</text>\n    <text x=\"65\" y=\"78\" class=\"cm-desc\">Spam detected</text>\n  </g>\n\n  <!-- Bottom Legend / Note -->\n  <text x=\"210\" y=\"280\" class=\"cm-note\">\n    Total Held-Out Test Samples: 6,093 | Accuracy: 99.00%\n  </text>\n</svg>",
+    "pr_curve": "<svg class=\"model-card-chart-svg\" viewBox=\"0 0 420 280\" width=\"100%\" role=\"img\" aria-label=\"Precision-Recall Curve\">\n  <!-- Horizontal gridlines -->\n  <line x1=\"55\" y1=\"30\" x2=\"385\" y2=\"30\" class=\"pr-grid\"/>\n  <text x=\"47\" y=\"34\" class=\"pr-axis\" text-anchor=\"end\">1.0</text>\n\n  <line x1=\"55\" y1=\"76.25\" x2=\"385\" y2=\"76.25\" class=\"pr-grid\"/>\n  <text x=\"47\" y=\"80.25\" class=\"pr-axis\" text-anchor=\"end\">0.75</text>\n\n  <line x1=\"55\" y1=\"122.5\" x2=\"385\" y2=\"122.5\" class=\"pr-grid\"/>\n  <text x=\"47\" y=\"126.5\" class=\"pr-axis\" text-anchor=\"end\">0.50</text>\n\n  <line x1=\"55\" y1=\"168.75\" x2=\"385\" y2=\"168.75\" class=\"pr-grid\"/>\n  <text x=\"47\" y=\"172.75\" class=\"pr-axis\" text-anchor=\"end\">0.25</text>\n\n  <line x1=\"55\" y1=\"215\" x2=\"385\" y2=\"215\" class=\"pr-grid\"/>\n  <text x=\"47\" y=\"219\" class=\"pr-axis\" text-anchor=\"end\">0.0</text>\n\n  <!-- Vertical gridlines -->\n  <line x1=\"55\" y1=\"30\" x2=\"55\" y2=\"215\" class=\"pr-grid\"/>\n  <text x=\"55\" y=\"231\" class=\"pr-axis\" text-anchor=\"middle\">0.0</text>\n\n  <line x1=\"137.5\" y1=\"30\" x2=\"137.5\" y2=\"215\" class=\"pr-grid\"/>\n  <text x=\"137.5\" y=\"231\" class=\"pr-axis\" text-anchor=\"middle\">0.25</text>\n\n  <line x1=\"220.0\" y1=\"30\" x2=\"220.0\" y2=\"215\" class=\"pr-grid\"/>\n  <text x=\"220.0\" y=\"231\" class=\"pr-axis\" text-anchor=\"middle\">0.50</text>\n\n  <line x1=\"302.5\" y1=\"30\" x2=\"302.5\" y2=\"215\" class=\"pr-grid\"/>\n  <text x=\"302.5\" y=\"231\" class=\"pr-axis\" text-anchor=\"middle\">0.75</text>\n\n  <line x1=\"385\" y1=\"30\" x2=\"385\" y2=\"215\" class=\"pr-grid\"/>\n  <text x=\"385\" y=\"231\" class=\"pr-axis\" text-anchor=\"middle\">1.0</text>\n\n  <!-- Baseline (Random Guess / Class Balance) -->\n  <line x1=\"55\" y1=\"126.6\" x2=\"385\" y2=\"126.6\" class=\"pr-baseline\"/>\n\n  <!-- PR Curve Path -->\n  <path d=\"M 385.0 126.6 L 385.0 124.8 L 385.0 122.9 L 385.0 121.0 L 385.0 119.0 L 385.0 116.9 L 385.0 114.7 L 385.0 112.4 L 385.0 109.9 L 385.0 107.4 L 385.0 104.7 L 385.0 101.9 L 385.0 99.0 L 385.0 95.9 L 385.0 92.7 L 385.0 89.1 L 385.0 85.4 L 385.0 81.0 L 385.0 76.5 L 385.0 71.8 L 385.0 61.7 L 385.0 56.2 L 384.8 50.5 L 384.7 44.3 L 384.5 37.5 L 381.3 32.0 L 369.9 30.8 L 356.9 30.3 L 343.4 30.3 L 330.1 30.2 L 316.6 30.1 L 303.0 30.1 L 289.2 30.1 L 275.6 30.1 L 261.8 30.1 L 248.2 30.0 L 234.3 30.0 L 220.7 30.0 L 207.0 30.0 L 193.1 30.0 L 179.4 30.0 L 165.9 30.0 L 152.2 30.0 L 138.3 30.0 L 124.4 30.0 L 110.8 30.0 L 97.2 30.0 L 82.3 30.0 L 68.6 30.0 L 55.0 30.0\" class=\"pr-line\"/>\n\n  <!-- Area under curve shading -->\n  <path d=\"M 385.0 126.6 L 385.0 124.8 L 385.0 122.9 L 385.0 121.0 L 385.0 119.0 L 385.0 116.9 L 385.0 114.7 L 385.0 112.4 L 385.0 109.9 L 385.0 107.4 L 385.0 104.7 L 385.0 101.9 L 385.0 99.0 L 385.0 95.9 L 385.0 92.7 L 385.0 89.1 L 385.0 85.4 L 385.0 81.0 L 385.0 76.5 L 385.0 71.8 L 385.0 61.7 L 385.0 56.2 L 384.8 50.5 L 384.7 44.3 L 384.5 37.5 L 381.3 32.0 L 369.9 30.8 L 356.9 30.3 L 343.4 30.3 L 330.1 30.2 L 316.6 30.1 L 303.0 30.1 L 289.2 30.1 L 275.6 30.1 L 261.8 30.1 L 248.2 30.0 L 234.3 30.0 L 220.7 30.0 L 207.0 30.0 L 193.1 30.0 L 179.4 30.0 L 165.9 30.0 L 152.2 30.0 L 138.3 30.0 L 124.4 30.0 L 110.8 30.0 L 97.2 30.0 L 82.3 30.0 L 68.6 30.0 L 55.0 30.0 L 385 215 L 55 215 Z\" class=\"pr-area\"/>\n\n  <!-- Axis Titles -->\n  <text x=\"220.0\" y=\"249\" class=\"pr-title\" text-anchor=\"middle\">Recall (Sensitivity)</text>\n  <text x=\"-122.5\" y=\"16\" transform=\"rotate(-90)\" class=\"pr-title\" text-anchor=\"middle\">Precision (Positive Predictive Value)</text>\n\n  <!-- Metrics Callout Badge -->\n  <g transform=\"translate(70, 160)\">\n    <rect width=\"155\" height=\"42\" class=\"pr-badge-box\" rx=\"4\" ry=\"4\"/>\n    <text x=\"10\" y=\"18\" class=\"pr-badge-title\">PR-AUC: 0.9991</text>\n    <text x=\"10\" y=\"32\" class=\"pr-badge-sub\">Baseline (Spam prev): 47.8%</text>\n  </g>\n</svg>",
+    "calibration_curve": "<svg class=\"model-card-chart-svg\" viewBox=\"0 0 420 280\" width=\"100%\" role=\"img\" aria-label=\"Platt Calibration Reliability Diagram\">\n  <!-- Horizontal gridlines -->\n  <line x1=\"55\" y1=\"30\" x2=\"385\" y2=\"30\" class=\"cal-grid\"/>\n  <text x=\"47\" y=\"34\" class=\"cal-axis\" text-anchor=\"end\">1.0</text>\n\n  <line x1=\"55\" y1=\"76.25\" x2=\"385\" y2=\"76.25\" class=\"cal-grid\"/>\n  <text x=\"47\" y=\"80.25\" class=\"cal-axis\" text-anchor=\"end\">0.75</text>\n\n  <line x1=\"55\" y1=\"122.5\" x2=\"385\" y2=\"122.5\" class=\"cal-grid\"/>\n  <text x=\"47\" y=\"126.5\" class=\"cal-axis\" text-anchor=\"end\">0.50</text>\n\n  <line x1=\"55\" y1=\"168.75\" x2=\"385\" y2=\"168.75\" class=\"cal-grid\"/>\n  <text x=\"47\" y=\"172.75\" class=\"cal-axis\" text-anchor=\"end\">0.25</text>\n\n  <line x1=\"55\" y1=\"215\" x2=\"385\" y2=\"215\" class=\"cal-grid\"/>\n  <text x=\"47\" y=\"219\" class=\"cal-axis\" text-anchor=\"end\">0.0</text>\n\n  <!-- Vertical gridlines -->\n  <line x1=\"55\" y1=\"30\" x2=\"55\" y2=\"215\" class=\"cal-grid\"/>\n  <text x=\"55\" y=\"231\" class=\"cal-axis\" text-anchor=\"middle\">0.0</text>\n\n  <line x1=\"137.5\" y1=\"30\" x2=\"137.5\" y2=\"215\" class=\"cal-grid\"/>\n  <text x=\"137.5\" y=\"231\" class=\"cal-axis\" text-anchor=\"middle\">0.25</text>\n\n  <line x1=\"220.0\" y1=\"30\" x2=\"220.0\" y2=\"215\" class=\"cal-grid\"/>\n  <text x=\"220.0\" y=\"231\" class=\"cal-axis\" text-anchor=\"middle\">0.50</text>\n\n  <line x1=\"302.5\" y1=\"30\" x2=\"302.5\" y2=\"215\" class=\"cal-grid\"/>\n  <text x=\"302.5\" y=\"231\" class=\"cal-axis\" text-anchor=\"middle\">0.75</text>\n\n  <line x1=\"385\" y1=\"30\" x2=\"385\" y2=\"215\" class=\"cal-grid\"/>\n  <text x=\"385\" y=\"231\" class=\"cal-axis\" text-anchor=\"middle\">1.0</text>\n\n  <!-- Perfect Calibration Reference (Diagonal Line y = x) -->\n  <line x1=\"55\" y1=\"215\" x2=\"385\" y2=\"30\" class=\"cal-ideal\"/>\n\n  <!-- Model Calibration Line & Points -->\n  <path d=\"M 56.0 214.6 L 101.0 191.9 L 137.8 182.3 L 173.2 143.8 L 205.1 116.3 L 241.3 82.9 L 268.5 56.4 L 306.6 74.7 L 339.0 51.0 L 383.3 31.1\" class=\"cal-line\"/>\n  <circle cx=\"56.0\" cy=\"214.6\" r=\"4\" class=\"cal-dot\"/>\n  <circle cx=\"101.0\" cy=\"191.9\" r=\"4\" class=\"cal-dot\"/>\n  <circle cx=\"137.8\" cy=\"182.3\" r=\"4\" class=\"cal-dot\"/>\n  <circle cx=\"173.2\" cy=\"143.8\" r=\"4\" class=\"cal-dot\"/>\n  <circle cx=\"205.1\" cy=\"116.3\" r=\"4\" class=\"cal-dot\"/>\n  <circle cx=\"241.3\" cy=\"82.9\" r=\"4\" class=\"cal-dot\"/>\n  <circle cx=\"268.5\" cy=\"56.4\" r=\"4\" class=\"cal-dot\"/>\n  <circle cx=\"306.6\" cy=\"74.7\" r=\"4\" class=\"cal-dot\"/>\n  <circle cx=\"339.0\" cy=\"51.0\" r=\"4\" class=\"cal-dot\"/>\n  <circle cx=\"383.3\" cy=\"31.1\" r=\"4\" class=\"cal-dot\"/>\n\n  <!-- Axis Titles -->\n  <text x=\"220.0\" y=\"249\" class=\"cal-title\" text-anchor=\"middle\">Mean Predicted Spam Probability</text>\n  <text x=\"-122.5\" y=\"16\" transform=\"rotate(-90)\" class=\"cal-title\" text-anchor=\"middle\">Observed Fraction of Spam (Positives)</text>\n\n  <!-- Legend -->\n  <g transform=\"translate(70, 42)\">\n    <rect width=\"165\" height=\"38\" class=\"cal-badge\" rx=\"4\" ry=\"4\"/>\n    <text x=\"8\" y=\"16\" class=\"cal-badge-title\">Calibrated Linear SVM</text>\n    <text x=\"8\" y=\"29\" class=\"cal-badge-sub\">--- Ideal Calibration (y = x)</text>\n  </g>\n</svg>"
+  }
+}

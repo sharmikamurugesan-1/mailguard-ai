@@ -357,6 +357,14 @@
                         <span class="toggle-slider" aria-hidden="true"></span>
                         <span class="toggle-text">Detect Suspicious Links</span>
                       </label>
+                      <div class="analyzer-sensitivity-control">
+                        <label for="analyzer-sensitivity-select" class="analyzer-sensitivity-label">Sensitivity:</label>
+                        <select id="analyzer-sensitivity-select" class="select-sensitivity-sm" aria-label="Analysis Risk Sensitivity">
+                          <option value="low">Low</option>
+                          <option value="medium" selected>Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                      </div>
                     </div>
 
                     <!-- General Alert Box -->
@@ -758,36 +766,209 @@
         <!-- VIEW 5: SETTINGS (#/settings)                                     -->
         <!-- ================================================================ -->
         <section class="view-panel hidden" id="view-settings" role="tabpanel" aria-labelledby="nav-settings">
-          <div class="card placeholder-card">
+          <div class="card settings-hero-card">
             <div class="card-maroon-header">
               <div class="card-header-icon" aria-hidden="true">⚙️</div>
               <div>
-                <h1 class="card-maroon-title">Settings & Preferences</h1>
-                <p class="card-maroon-sub">Review model decision thresholds, privacy policies, and interface configuration.</p>
+                <h1 class="card-maroon-title">Settings & System Configuration</h1>
+                <p class="card-maroon-sub">Manage classification sensitivity, analysis preferences, local storage, and REST API access.</p>
               </div>
             </div>
+
+            <!-- Settings Navigation Tabs -->
+            <div class="settings-tabs-bar" role="tablist" aria-label="Settings Categories">
+              <button type="button" class="settings-tab-btn active" id="tab-btn-pref" role="tab" aria-selected="true" aria-controls="settings-panel-pref">
+                <span aria-hidden="true">🎛️</span>
+                <span>Preferences</span>
+              </button>
+              <button type="button" class="settings-tab-btn" id="tab-btn-api" role="tab" aria-selected="false" aria-controls="settings-panel-api">
+                <span aria-hidden="true">🔌</span>
+                <span>API Access</span>
+              </button>
+              <button type="button" class="settings-tab-btn" id="tab-btn-account" role="tab" aria-selected="false" aria-controls="settings-panel-account">
+                <span aria-hidden="true">👤</span>
+                <span>Account & Storage</span>
+              </button>
+            </div>
+
             <div class="card-body">
-              <div class="settings-list">
-                <div class="settings-item">
-                  <div class="settings-item-text">
-                    <span class="settings-item-title">Classification Sensitivity</span>
-                    <span class="settings-item-desc">Empirical decision boundary with calibrated uncertain band [0.40, 0.60].</span>
+              <!-- 1. PREFERENCES TAB PANEL -->
+              <div class="settings-tab-panel" id="settings-panel-pref" role="tabpanel" aria-labelledby="tab-btn-pref">
+                <form id="settings-preferences-form" class="settings-form">
+                  <div class="settings-section">
+                    <h2 class="settings-section-title">Classification Preferences</h2>
+                    <p class="settings-section-sub">Configure how MailGuard AI evaluates email inputs and assigns threat classifications.</p>
+
+                    <!-- Sensitivity Control -->
+                    <div class="settings-control-group">
+                      <div class="settings-control-info">
+                        <label for="pref-sensitivity" class="settings-label">Detection Sensitivity Profile</label>
+                        <p class="settings-help">Select the risk threshold profile applied to calibrated probability scores.</p>
+                      </div>
+                      <div class="settings-control-input">
+                        <select id="pref-sensitivity" class="form-control select-sensitivity" aria-label="Detection Sensitivity Profile">
+                          <option value="low">Low (Conservative — Safe &lt; 50, Spam &gt; 70; Minimizes False Positives)</option>
+                          <option value="medium" selected>Medium (Balanced — Safe &lt; 40, Spam &gt; 60; Default)</option>
+                          <option value="high">High (Strict — Safe &lt; 30, Spam &gt; 45; Maximum Recall)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Scan URLs Toggle -->
+                    <div class="settings-control-group">
+                      <div class="settings-control-info">
+                        <label for="pref-scan-urls" class="settings-label">Deep URL & Link Inspection</label>
+                        <p class="settings-help">Extract hyperlinks, check IP addresses, detect shortened URLs, and flag lookalike domains.</p>
+                      </div>
+                      <div class="settings-control-input">
+                        <label class="toggle-control">
+                          <input type="checkbox" id="pref-scan-urls" checked>
+                          <span class="toggle-slider" aria-hidden="true"></span>
+                          <span class="toggle-text sr-only">Enable URL scanning</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- Scan Headers Toggle -->
+                    <div class="settings-control-group">
+                      <div class="settings-control-info">
+                        <label for="pref-analyze-headers" class="settings-label">Header & Authentication Validation</label>
+                        <p class="settings-help">Parse RFC-822 / MIME headers from raw emails to inspect SPF, DKIM, and Received relay hops.</p>
+                      </div>
+                      <div class="settings-control-input">
+                        <label class="toggle-control">
+                          <input type="checkbox" id="pref-analyze-headers" checked>
+                          <span class="toggle-slider" aria-hidden="true"></span>
+                          <span class="toggle-text sr-only">Enable header analysis</span>
+                        </label>
+                      </div>
+                    </div>
                   </div>
-                  <span class="badge badge-accent">Balanced (Active)</span>
+
+                  <!-- Save / Reset Actions -->
+                  <div class="settings-actions">
+                    <button type="submit" class="btn btn-primary btn-crimson" id="save-preferences-btn">
+                      <span>Save Preferences</span>
+                    </button>
+                    <button type="button" class="btn btn-outline" id="reset-preferences-btn">
+                      <span>Reset to Defaults</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- 2. API ACCESS TAB PANEL -->
+              <div class="settings-tab-panel hidden" id="settings-panel-api" role="tabpanel" aria-labelledby="tab-btn-api">
+                <div class="settings-section">
+                  <h2 class="settings-section-title">Production REST API Integration</h2>
+                  <p class="settings-section-sub">Direct programmatic access for scripts, security bots, and automated scanning pipelines.</p>
+
+                  <div class="api-rate-limit-banner">
+                    <span class="api-rate-icon" aria-hidden="true">⚡</span>
+                    <div class="api-rate-info">
+                      <strong>Public Sane Rate Limits Enforced:</strong>
+                      <span>60 requests / minute on <code>/api/analyze</code> and <code>/api/predict</code>. 120 requests / minute on <code>/api/model-info</code>. <code>/api/health</code> is exempt. Zero API key required for public guest access.</span>
+                    </div>
+                  </div>
+
+                  <div class="api-endpoint-card">
+                    <div class="endpoint-header">
+                      <span class="badge badge-accent method-badge">POST</span>
+                      <code class="endpoint-path">/api/analyze</code>
+                    </div>
+                    <p class="endpoint-desc">Comprehensive email security analysis combining Calibrated Linear SVM inference, URL threat evaluation, and MIME header parsing.</p>
+                    
+                    <div class="code-snippet-box">
+                      <div class="code-snippet-header">
+                        <span class="code-lang">cURL Example</span>
+                        <button type="button" class="btn-copy-code" data-target="code-curl-analyze" aria-label="Copy cURL snippet for analyze">📋 Copy</button>
+                      </div>
+                      <pre class="code-pre"><code id="code-curl-analyze">curl -X POST https://mailguard-ai.onrender.com/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Subject: Urgent Security Notice\n\nPlease confirm your banking password immediately at http://192.168.1.1/login",
+    "options": {
+      "scan_urls": true,
+      "analyze_headers": true,
+      "sensitivity": "medium"
+    }
+  }'</code></pre>
+                    </div>
+
+                    <div class="code-snippet-box">
+                      <div class="code-snippet-header">
+                        <span class="code-lang">Python (requests) Example</span>
+                        <button type="button" class="btn-copy-code" data-target="code-python-analyze" aria-label="Copy Python snippet for analyze">📋 Copy</button>
+                      </div>
+                      <pre class="code-pre"><code id="code-python-analyze">import requests
+
+url = "https://mailguard-ai.onrender.com/api/analyze"
+payload = {
+    "text": "Subject: Account Verification Needed\n\nPlease review your credentials.",
+    "options": {
+        "scan_urls": True,
+        "analyze_headers": True,
+        "sensitivity": "medium"
+    }
+}
+response = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=10)
+print(response.status_code)
+print(response.json())</code></pre>
+                    </div>
+                  </div>
+
+                  <div class="api-endpoint-card">
+                    <div class="endpoint-header">
+                      <span class="badge badge-accent method-badge">POST</span>
+                      <code class="endpoint-path">/api/predict</code>
+                    </div>
+                    <p class="endpoint-desc">Lightweight ML prediction returning classification label, probability, confidence, and top feature contribution cues.</p>
+                    
+                    <div class="code-snippet-box">
+                      <div class="code-snippet-header">
+                        <span class="code-lang">cURL Example</span>
+                        <button type="button" class="btn-copy-code" data-target="code-curl-predict" aria-label="Copy cURL snippet for predict">📋 Copy</button>
+                      </div>
+                      <pre class="code-pre"><code id="code-curl-predict">curl -X POST https://mailguard-ai.onrender.com/api/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subject": "Important update",
+    "body": "Here is the quarterly summary as requested.",
+    "filter_stopwords": true
+  }'</code></pre>
+                    </div>
+                  </div>
                 </div>
-                <div class="settings-item">
-                  <div class="settings-item-text">
-                    <span class="settings-item-title">Stopword Filtering</span>
-                    <span class="settings-item-desc">Hide standard English stopwords from explanation feature lists by default.</span>
+              </div>
+
+              <!-- 3. ACCOUNT & STORAGE TAB PANEL -->
+              <div class="settings-tab-panel hidden" id="settings-panel-account" role="tabpanel" aria-labelledby="tab-btn-account">
+                <div class="settings-section">
+                  <h2 class="settings-section-title">Client Account & Device Storage</h2>
+                  <p class="settings-section-sub">MailGuard AI operates strictly client-side for storage. Zero registration, zero server database.</p>
+
+                  <div class="account-profile-box">
+                    <div class="account-avatar-large" aria-hidden="true">G</div>
+                    <div class="account-details">
+                      <h3 class="account-tier-title">Guest User</h3>
+                      <p class="account-tier-note">Guest, data stays on this device.</p>
+                      <p class="account-subtext">No email address, password, or cloud profile is required. Scan audit logs and preferences are stored exclusively within your local browser storage.</p>
+                    </div>
                   </div>
-                  <span class="badge badge-accent">Enabled</span>
-                </div>
-                <div class="settings-item">
-                  <div class="settings-item-text">
-                    <span class="settings-item-title">Privacy & Storage Policy</span>
-                    <span class="settings-item-desc">Email bodies are processed entirely in memory; zero storage or user text logging.</span>
+
+                  <div class="storage-management-box">
+                    <h3 class="storage-title">Local Browser Storage Controls</h3>
+                    <p class="storage-desc">You have full control over your local data. You can wipe all stored scan history and reset preference cookies at any time.</p>
+                    
+                    <div class="storage-actions">
+                      <button type="button" class="btn btn-outline" id="clear-local-history-btn">
+                        <span>🗑️ Clear Scan History (IndexedDB)</span>
+                      </button>
+                      <button type="button" class="btn btn-outline" id="clear-local-settings-btn">
+                        <span>🔄 Reset Stored Preferences</span>
+                      </button>
+                    </div>
                   </div>
-                  <span class="badge badge-accent">Strict Ephemeral</span>
                 </div>
               </div>
             </div>
@@ -878,18 +1059,29 @@
         <!-- VIEW 8: MODEL CARD (#/model-card)                                 -->
         <!-- ================================================================ -->
         <section class="view-panel hidden" id="view-model-card" role="tabpanel" aria-labelledby="top-nav-model-card">
-          <div class="card placeholder-card">
+          <div class="card model-card-container">
             <div class="card-maroon-header">
               <div class="card-header-icon" aria-hidden="true">📜</div>
               <div>
-                <h1 class="card-maroon-title">Model & Data Transparency</h1>
-                <p class="card-maroon-sub">Architecture specifications, dataset provenance, metrics, and limitations.</p>
+                <h1 class="card-maroon-title">Model Card & Technical Transparency</h1>
+                <p class="card-maroon-sub">Architecture specifications, dataset provenance, held-out evaluation, and failure modes.</p>
               </div>
             </div>
+
             <div class="card-body">
+              <!-- Plain Language Scope & Safety Disclaimer -->
+              <div class="disclaimer-banner alert-warning" role="note">
+                <span class="disclaimer-icon" aria-hidden="true">⚠️</span>
+                <div>
+                  <strong>Scope & Safety Disclaimer:</strong>
+                  <span>MailGuard AI is an NLP statistical classifier designed exclusively to identify unsolicited spam and email fraud patterns. It <strong>DOES NOT</strong> detect malicious software, executable zero-days, ransomware binaries, or operating system-level malware.</span>
+                </div>
+              </div>
+
+              <!-- Collapsible Architecture & Governance Section -->
               <details id="model-details-accordion" class="details-accordion" open>
                 <summary class="accordion-summary">
-                  <span class="summary-title">Architecture & Governance Specifications</span>
+                  <span class="summary-title">Architecture, Training & De-duplication Specifications</span>
                   <span class="summary-hint">(Collapsible)</span>
                 </summary>
 
@@ -897,84 +1089,267 @@
                   <div class="spec-grid">
                     <div class="spec-item">
                       <span class="spec-label">Model Architecture</span>
-                      <span class="spec-value" id="meta-model-type">Calibrated Linear SVM</span>
+                      <span class="spec-value" id="meta-model-type">LinearSVC + CalibratedClassifierCV (Platt Scaling, 5-Fold)</span>
                     </div>
                     <div class="spec-item">
                       <span class="spec-label">Feature Extraction</span>
-                      <span class="spec-value" id="meta-vectorizer">TF-IDF (15,000 features, 1-2 grams)</span>
+                      <span class="spec-value" id="meta-vectorizer">TF-IDF (15,000 features, 1-2 n-grams, sublinear TF)</span>
                     </div>
                     <div class="spec-item">
-                      <span class="spec-label">Dataset</span>
-                      <span class="spec-value" id="meta-dataset-name">Enron Spam Dataset</span>
+                      <span class="spec-label">Dataset Provenance</span>
+                      <span class="spec-value" id="meta-dataset-name">Enron Spam Dataset (MWiechmann / enron_spam_data)</span>
                     </div>
                     <div class="spec-item">
-                      <span class="spec-label">Code License</span>
-                      <span class="spec-value" id="meta-code-license">MIT License</span>
+                      <span class="spec-label">Licenses</span>
+                      <span class="spec-value" id="meta-licenses">Code: MIT | Data: GNU GPL v3.0</span>
                     </div>
                     <div class="spec-item">
-                      <span class="spec-label">Dataset Repository License</span>
-                      <span class="spec-value" id="meta-dataset-license">GNU General Public License v3.0</span>
+                      <span class="spec-label">Raw Total Samples</span>
+                      <span class="spec-value" id="meta-raw-samples">33,665</span>
+                    </div>
+                    <div class="spec-item">
+                      <span class="spec-label">Deduplication Dropped</span>
+                      <span class="spec-value" id="meta-dedup-dropped">3,203 exact duplicates removed</span>
+                    </div>
+                    <div class="spec-item">
+                      <span class="spec-label">Cleaned Dataset Total</span>
+                      <span class="spec-value" id="meta-cleaned-samples">30,462 unique samples</span>
                     </div>
                     <div class="spec-item">
                       <span class="spec-label">Train / Test Split</span>
-                      <span class="spec-value" id="meta-dataset-split">24,369 / 6,093 (80/20)</span>
+                      <span class="spec-value" id="meta-dataset-split">24,369 Train (80%) / 6,093 Test (20%) [Stratified, seed=42]</span>
                     </div>
                     <div class="spec-item">
-                      <span class="spec-label">Class Balance</span>
-                      <span class="spec-value" id="meta-class-balance">15,910 ham / 14,552 spam</span>
+                      <span class="spec-label">Overall Class Balance</span>
+                      <span class="spec-value" id="meta-class-balance">15,910 Ham (52.2%) / 14,552 Spam (47.8%)</span>
                     </div>
                     <div class="spec-item">
-                      <span class="spec-label">Selection Criterion</span>
-                      <span class="spec-value" id="meta-selection-criterion">Calibrated Platt Scaling via 5-fold CV</span>
+                      <span class="spec-label">Test Set Balance</span>
+                      <span class="spec-value" id="meta-test-balance">3,182 Ham (52.2%) / 2,911 Spam (47.8%)</span>
                     </div>
                   </div>
-
-                  <h4 class="metrics-table-title">Holdout Test Set Performance</h4>
-                  <div class="table-responsive">
-                    <table class="metrics-table" aria-label="Model Evaluation Metrics">
-                      <thead>
-                        <tr>
-                          <th scope="col">Metric</th>
-                          <th scope="col">Value</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>Accuracy</td>
-                          <td id="meta-acc">98.5%</td>
-                        </tr>
-                        <tr>
-                          <td>Precision (Spam)</td>
-                          <td id="meta-prec">98.2%</td>
-                        </tr>
-                        <tr>
-                          <td>Recall (Spam)</td>
-                          <td id="meta-rec">98.7%</td>
-                        </tr>
-                        <tr>
-                          <td>F1-Score (Spam)</td>
-                          <td id="meta-f1">98.4%</td>
-                        </tr>
-                        <tr>
-                          <td>False Positives (Ham flagged as Spam)</td>
-                          <td id="meta-fp">52 / 3,182</td>
-                        </tr>
-                        <tr>
-                          <td>False Negatives (Spam missed)</td>
-                          <td id="meta-fn">39 / 2,911</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <h4 class="metrics-table-title">Known Limitations & Constraints</h4>
-                  <ul class="limitations-list" id="meta-limitations-list">
-                    <li><strong>Historical bias:</strong> Trained on Enron corporate communications from the early 2000s; modern scams (e.g. crypto phishing) may have lower coverage.</li>
-                    <li><strong>English-only:</strong> Preprocessor strips non-ASCII accents; non-English email yields reduced accuracy.</li>
-                    <li><strong>Short text sensitivity:</strong> Very short messages (&lt;10 words) lack sufficient statistical n-grams.</li>
-                  </ul>
                 </div>
               </details>
+
+              <!-- Holdout Test Performance with Bootstrap 95% Confidence Intervals -->
+              <div class="model-metrics-section">
+                <h2 class="metrics-table-title">Holdout Test Set Performance & 95% Bootstrap Confidence Intervals</h2>
+                <p class="settings-help">Computed on 6,093 held-out test emails using 1,000 bootstrap resamples with seed 42.</p>
+
+                <div class="table-responsive">
+                  <table class="metrics-table" aria-label="Holdout Test Performance and Confidence Intervals">
+                    <thead>
+                      <tr>
+                        <th scope="col">Metric</th>
+                        <th scope="col">Point Estimate</th>
+                        <th scope="col">95% Confidence Interval</th>
+                        <th scope="col">Operational Meaning</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Accuracy</strong></td>
+                        <td id="meta-acc">99.00%</td>
+                        <td>[98.74%, 99.23%]</td>
+                        <td>Overall correct classification across all test emails</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Precision (Spam)</strong></td>
+                        <td id="meta-prec">98.83%</td>
+                        <td>[98.41%, 99.20%]</td>
+                        <td>Reliability of spam flags; minimises costly false alarms</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Recall (Spam)</strong></td>
+                        <td id="meta-rec">99.07%</td>
+                        <td>[98.72%, 99.42%]</td>
+                        <td>Coverage; catches 99+ out of 100 incoming spam messages</td>
+                      </tr>
+                      <tr>
+                        <td><strong>F1-Score (Spam)</strong></td>
+                        <td id="meta-f1">98.95%</td>
+                        <td>[98.68%, 99.20%]</td>
+                        <td>Harmonic balance between precision and recall</td>
+                      </tr>
+                      <tr>
+                        <td><strong>PR-AUC</strong></td>
+                        <td id="meta-pr-auc">0.9991</td>
+                        <td>Baseline: 0.4778</td>
+                        <td>Area under Precision-Recall curve across all decision thresholds</td>
+                      </tr>
+                      <tr>
+                        <td><strong>False Positives (Ham → Spam)</strong></td>
+                        <td id="meta-fp">34 / 3,182</td>
+                        <td>1.07% False Alarm Rate</td>
+                        <td>Important business communications mistakenly marked spam</td>
+                      </tr>
+                      <tr>
+                        <td><strong>False Negatives (Spam → Ham)</strong></td>
+                        <td id="meta-fn">27 / 2,911</td>
+                        <td>0.93% Miss Rate</td>
+                        <td>Spam or fraudulent emails that leaked past the classifier</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Visual Charts Grid (Inline SVGs computed from real test set) -->
+              <div class="model-charts-section">
+                <h2 class="metrics-table-title">Visual Model Diagnostics (Held-Out Test Set)</h2>
+                <div class="model-card-chart-grid">
+                  <!-- Chart 1: Confusion Matrix -->
+                  <div class="model-card-chart-card">
+                    <div class="chart-card-header">
+                      <h3 class="chart-card-title">Confusion Matrix</h3>
+                      <p class="chart-card-sub">Counts &amp; rates on 6,093 held-out test samples</p>
+                    </div>
+                    <div class="chart-svg-container" id="svg-container-cm">
+                      <svg class="model-card-chart-svg" viewBox="0 0 420 300" width="100%" role="img" aria-label="Holdout Test Set Confusion Matrix">
+                        <text x="250" y="22" class="cm-title">Predicted Verdict</text>
+                        <text x="180" y="44" class="cm-axis">Pred Safe (Ham)</text>
+                        <text x="320" y="44" class="cm-axis">Pred Spam</text>
+                        <text x="-165" y="24" transform="rotate(-90)" class="cm-title">Actual Class (Ground Truth)</text>
+                        <text x="75" y="115" class="cm-axis">True Safe</text>
+                        <text x="75" y="130" class="cm-axis cm-sub-count">(3,182)</text>
+                        <text x="75" y="205" class="cm-axis">True Spam</text>
+                        <text x="75" y="220" class="cm-axis cm-sub-count">(2,911)</text>
+                        <g transform="translate(115, 60)">
+                          <rect width="130" height="90" class="cm-cell-bg" fill="#15803d" fill-opacity="0.22" stroke="#15803d" stroke-width="1.5" rx="6" ry="6"/>
+                          <text x="65" y="42" class="cm-val" fill="#15803d">3,148</text>
+                          <text x="65" y="62" class="cm-sub" fill="#15803d">True Negative (98.9%)</text>
+                          <text x="65" y="78" class="cm-desc">Correct Ham</text>
+                        </g>
+                        <g transform="translate(255, 60)">
+                          <rect width="130" height="90" class="cm-cell-bg" fill="#b45309" fill-opacity="0.18" stroke="#b45309" stroke-width="1.5" rx="6" ry="6"/>
+                          <text x="65" y="42" class="cm-val" fill="#b45309">34</text>
+                          <text x="65" y="62" class="cm-sub" fill="#b45309">False Positive (1.1%)</text>
+                          <text x="65" y="78" class="cm-desc">Ham flagged as Spam</text>
+                        </g>
+                        <g transform="translate(115, 160)">
+                          <rect width="130" height="90" class="cm-cell-bg" fill="#b91c1c" fill-opacity="0.18" stroke="#b91c1c" stroke-width="1.5" rx="6" ry="6"/>
+                          <text x="65" y="42" class="cm-val" fill="#b91c1c">27</text>
+                          <text x="65" y="62" class="cm-sub" fill="#b91c1c">False Negative (0.9%)</text>
+                          <text x="65" y="78" class="cm-desc">Spam missed as Ham</text>
+                        </g>
+                        <g transform="translate(255, 160)">
+                          <rect width="130" height="90" class="cm-cell-bg" fill="#8b1e3f" fill-opacity="0.22" stroke="#8b1e3f" stroke-width="1.5" rx="6" ry="6"/>
+                          <text x="65" y="42" class="cm-val" fill="#8b1e3f">2,884</text>
+                          <text x="65" y="62" class="cm-sub" fill="#8b1e3f">True Positive (99.1%)</text>
+                          <text x="65" y="78" class="cm-desc">Spam detected</text>
+                        </g>
+                        <text x="210" y="280" class="cm-note">
+                          Total Held-Out Test Samples: 6,093 | Accuracy: 99.00%
+                        </text>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Chart 2: PR Curve -->
+                  <div class="model-card-chart-card">
+                    <div class="chart-card-header">
+                      <h3 class="chart-card-title">Precision-Recall Curve</h3>
+                      <p class="chart-card-sub">PR-AUC: 0.9991 vs Random Baseline 47.8%</p>
+                    </div>
+                    <div class="chart-svg-container" id="svg-container-pr">
+                      <svg class="model-card-chart-svg" viewBox="0 0 420 280" width="100%" role="img" aria-label="Precision-Recall Curve">
+                        <line x1="55" y1="30" x2="385" y2="30" class="pr-grid"/>
+                        <text x="47" y="34" class="pr-axis" text-anchor="end">1.0</text>
+                        <line x1="55" y1="76.25" x2="385" y2="76.25" class="pr-grid"/>
+                        <text x="47" y="80.25" class="pr-axis" text-anchor="end">0.75</text>
+                        <line x1="55" y1="122.5" x2="385" y2="122.5" class="pr-grid"/>
+                        <text x="47" y="126.5" class="pr-axis" text-anchor="end">0.50</text>
+                        <line x1="55" y1="168.75" x2="385" y2="168.75" class="pr-grid"/>
+                        <text x="47" y="172.75" class="pr-axis" text-anchor="end">0.25</text>
+                        <line x1="55" y1="215" x2="385" y2="215" class="pr-grid"/>
+                        <text x="47" y="219" class="pr-axis" text-anchor="end">0.0</text>
+                        <line x1="55" y1="30" x2="55" y2="215" class="pr-grid"/>
+                        <text x="55" y="231" class="pr-axis" text-anchor="middle">0.0</text>
+                        <line x1="137.5" y1="30" x2="137.5" y2="215" class="pr-grid"/>
+                        <text x="137.5" y="231" class="pr-axis" text-anchor="middle">0.25</text>
+                        <line x1="220.0" y1="30" x2="220.0" y2="215" class="pr-grid"/>
+                        <text x="220.0" y="231" class="pr-axis" text-anchor="middle">0.50</text>
+                        <line x1="302.5" y1="30" x2="302.5" y2="215" class="pr-grid"/>
+                        <text x="302.5" y="231" class="pr-axis" text-anchor="middle">0.75</text>
+                        <line x1="385" y1="30" x2="385" y2="215" class="pr-grid"/>
+                        <text x="385" y="231" class="pr-axis" text-anchor="middle">1.0</text>
+                        <line x1="55" y1="126.6" x2="385" y2="126.6" class="pr-baseline"/>
+                        <path d="M 385.0 126.6 L 385.0 124.8 L 385.0 122.9 L 385.0 121.0 L 385.0 119.0 L 385.0 116.9 L 385.0 114.7 L 385.0 112.4 L 385.0 109.9 L 385.0 107.4 L 385.0 104.7 L 385.0 101.9 L 385.0 99.0 L 385.0 95.9 L 385.0 92.7 L 385.0 89.1 L 385.0 85.4 L 385.0 81.0 L 385.0 76.5 L 385.0 71.8 L 385.0 61.7 L 385.0 56.2 L 384.8 50.5 L 384.7 44.3 L 384.5 37.5 L 381.3 32.0 L 369.9 30.8 L 356.9 30.3 L 343.4 30.3 L 330.1 30.2 L 316.6 30.1 L 303.0 30.1 L 289.2 30.1 L 275.6 30.1 L 261.8 30.1 L 248.2 30.0 L 234.3 30.0 L 220.7 30.0 L 207.0 30.0 L 193.1 30.0 L 179.4 30.0 L 165.9 30.0 L 152.2 30.0 L 138.3 30.0 L 124.4 30.0 L 110.8 30.0 L 97.2 30.0 L 82.3 30.0 L 68.6 30.0 L 55.0 30.0" class="pr-line"/>
+                        <path d="M 385.0 126.6 L 385.0 124.8 L 385.0 122.9 L 385.0 121.0 L 385.0 119.0 L 385.0 116.9 L 385.0 114.7 L 385.0 112.4 L 385.0 109.9 L 385.0 107.4 L 385.0 104.7 L 385.0 101.9 L 385.0 99.0 L 385.0 95.9 L 385.0 92.7 L 385.0 89.1 L 385.0 85.4 L 385.0 81.0 L 385.0 76.5 L 385.0 71.8 L 385.0 61.7 L 385.0 56.2 L 384.8 50.5 L 384.7 44.3 L 384.5 37.5 L 381.3 32.0 L 369.9 30.8 L 356.9 30.3 L 343.4 30.3 L 330.1 30.2 L 316.6 30.1 L 303.0 30.1 L 289.2 30.1 L 275.6 30.1 L 261.8 30.1 L 248.2 30.0 L 234.3 30.0 L 220.7 30.0 L 207.0 30.0 L 193.1 30.0 L 179.4 30.0 L 165.9 30.0 L 152.2 30.0 L 138.3 30.0 L 124.4 30.0 L 110.8 30.0 L 97.2 30.0 L 82.3 30.0 L 68.6 30.0 L 55.0 30.0 L 385 215 L 55 215 Z" class="pr-area"/>
+                        <text x="220.0" y="249" class="pr-title" text-anchor="middle">Recall (Sensitivity)</text>
+                        <text x="-122.5" y="16" transform="rotate(-90)" class="pr-title" text-anchor="middle">Precision (Positive Predictive Value)</text>
+                        <g transform="translate(70, 160)">
+                          <rect width="155" height="42" class="pr-badge-box" rx="4" ry="4"/>
+                          <text x="10" y="18" class="pr-badge-title">PR-AUC: 0.9991</text>
+                          <text x="10" y="32" class="pr-badge-sub">Baseline (Spam prev): 47.8%</text>
+                        </g>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Chart 3: Calibration Diagram -->
+                  <div class="model-card-chart-card">
+                    <div class="chart-card-header">
+                      <h3 class="chart-card-title">Reliability Diagram</h3>
+                      <p class="chart-card-sub">Platt Calibration (10 bins) vs Ideal y = x</p>
+                    </div>
+                    <div class="chart-svg-container" id="svg-container-cal">
+                      <svg class="model-card-chart-svg" viewBox="0 0 420 280" width="100%" role="img" aria-label="Platt Calibration Reliability Diagram">
+                        <line x1="55" y1="30" x2="385" y2="30" class="cal-grid"/>
+                        <text x="47" y="34" class="cal-axis" text-anchor="end">1.0</text>
+                        <line x1="55" y1="76.25" x2="385" y2="76.25" class="cal-grid"/>
+                        <text x="47" y="80.25" class="cal-axis" text-anchor="end">0.75</text>
+                        <line x1="55" y1="122.5" x2="385" y2="122.5" class="cal-grid"/>
+                        <text x="47" y="126.5" class="cal-axis" text-anchor="end">0.50</text>
+                        <line x1="55" y1="168.75" x2="385" y2="168.75" class="cal-grid"/>
+                        <text x="47" y="172.75" class="cal-axis" text-anchor="end">0.25</text>
+                        <line x1="55" y1="215" x2="385" y2="215" class="cal-grid"/>
+                        <text x="47" y="219" class="cal-axis" text-anchor="end">0.0</text>
+                        <line x1="55" y1="30" x2="55" y2="215" class="cal-grid"/>
+                        <text x="55" y="231" class="cal-axis" text-anchor="middle">0.0</text>
+                        <line x1="137.5" y1="30" x2="137.5" y2="215" class="cal-grid"/>
+                        <text x="137.5" y="231" class="cal-axis" text-anchor="middle">0.25</text>
+                        <line x1="220.0" y1="30" x2="220.0" y2="215" class="cal-grid"/>
+                        <text x="220.0" y="231" class="cal-axis" text-anchor="middle">0.50</text>
+                        <line x1="302.5" y1="30" x2="302.5" y2="215" class="cal-grid"/>
+                        <text x="302.5" y="231" class="cal-axis" text-anchor="middle">0.75</text>
+                        <line x1="385" y1="30" x2="385" y2="215" class="cal-grid"/>
+                        <text x="385" y="231" class="cal-axis" text-anchor="middle">1.0</text>
+                        <line x1="55" y1="215" x2="385" y2="30" class="cal-ideal"/>
+                        <path d="M 56.0 214.6 L 101.0 191.9 L 137.8 182.3 L 173.2 143.8 L 205.1 116.3 L 241.3 82.9 L 268.5 56.4 L 306.6 74.7 L 339.0 51.0 L 383.3 31.1" class="cal-line"/>
+                        <circle cx="56.0" cy="214.6" r="4" class="cal-dot"/>
+                        <circle cx="101.0" cy="191.9" r="4" class="cal-dot"/>
+                        <circle cx="137.8" cy="182.3" r="4" class="cal-dot"/>
+                        <circle cx="173.2" cy="143.8" r="4" class="cal-dot"/>
+                        <circle cx="205.1" cy="116.3" r="4" class="cal-dot"/>
+                        <circle cx="241.3" cy="82.9" r="4" class="cal-dot"/>
+                        <circle cx="268.5" cy="56.4" r="4" class="cal-dot"/>
+                        <circle cx="306.6" cy="74.7" r="4" class="cal-dot"/>
+                        <circle cx="339.0" cy="51.0" r="4" class="cal-dot"/>
+                        <circle cx="383.3" cy="31.1" r="4" class="cal-dot"/>
+                        <text x="220.0" y="249" class="cal-title" text-anchor="middle">Mean Predicted Spam Probability</text>
+                        <text x="-122.5" y="16" transform="rotate(-90)" class="cal-title" text-anchor="middle">Observed Fraction of Spam (Positives)</text>
+                        <g transform="translate(70, 42)">
+                          <rect width="165" height="38" class="cal-badge" rx="4" ry="4"/>
+                          <text x="8" y="16" class="cal-badge-title">Calibrated Linear SVM</text>
+                          <text x="8" y="29" class="cal-badge-sub">--- Ideal Calibration (y = x)</text>
+                        </g>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Known Limitations and Failure Modes -->
+              <div class="model-limitations-section">
+                <h2 class="metrics-table-title">Known Limitations &amp; Operational Failure Modes</h2>
+                <ul class="limitations-list" id="meta-limitations-list">
+                  <li><strong>Historical lexical bias:</strong> The Enron corpus reflects early-2000s corporate language and transactions; modern zero-day phrasing, cryptocurrency scams, or synthetic AI-generated lures may exhibit lower vocabulary coverage.</li>
+                  <li><strong>English-oriented preprocessing:</strong> NFKD normalization intentionally decomposes and strips diacritic marks. Non-Latin scripts (e.g. Cyrillic, CJK, Arabic) provide sparse n-gram matches and automatically trigger the uncertainty band for human review.</li>
+                  <li><strong>Short message ambiguity:</strong> Ultra-short messages (&lt;10 words) lack sufficient statistical context to differentiate casual notes from terse lures, prompting a &ldquo;Needs Review&rdquo; classification.</li>
+                  <li><strong>Adversarial obfuscation:</strong> Deliberate spaced typos (e.g. &lsquo;c a s h&rsquo;), zero-width unicode insertions, or base64 evasion in raw HTML bypass standard TF-IDF n-grams unless pre-sanitized by the heuristic signal parser.</li>
+                </ul>
+              </div>
             </div>
           </div>
         </section>
@@ -983,34 +1358,130 @@
         <!-- VIEW 9: DOCS (#/docs)                                             -->
         <!-- ================================================================ -->
         <section class="view-panel hidden" id="view-docs" role="tabpanel" aria-labelledby="top-nav-docs">
-          <div class="card placeholder-card">
+          <div class="card docs-container">
             <div class="card-maroon-header">
               <div class="card-header-icon" aria-hidden="true">📖</div>
               <div>
-                <h1 class="card-maroon-title">API Documentation & Integration</h1>
-                <p class="card-maroon-sub">REST endpoints, request/response schema, and integration guidance.</p>
+                <h1 class="card-maroon-title">API Documentation &amp; Reference</h1>
+                <p class="card-maroon-sub">Complete REST endpoints, JSON payload schemas, error structures, and rate limit rules.</p>
               </div>
             </div>
             <div class="card-body">
               <div class="docs-section">
-                <h3 class="docs-heading">Endpoint: POST /api/predict</h3>
-                <p class="docs-text">Classifies an email subject and body into spam, ham, or uncertain with model explanations.</p>
-                <div class="code-block" tabindex="0">
-                  <code>POST /api/predict HTTP/1.1
-Content-Type: application/json
-
-{
-  "subject": "Action Required: Account Verification",
-  "body": "Your bank account has been locked. Click here...",
-  "filter_stopwords": true
-}</code>
+                <!-- Sane Rate Limit Notice -->
+                <div class="api-rate-limit-banner">
+                  <span class="api-rate-icon" aria-hidden="true">⚡</span>
+                  <div class="api-rate-info">
+                    <strong>Rate Limiting (Flask-Limiter):</strong>
+                    <span>All client requests are subject to sane sliding-window rate limits: <strong>60 requests / minute</strong> on <code>/api/analyze</code> and <code>/api/predict</code>; <strong>120 requests / minute</strong> on <code>/api/model-info</code>; <code>/api/health</code> is exempt. Exceeding limits returns a standard HTTP 429 JSON response.</span>
+                  </div>
                 </div>
 
-                <h3 class="docs-heading">Endpoint: GET /api/model-info</h3>
-                <p class="docs-text">Returns transparent model metadata, dataset splits, licenses, and validation metrics.</p>
+                <!-- Endpoint 1: /api/analyze -->
+                <div class="docs-endpoint-block">
+                  <h2 class="docs-heading"><span class="badge badge-accent">POST</span> /api/analyze</h2>
+                  <p class="docs-text">Executes full multi-modal security analysis combining calibrated NLP inference, URL inspection, and MIME header parsing.</p>
+                  
+                  <h3 class="docs-subheading">Request Schema (JSON)</h3>
+                  <div class="code-block" tabindex="0">
+                    <code>{
+  "text": "Subject: Urgent Action Required\n\nPlease log in to http://192.168.1.1/reset to update your password.",
+  "eml": "Received: from mail.attacker.com ... (optional raw MIME RFC-822)",
+  "options": {
+    "scan_urls": true,
+    "analyze_headers": true,
+    "sensitivity": "medium"
+  }
+}</code>
+                  </div>
 
-                <h3 class="docs-heading">Endpoint: GET /api/health</h3>
-                <p class="docs-text">Provides service liveness and confirms pipeline model availability.</p>
+                  <h3 class="docs-subheading">Response Schema (200 OK)</h3>
+                  <div class="code-block" tabindex="0">
+                    <code>{
+  "model": {
+    "label": "spam",
+    "probability": 0.892,
+    "confidence": 0.892,
+    "uncertain": false
+  },
+  "risk_score": 88.5,
+  "classification": "Spam",
+  "indicators": [
+    {
+      "type": "ip_in_url",
+      "severity": "critical",
+      "detail": "IP address used as hostname in link http://192.168.1.1/reset"
+    }
+  ],
+  "key_findings": [
+    "High-confidence statistical spam vocabulary detected.",
+    "Critical risk: URL links to a direct numeric IP address."
+  ],
+  "top_tokens": [
+    {"token": "password", "weight": 0.38, "direction": "spam", "is_stopword": false}
+  ],
+  "vocab_coverage": 85.5,
+  "urls": [{"url": "http://192.168.1.1/reset", "flags": ["ip_address_host"]}],
+  "headers": null
+}</code>
+                  </div>
+                </div>
+
+                <!-- Endpoint 2: /api/predict -->
+                <div class="docs-endpoint-block">
+                  <h2 class="docs-heading"><span class="badge badge-accent">POST</span> /api/predict</h2>
+                  <p class="docs-text">Fast NLP classification returning probability, confidence, uncertainty flag, and token contributions.</p>
+                  
+                  <h3 class="docs-subheading">Request Schema</h3>
+                  <div class="code-block" tabindex="0">
+                    <code>{
+  "subject": "Team Meeting Notes",
+  "body": "Here are the action items from today's discussion.",
+  "filter_stopwords": true
+}</code>
+                  </div>
+
+                  <h3 class="docs-subheading">Response Schema (200 OK)</h3>
+                  <div class="code-block" tabindex="0">
+                    <code>{
+  "prediction": "ham",
+  "label_display": "Legitimate",
+  "spam_probability": 0.021,
+  "confidence": 0.979,
+  "uncertain": false,
+  "top_tokens": [
+    {"token": "meeting", "weight": -0.25, "direction": "ham", "is_stopword": false}
+  ]
+}</code>
+                  </div>
+                </div>
+
+                <!-- Endpoint 3: /api/model-info -->
+                <div class="docs-endpoint-block">
+                  <h2 class="docs-heading"><span class="badge badge-accent">GET</span> /api/model-info</h2>
+                  <p class="docs-text">Returns transparent model metadata, dataset splits, licenses, threshold boundaries, and operational limitations.</p>
+                </div>
+
+                <!-- Endpoint 4: /api/health -->
+                <div class="docs-endpoint-block">
+                  <h2 class="docs-heading"><span class="badge badge-accent">GET</span> /api/health</h2>
+                  <p class="docs-text">Readiness and liveness probe returning service status (<code>healthy</code> or <code>degraded</code>) and model version.</p>
+                </div>
+
+                <!-- Unified Error Schemas -->
+                <div class="docs-endpoint-block">
+                  <h2 class="docs-heading">Unified Error Responses</h2>
+                  <p class="docs-text">All error codes (400, 404, 413, 415, 429, 500) follow the strict standardized JSON shape:</p>
+                  <div class="code-block" tabindex="0">
+                    <code>{
+  "error": {
+    "code": "rate_limit_exceeded",
+    "message": "Too many requests. Sane rate limit is 60 requests per minute."
+  }
+}</code>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>

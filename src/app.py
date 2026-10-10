@@ -21,6 +21,8 @@ import os
 from typing import Any, Dict, List, Optional
 
 from flask import Flask, jsonify, render_template, request
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.exceptions import (
     BadRequest,
     HTTPException,
@@ -63,6 +65,18 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
 
     if test_config:
         app.config.update(test_config)
+
+    # Rate Limiting (Flask-Limiter)
+    is_testing = app.config.get("TESTING", False)
+    ratelimit_enabled = app.config.get("RATELIMIT_ENABLED", not is_testing)
+    limiter = Limiter(
+        key_func=get_remote_address,
+        app=app,
+        default_limits=[],
+        enabled=ratelimit_enabled,
+        storage_uri="memory://",
+    )
+    app.limiter = limiter
 
     # Security Headers Hook
     @app.after_request
@@ -135,6 +149,18 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
             }
         }), 415
 
+    @app.errorhandler(429)
+    def handle_rate_limit_exceeded(e: Exception):
+        msg = "Too many requests. Sane rate limit is 60 requests per minute."
+        if hasattr(e, "description") and e.description:
+            msg = f"Rate limit exceeded: {e.description}."
+        return jsonify({
+            "error": {
+                "code": "rate_limit_exceeded",
+                "message": msg,
+            }
+        }), 429
+
     @app.errorhandler(500)
     def handle_internal_error(e: Exception):
         logger.error(f"Internal server error: {e}", exc_info=True)
@@ -172,6 +198,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
         return render_template("index.html")
 
     @app.route("/api/health", methods=["GET"])
+    @limiter.exempt
     def health_check():
         """Liveness and readiness check endpoint."""
         try:
@@ -197,6 +224,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
         }), 200
 
     @app.route("/api/model-info", methods=["GET"])
+    @limiter.limit("120 per minute")
     def model_info():
         """Retrieve model provenance, evaluation metrics, and operational limitations."""
         meta = {}
@@ -269,6 +297,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
         return jsonify(info), 200
 
     @app.route("/api/predict", methods=["GET", "POST"])
+    @limiter.limit("60 per minute")
     def predict_email():
         """Classify email subject and body as spam, ham, or uncertain."""
         if request.method != "POST":
@@ -383,6 +412,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
             }), 500
 
     @app.route("/api/analyze", methods=["GET", "POST"])
+    @limiter.limit("60 per minute")
     def analyze_email():
         """Deep email security analysis combining NLP ML model, heuristic signals, URL checks, and header validation."""
         if request.method != "POST":

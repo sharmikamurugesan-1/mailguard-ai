@@ -460,3 +460,31 @@ def test_500_internal_server_error(client, monkeypatch):
     assert "Traceback" not in raw_text
 
 
+def test_rate_limiting_enforced():
+    """Verify rate limiter returns 429 JSON when enabled and threshold is reached."""
+    rate_app = create_app({
+        "TESTING": True,
+        "RATELIMIT_ENABLED": True,
+    })
+    rate_client = rate_app.test_client()
+
+    # Health check is exempt
+    for _ in range(10):
+        res = rate_client.get("/api/health")
+        assert res.status_code == 200
+
+    # Exhaust /api/predict (60 req/min limit)
+    hit_429 = False
+    for i in range(70):
+        res = rate_client.post("/api/predict", json={"body": f"Rate test body {i}"})
+        if res.status_code == 429:
+            hit_429 = True
+            assert res.is_json
+            data = res.get_json()
+            assert data["error"]["code"] == "rate_limit_exceeded"
+            assert "Rate limit exceeded" in data["error"]["message"] or "60 per" in data["error"]["message"]
+            break
+    assert hit_429, "Expected 429 RateLimitExceeded after 60 requests"
+
+
+

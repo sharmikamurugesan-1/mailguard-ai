@@ -87,6 +87,22 @@
   var optExtractUrls = document.getElementById('opt-extract-urls');
   var optAnalyzeHeaders = document.getElementById('opt-analyze-headers');
   var optSuspiciousLinks = document.getElementById('opt-suspicious-links');
+  var analyzerSensitivitySelect = document.getElementById('analyzer-sensitivity-select');
+
+  // Phase 12E Settings & Options Elements
+  var prefSensitivity = document.getElementById('pref-sensitivity');
+  var prefScanUrls = document.getElementById('pref-scan-urls');
+  var prefAnalyzeHeaders = document.getElementById('pref-analyze-headers');
+  var settingsPreferencesForm = document.getElementById('settings-preferences-form');
+  var resetPreferencesBtn = document.getElementById('reset-preferences-btn');
+  var tabBtnPref = document.getElementById('tab-btn-pref');
+  var tabBtnApi = document.getElementById('tab-btn-api');
+  var tabBtnAccount = document.getElementById('tab-btn-account');
+  var settingsPanelPref = document.getElementById('settings-panel-pref');
+  var settingsPanelApi = document.getElementById('settings-panel-api');
+  var settingsPanelAccount = document.getElementById('settings-panel-account');
+  var clearLocalHistoryBtn = document.getElementById('clear-local-history-btn');
+  var clearLocalSettingsBtn = document.getElementById('clear-local-settings-btn');
 
   // Phase 12C Report Elements
   var reportEmptyState = document.getElementById('report-empty-state');
@@ -265,6 +281,53 @@
         } catch (e) {}
       });
     }
+  }
+
+  // --------------------------------------------------------------------------
+  // Settings & Analysis Preference State (Phase 12E: localStorage)
+  // --------------------------------------------------------------------------
+
+  function getStoredSettings() {
+    try {
+      var raw = localStorage.getItem('mailguard_settings');
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        return {
+          sensitivity: (parsed.sensitivity === 'low' || parsed.sensitivity === 'high') ? parsed.sensitivity : 'medium',
+          scan_urls: parsed.scan_urls !== false,
+          analyze_headers: parsed.analyze_headers !== false
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to parse mailguard_settings from localStorage', e);
+    }
+    return {
+      sensitivity: 'medium',
+      scan_urls: true,
+      analyze_headers: true
+    };
+  }
+
+  function saveStoredSettings(settings) {
+    try {
+      localStorage.setItem('mailguard_settings', JSON.stringify({
+        sensitivity: settings.sensitivity || 'medium',
+        scan_urls: settings.scan_urls !== false,
+        analyze_headers: settings.analyze_headers !== false
+      }));
+    } catch (e) {
+      console.warn('Failed to save mailguard_settings to localStorage', e);
+    }
+  }
+
+  function syncSettingsToUi(settings) {
+    if (prefSensitivity) prefSensitivity.value = settings.sensitivity;
+    if (prefScanUrls) prefScanUrls.checked = settings.scan_urls;
+    if (prefAnalyzeHeaders) prefAnalyzeHeaders.checked = settings.analyze_headers;
+
+    if (analyzerSensitivitySelect) analyzerSensitivitySelect.value = settings.sensitivity;
+    if (optExtractUrls) optExtractUrls.checked = settings.scan_urls;
+    if (optAnalyzeHeaders) optAnalyzeHeaders.checked = settings.analyze_headers;
   }
 
   // --------------------------------------------------------------------------
@@ -1535,15 +1598,21 @@
     currentInputText.subject = subVal;
     currentInputText.body = bodyVal;
 
+    var currentSettings = getStoredSettings();
+    var effSensitivity = analyzerSensitivitySelect ? analyzerSensitivitySelect.value : (currentSettings.sensitivity || 'medium');
+    var effScanUrls = optExtractUrls ? optExtractUrls.checked : (currentSettings.scan_urls !== false);
+    var effAnalyzeHeaders = optAnalyzeHeaders ? optAnalyzeHeaders.checked : (currentSettings.analyze_headers !== false);
+    var effDetectSuspicious = optSuspiciousLinks ? optSuspiciousLinks.checked : true;
+
     var analyzePayload = {
       subject: subVal,
       text: subVal ? (`Subject: ${subVal}\n\n${bodyVal}`) : bodyVal,
       eml: currentRawEml || null,
       options: {
-        scan_urls: optExtractUrls ? optExtractUrls.checked : true,
-        analyze_headers: optAnalyzeHeaders ? optAnalyzeHeaders.checked : true,
-        detect_suspicious_links: optSuspiciousLinks ? optSuspiciousLinks.checked : true,
-        sensitivity: "medium"
+        scan_urls: effScanUrls,
+        analyze_headers: effAnalyzeHeaders,
+        detect_suspicious_links: effDetectSuspicious,
+        sensitivity: effSensitivity
       }
     };
 
@@ -2687,6 +2756,172 @@
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           handleUserChipActivation();
+        }
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // Phase 12E: Settings, Analysis Preferences & REST API Integration
+    // ------------------------------------------------------------------------
+
+    // Apply stored settings
+    var activeSettings = getStoredSettings();
+    syncSettingsToUi(activeSettings);
+
+    // Sync options changed directly in Email Analyzer
+    if (analyzerSensitivitySelect) {
+      analyzerSensitivitySelect.addEventListener('change', function () {
+        var s = getStoredSettings();
+        s.sensitivity = analyzerSensitivitySelect.value;
+        saveStoredSettings(s);
+        if (prefSensitivity) prefSensitivity.value = s.sensitivity;
+        showToast('Sensitivity set to ' + s.sensitivity.toUpperCase(), 'info');
+      });
+    }
+
+    if (optExtractUrls) {
+      optExtractUrls.addEventListener('change', function () {
+        var s = getStoredSettings();
+        s.scan_urls = optExtractUrls.checked;
+        saveStoredSettings(s);
+        if (prefScanUrls) prefScanUrls.checked = s.scan_urls;
+      });
+    }
+
+    if (optAnalyzeHeaders) {
+      optAnalyzeHeaders.addEventListener('change', function () {
+        var s = getStoredSettings();
+        s.analyze_headers = optAnalyzeHeaders.checked;
+        saveStoredSettings(s);
+        if (prefAnalyzeHeaders) prefAnalyzeHeaders.checked = s.analyze_headers;
+      });
+    }
+
+    // Settings preferences form submit
+    if (settingsPreferencesForm) {
+      settingsPreferencesForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var newSettings = {
+          sensitivity: prefSensitivity ? prefSensitivity.value : 'medium',
+          scan_urls: prefScanUrls ? prefScanUrls.checked : true,
+          analyze_headers: prefAnalyzeHeaders ? prefAnalyzeHeaders.checked : true
+        };
+        saveStoredSettings(newSettings);
+        syncSettingsToUi(newSettings);
+        showToast('Preferences saved successfully.', 'success');
+      });
+    }
+
+    // Reset preferences to default
+    if (resetPreferencesBtn) {
+      resetPreferencesBtn.addEventListener('click', function () {
+        var defaultSettings = {
+          sensitivity: 'medium',
+          scan_urls: true,
+          analyze_headers: true
+        };
+        saveStoredSettings(defaultSettings);
+        syncSettingsToUi(defaultSettings);
+        showToast('Preferences reset to defaults.', 'info');
+      });
+    }
+
+    // Settings Sub-tab switcher
+    function switchSettingsTab(targetTab) {
+      var tabs = [
+        { name: 'pref', btn: tabBtnPref, panel: settingsPanelPref },
+        { name: 'api', btn: tabBtnApi, panel: settingsPanelApi },
+        { name: 'account', btn: tabBtnAccount, panel: settingsPanelAccount }
+      ];
+      tabs.forEach(function (t) {
+        if (t.name === targetTab) {
+          if (t.btn) {
+            t.btn.classList.add('active');
+            t.btn.setAttribute('aria-selected', 'true');
+          }
+          if (t.panel) t.panel.classList.remove('hidden');
+        } else {
+          if (t.btn) {
+            t.btn.classList.remove('active');
+            t.btn.setAttribute('aria-selected', 'false');
+          }
+          if (t.panel) t.panel.classList.add('hidden');
+        }
+      });
+    }
+
+    if (tabBtnPref) tabBtnPref.addEventListener('click', function () { switchSettingsTab('pref'); });
+    if (tabBtnApi) tabBtnApi.addEventListener('click', function () { switchSettingsTab('api'); });
+    if (tabBtnAccount) tabBtnAccount.addEventListener('click', function () { switchSettingsTab('account'); });
+
+    // Copy Code Snippets
+    var copyButtons = document.querySelectorAll('.btn-copy-code');
+    copyButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var targetId = btn.getAttribute('data-target');
+        var targetEl = document.getElementById(targetId);
+        if (!targetEl) return;
+        var textToCopy = targetEl.textContent || '';
+        function notifyCopied() {
+          var originalLabel = btn.textContent;
+          btn.textContent = '✓ Copied!';
+          showToast('Snippet copied to clipboard.', 'success');
+          setTimeout(function () {
+            btn.textContent = originalLabel;
+          }, 2000);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(textToCopy).then(notifyCopied).catch(function () {
+            copyTextFallback(textToCopy, notifyCopied);
+          });
+        } else {
+          copyTextFallback(textToCopy, notifyCopied);
+        }
+      });
+    });
+
+    function copyTextFallback(text, onSuccess) {
+      try {
+        var tempArea = document.createElement('textarea');
+        tempArea.value = text;
+        tempArea.style.position = 'fixed';
+        tempArea.style.left = '-9999px';
+        document.body.appendChild(tempArea);
+        tempArea.focus();
+        tempArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempArea);
+        if (onSuccess) onSuccess();
+      } catch (err) {
+        showToast('Clipboard copy failed.', 'error');
+      }
+    }
+
+    // Account & Storage Controls
+    if (clearLocalHistoryBtn) {
+      clearLocalHistoryBtn.addEventListener('click', async function () {
+        if (window.confirm('Delete all scan history on this device? This action cannot be undone.')) {
+          try {
+            await clearAllScans();
+            showToast('Local scan history cleared.', 'success');
+            await refreshHistoryView();
+            await updateDashboardUI();
+          } catch (err) {
+            showToast('Failed to clear history: ' + err.message, 'error');
+          }
+        }
+      });
+    }
+
+    if (clearLocalSettingsBtn) {
+      clearLocalSettingsBtn.addEventListener('click', function () {
+        try {
+          localStorage.removeItem('mailguard_settings');
+          var def = { sensitivity: 'medium', scan_urls: true, analyze_headers: true };
+          syncSettingsToUi(def);
+          showToast('Preferences reset to defaults.', 'info');
+        } catch (e) {
+          console.warn('Failed to clear stored settings', e);
         }
       });
     }
