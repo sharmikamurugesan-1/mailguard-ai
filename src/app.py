@@ -31,7 +31,11 @@ from werkzeug.exceptions import (
 )
 
 from src import config
-from src.predictor import get_predictor
+
+try:
+    from src.predictor import get_predictor
+except Exception as _pred_err:
+    get_predictor = None
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("MailGuard-API")
@@ -164,10 +168,15 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
     def health_check():
         """Liveness and readiness check endpoint."""
         try:
-            predictor = get_predictor()
-            is_loaded = predictor.pipeline is not None
-            version = predictor.metadata.get("trained_at", "1.0.0")
-            status_text = "healthy" if is_loaded else "degraded"
+            if get_predictor is not None:
+                predictor = get_predictor()
+                is_loaded = predictor.pipeline is not None
+                version = predictor.metadata.get("trained_at", "1.0.0")
+                status_text = "healthy" if is_loaded else "degraded"
+            else:
+                is_loaded = False
+                version = "1.0.0"
+                status_text = "degraded"
         except Exception as e:
             logger.warning(f"Health check predictor probe failed: {e}")
             is_loaded = False
@@ -183,8 +192,19 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
     @app.route("/api/model-info", methods=["GET"])
     def model_info():
         """Retrieve model provenance, evaluation metrics, and operational limitations."""
-        predictor = get_predictor()
-        meta = predictor.metadata or {}
+        meta = {}
+        if get_predictor is not None:
+            try:
+                predictor = get_predictor()
+                meta = predictor.metadata or {}
+            except Exception:
+                meta = {}
+        if not meta and config.METADATA_PATH.exists():
+            try:
+                with open(config.METADATA_PATH, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+            except Exception as e:
+                logger.warning(f"Metadata fallback load failed: {e}")
 
         test_m = meta.get("test_metrics", {})
         fp = test_m.get("false_positives", test_m.get("confusion_matrix", {}).get("false_positives", 0))

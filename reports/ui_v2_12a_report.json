@@ -1,0 +1,22 @@
+{
+  "desktop_initial_dashboard_route": "PASS",
+  "screenshot_dashboard_light_desktop": "docs\\screenshots\\v2\\v2_12a_dashboard_light_desktop.png",
+  "screenshot_dashboard_dark_desktop": "docs\\screenshots\\v2\\v2_12a_dashboard_dark_desktop.png",
+  "theme_toggle_dark": "PASS",
+  "screenshot_analyzer_dark_desktop": "docs\\screenshots\\v2\\v2_12a_analyzer_dark_desktop.png",
+  "screenshot_analyzer_light_desktop": "docs\\screenshots\\v2\\v2_12a_analyzer_light_desktop.png",
+  "screenshot_model_card_desktop": "docs\\screenshots\\v2\\v2_12a_model_card_desktop.png",
+  "screenshot_docs_desktop": "docs\\screenshots\\v2\\v2_12a_docs_desktop.png",
+  "all_9_routes_verified": "PASS",
+  "global_search_routing": "PASS",
+  "user_chip_interaction": "PASS",
+  "axe_violations_count": 0,
+  "axe_critical_serious_count": 0,
+  "axe_violations_summary": [],
+  "screenshot_mobile_drawer_closed_light": "docs\\screenshots\\v2\\v2_12a_mobile_drawer_closed_light.png",
+  "screenshot_mobile_drawer_open_light": "docs\\screenshots\\v2\\v2_12a_mobile_drawer_open_light.png",
+  "screenshot_mobile_drawer_closed_dark": "docs\\screenshots\\v2\\v2_12a_mobile_drawer_closed_dark.png",
+  "screenshot_mobile_drawer_open_dark": "docs\\screenshots\\v2\\v2_12a_mobile_drawer_open_dark.png",
+  "csp_violations_count": 0,
+  "console_errors_count": 0
+}

@@ -931,6 +931,9 @@
     // Trigger smooth fade-in
     resultCard.classList.add('verdict-fade-in');
 
+    // Update session dashboard counters with real telemetry
+    updateSessionStats(prediction);
+
     // Focus without jumping, gentle scroll only if offscreen
     if (verdictTitle) {
       verdictTitle.focus({ preventScroll: true });
@@ -1160,10 +1163,238 @@
     });
   }
 
+  // --------------------------------------------------------------------------
+  // Session Telemetry & Dashboard Counters (Phase 12A)
+  // --------------------------------------------------------------------------
+
+  var sessionStats = {
+    total: 0,
+    spam: 0,
+    uncertain: 0,
+    ham: 0
+  };
+
+  function updateSessionStats(prediction) {
+    sessionStats.total++;
+    if (prediction === 'spam') {
+      sessionStats.spam++;
+    } else if (prediction === 'uncertain') {
+      sessionStats.uncertain++;
+    } else {
+      sessionStats.ham++;
+    }
+
+    var elTotal = document.getElementById('dash-stat-total');
+    var elSpam = document.getElementById('dash-stat-spam');
+    var elUnc = document.getElementById('dash-stat-uncertain');
+    var elDonutNum = document.querySelector('.donut-circle .donut-num');
+
+    if (elTotal) elTotal.textContent = String(sessionStats.total);
+    if (elSpam) elSpam.textContent = String(sessionStats.spam);
+    if (elUnc) elUnc.textContent = String(sessionStats.uncertain);
+    if (elDonutNum) elDonutNum.textContent = String(sessionStats.total);
+  }
+
+  // --------------------------------------------------------------------------
+  // App Shell & Hash-Based Routing (Phase 12A)
+  // --------------------------------------------------------------------------
+
+  var ROUTE_MAP = {
+    '#/dashboard': { viewId: 'view-dashboard', navId: 'nav-dashboard', topNavId: null },
+    '#/analyzer': { viewId: 'view-analyzer', navId: 'nav-analyzer', topNavId: null },
+    '#/image-analysis': { viewId: 'view-image-analysis', navId: 'nav-image-analysis', topNavId: null },
+    '#/reports': { viewId: 'view-reports', navId: 'nav-reports', topNavId: null },
+    '#/settings': { viewId: 'view-settings', navId: 'nav-settings', topNavId: null },
+    '#/home': { viewId: 'view-home', navId: null, topNavId: 'top-nav-home' },
+    '#/features': { viewId: 'view-features', navId: null, topNavId: 'top-nav-features' },
+    '#/model-card': { viewId: 'view-model-card', navId: null, topNavId: 'top-nav-model-card' },
+    '#/docs': { viewId: 'view-docs', navId: null, topNavId: 'top-nav-docs' }
+  };
+
+  var appSidebar = document.getElementById('app-sidebar');
+  var mobileMenuBtn = document.getElementById('mobile-menu-btn');
+  var sidebarBackdrop = document.getElementById('sidebar-backdrop');
+  var globalSearch = document.getElementById('global-search');
+  var userChip = document.getElementById('user-chip');
+
+  function closeMobileDrawer() {
+    if (appSidebar) {
+      appSidebar.classList.remove('drawer-open', 'open');
+    }
+    if (sidebarBackdrop) {
+      sidebarBackdrop.classList.add('hidden');
+    }
+    if (mobileMenuBtn) {
+      mobileMenuBtn.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function openMobileDrawer() {
+    if (appSidebar) {
+      appSidebar.classList.add('drawer-open', 'open');
+    }
+    if (sidebarBackdrop) {
+      sidebarBackdrop.classList.remove('hidden');
+    }
+    if (mobileMenuBtn) {
+      mobileMenuBtn.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  function toggleMobileDrawer() {
+    if (appSidebar && (appSidebar.classList.contains('drawer-open') || appSidebar.classList.contains('open'))) {
+      closeMobileDrawer();
+    } else {
+      openMobileDrawer();
+    }
+  }
+
+  function handleRoute(hash) {
+    var rawHash = hash || window.location.hash || '#/dashboard';
+    var routeConfig = ROUTE_MAP[rawHash];
+
+    if (!routeConfig) {
+      rawHash = '#/dashboard';
+      routeConfig = ROUTE_MAP[rawHash];
+    }
+
+    // 1. Hide all view panels
+    var viewPanels = document.querySelectorAll('.view-panel');
+    viewPanels.forEach(function (panel) {
+      panel.classList.add('hidden');
+    });
+
+    // 2. Show active view panel
+    var activePanel = document.getElementById(routeConfig.viewId);
+    if (activePanel) {
+      activePanel.classList.remove('hidden');
+      activePanel.focus({ preventScroll: true });
+    }
+
+    // 3. Update sidebar active links
+    var sidebarLinks = document.querySelectorAll('.sidebar-nav-item');
+    sidebarLinks.forEach(function (link) {
+      link.classList.remove('active');
+      link.removeAttribute('aria-current');
+    });
+    if (routeConfig.navId) {
+      var activeSidebarLink = document.getElementById(routeConfig.navId);
+      if (activeSidebarLink) {
+        activeSidebarLink.classList.add('active');
+        activeSidebarLink.setAttribute('aria-current', 'page');
+      }
+    }
+
+    // 4. Update top-nav active links
+    var topNavLinks = document.querySelectorAll('.top-nav-item');
+    topNavLinks.forEach(function (link) {
+      link.classList.remove('active');
+      link.removeAttribute('aria-current');
+    });
+    if (routeConfig.topNavId) {
+      var activeTopLink = document.getElementById(routeConfig.topNavId);
+      if (activeTopLink) {
+        activeTopLink.classList.add('active');
+        activeTopLink.setAttribute('aria-current', 'page');
+      }
+    }
+
+    // 5. Close mobile drawer on navigation
+    closeMobileDrawer();
+  }
+
+  function initAppShell() {
+    // Hash routing listeners
+    window.addEventListener('hashchange', function () {
+      handleRoute(window.location.hash);
+    });
+
+    // Mobile menu toggle button
+    if (mobileMenuBtn) {
+      mobileMenuBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        toggleMobileDrawer();
+      });
+    }
+
+    // Mobile backdrop click
+    if (sidebarBackdrop) {
+      sidebarBackdrop.addEventListener('click', function () {
+        closeMobileDrawer();
+      });
+    }
+
+    // Escape key closes mobile drawer
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && appSidebar && (appSidebar.classList.contains('drawer-open') || appSidebar.classList.contains('open'))) {
+        closeMobileDrawer();
+        if (mobileMenuBtn) {
+          mobileMenuBtn.focus();
+        }
+      }
+    });
+
+    // Global Search box
+    if (globalSearch) {
+      globalSearch.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          var query = (globalSearch.value || '').trim().toLowerCase();
+          if (!query) return;
+
+          if (query.includes('anal') || query.includes('scan') || query.includes('spam') || query.includes('email')) {
+            window.location.hash = '#/analyzer';
+          } else if (query.includes('dash')) {
+            window.location.hash = '#/dashboard';
+          } else if (query.includes('imag') || query.includes('ocr')) {
+            window.location.hash = '#/image-analysis';
+          } else if (query.includes('rep') || query.includes('audit')) {
+            window.location.hash = '#/reports';
+          } else if (query.includes('set') || query.includes('pref')) {
+            window.location.hash = '#/settings';
+          } else if (query.includes('home') || query.includes('start')) {
+            window.location.hash = '#/home';
+          } else if (query.includes('feat')) {
+            window.location.hash = '#/features';
+          } else if (query.includes('model') || query.includes('card') || query.includes('spec') || query.includes('transpar')) {
+            window.location.hash = '#/model-card';
+          } else if (query.includes('doc') || query.includes('api')) {
+            window.location.hash = '#/docs';
+          } else {
+            showToast('No match for "' + query + '". Try "analyzer", "model", or "docs".', 'warn');
+          }
+        }
+      });
+    }
+
+    // User chip interaction
+    if (userChip) {
+      function handleUserChipActivation() {
+        showToast('Logged in as Guest (demo session). All model transparency active.', 'info');
+      }
+
+      userChip.addEventListener('click', handleUserChipActivation);
+      userChip.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleUserChipActivation();
+        }
+      });
+    }
+
+    // Initial route invocation
+    if (!window.location.hash) {
+      window.location.hash = '#/dashboard';
+    } else {
+      handleRoute(window.location.hash);
+    }
+  }
+
   // Initial Boot
   initTheme();
   checkServerHealth();
   loadModelInfo();
   updateCharCount();
+  initAppShell();
 
 })();
