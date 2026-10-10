@@ -221,174 +221,310 @@
         <!-- ================================================================ -->
         <!-- VIEW 2: EMAIL ANALYZER (#/analyzer)                              -->
         <!-- ================================================================ -->
+
         <section class="view-panel hidden" id="view-analyzer" role="tabpanel" aria-labelledby="nav-analyzer">
-          <div class="card analyzer-main-card">
-            <div class="card-maroon-header">
-              <div class="card-header-icon" aria-hidden="true">🛡️</div>
-              <div>
-                <h1 class="card-maroon-title">Email Analyzer</h1>
-                <p class="card-maroon-sub">Analyze email messages, attachments (.eml / .txt), and examine model explanation tokens.</p>
-              </div>
-            </div>
-
-            <div class="card-body">
-              <!-- Sample Loaders -->
-              <div class="samples-wrapper">
-                <span class="samples-label">Quick sample:</span>
-                <div class="samples-buttons" role="group" aria-label="Load sample email templates">
-                  <button type="button" class="btn btn-sm btn-outline" id="sample-spam-btn">Spam Sample</button>
-                  <button type="button" class="btn btn-sm btn-outline" id="sample-ham-btn">Legitimate Sample</button>
-                  <button type="button" class="btn btn-sm btn-outline" id="sample-borderline-btn">Borderline Sample</button>
+          <div class="analyzer-grid">
+            <!-- ============================================================== -->
+            <!-- CARD 1: EMAIL ANALYZER (INPUT & FORENSICS)                     -->
+            <!-- ============================================================== -->
+            <div class="card analyzer-card" id="analyzer-input-card">
+              <div class="card-maroon-header analyzer-card-header">
+                <div class="card-header-left">
+                  <div class="card-header-icon" aria-hidden="true">🛡️</div>
+                  <div>
+                    <h1 class="card-maroon-title">Email Analyzer</h1>
+                    <p class="card-maroon-sub">Analyze emails, attachments and examine threats with AI.</p>
+                  </div>
                 </div>
+                <!-- Analyzer Section Navigation Pills -->
+                <nav class="analyzer-tabs-nav" role="tablist" aria-label="Analyzer sections">
+                  <button type="button" class="tab-pill active" id="tab-btn-content" role="tab" aria-selected="true" aria-controls="tab-panel-content">Email Content</button>
+                  <button type="button" class="tab-pill" id="tab-btn-headers" role="tab" aria-selected="false" aria-controls="tab-panel-headers">Header Analysis</button>
+                  <a href="#/image-analysis" class="tab-pill tab-pill-link" id="tab-btn-images" title="Switch to Image Analysis">Image Analysis</a>
+                </nav>
               </div>
 
-              <!-- Submission Form -->
-              <form id="email-form" novalidate>
-                <div class="form-group">
-                  <label for="subject-input" class="form-label">Subject Line <span class="text-muted">(Optional)</span></label>
-                  <input
-                    type="text"
-                    id="subject-input"
-                    class="form-control"
-                    placeholder="e.g., Action Required: Security Alert on Your Account"
-                    maxlength="2000"
-                    autocomplete="off"
-                  >
-                </div>
-
-                <div class="form-group drop-zone" id="drop-zone">
-                  <div class="label-row">
-                    <label for="body-input" class="form-label">Email Body <span class="required-indicator">*</span></label>
-                    <div class="body-header-actions">
-                      <input type="file" id="file-picker-input" class="file-input-hidden" accept=".txt,.eml" aria-label="Upload email text or EML file">
-                      <button type="button" class="btn btn-sm btn-outline file-picker-btn" id="file-picker-btn" title="Load .txt or .eml file directly into analyzer">📁 Import .txt / .eml</button>
-                      <span class="char-counter" id="body-char-counter">0 / 20,000</span>
+              <div class="card-body">
+                <!-- TAB PANEL 1: EMAIL CONTENT -->
+                <div class="analyzer-tab-panel" id="tab-panel-content" role="tabpanel" aria-labelledby="tab-btn-content">
+                  <!-- Quick Samples -->
+                  <div class="samples-wrapper">
+                    <span class="samples-label">Quick sample:</span>
+                    <div class="samples-buttons" role="group" aria-label="Load sample email templates">
+                      <button type="button" class="btn btn-sm btn-outline" id="sample-spam-btn">Spam Sample</button>
+                      <button type="button" class="btn btn-sm btn-outline" id="sample-ham-btn">Legitimate Sample</button>
+                      <button type="button" class="btn btn-sm btn-outline" id="sample-borderline-btn">Borderline Sample</button>
                     </div>
                   </div>
-                  <div class="textarea-wrapper">
-                    <textarea
-                      id="body-input"
-                      class="form-control textarea-body"
-                      rows="7"
-                      placeholder="Paste the email body or drop a .txt/.eml file here..."
-                      required
-                    ></textarea>
+
+                  <!-- Drag-and-Drop Upload Zone -->
+                  <div class="upload-drop-zone" id="drop-zone" tabindex="0" role="region" aria-label="Email file drag and drop zone">
+                    <div class="upload-icon-wrapper" aria-hidden="true">
+                      <svg class="upload-svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                      </svg>
+                    </div>
+                    <p class="upload-title">Drag and drop your email file here</p>
+                    <span class="upload-or">or</span>
+                    <input type="file" id="file-picker-input" class="file-input-hidden" accept=".eml,.txt,.msg" aria-label="Upload email file">
+                    <button type="button" class="btn btn-crimson btn-sm file-picker-trigger" id="file-picker-btn">Choose File</button>
+                    <p class="upload-hint">Supports .eml, .txt (max 1 MB)</p>
                     <div class="drop-overlay hidden" id="drop-overlay" aria-hidden="true">
-                      <span class="drop-overlay-text">Drop .txt or .eml file here to load</span>
-                    </div>
-                  </div>
-                  <div class="field-error hidden" id="body-error" role="alert" aria-live="polite"></div>
-                </div>
-
-                <!-- General Alert Box -->
-                <div class="alert alert-danger hidden" id="general-error" role="alert" aria-live="polite">
-                  <span class="alert-message" id="general-error-message"></span>
-                  <button type="button" class="btn btn-sm btn-outline hidden" id="retry-btn">Try again</button>
-                </div>
-
-                <!-- Cold Start Slow Request Banner -->
-                <div class="alert alert-info hidden" id="waking-banner" role="status" aria-live="polite">
-                  <span class="spinner-small" aria-hidden="true"></span>
-                  <span>Server is waking up (free hosting). First request can take up to ~60s. Please wait...</span>
-                </div>
-
-                <!-- Form Actions -->
-                <div class="form-actions">
-                  <div class="form-actions-left">
-                    <button type="submit" id="analyze-btn" class="btn btn-primary" title="Analyze Email (Ctrl+Enter)">
-                      <span class="btn-text" id="analyze-btn-text">Analyze Email</span>
-                      <span class="spinner-sm hidden" id="analyze-btn-spinner" aria-hidden="true"></span>
-                    </button>
-                    <button type="button" id="clear-btn" class="btn btn-secondary">Clear</button>
-                  </div>
-                  <span class="total-counter" id="total-char-counter">Total: 0 / 20,000</span>
-                </div>
-              </form>
-
-              <!-- Result Loading Skeleton -->
-              <div class="result-skeleton hidden" id="result-skeleton" aria-hidden="true">
-                <div class="skeleton-shimmer skeleton-header-box"></div>
-                <div class="skeleton-shimmer skeleton-bar-box"></div>
-                <div class="skeleton-shimmer skeleton-text-box"></div>
-                <div class="skeleton-shimmer skeleton-bar-box"></div>
-              </div>
-
-              <!-- Results Card -->
-              <section class="card result-card hidden" id="result-card" tabindex="-1" aria-live="polite" aria-atomic="true">
-                <div class="result-header" id="verdict-banner">
-                  <div class="verdict-summary">
-                    <span class="verdict-icon" id="verdict-icon" aria-hidden="true"></span>
-                    <div>
-                      <span class="verdict-eyebrow">Analysis Verdict</span>
-                      <h3 class="verdict-title" id="verdict-title" tabindex="-1">--</h3>
-                    </div>
-                  </div>
-                  <div class="verdict-actions-wrapper">
-                    <button type="button" class="btn btn-sm btn-outline copy-result-btn" id="copy-result-btn" title="Copy Analysis Summary to Clipboard">
-                      <span id="copy-btn-icon" aria-hidden="true">📋</span>
-                      <span id="copy-btn-text">Copy Result</span>
-                    </button>
-                    <div class="risk-badge-wrapper">
-                      <span class="risk-badge" id="risk-badge">RISK: --</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="result-body">
-                  <!-- Uncertain Zone Callout Banner -->
-                  <div class="uncertain-banner hidden" id="uncertain-banner" role="status" aria-live="polite">
-                    <span class="uncertain-banner-icon" aria-hidden="true">⚖</span>
-                    <div class="uncertain-banner-content">
-                      <h4 class="uncertain-banner-title">Prediction in Uncertain Decision Band (Needs Review)</h4>
-                      <p class="uncertain-banner-text" id="uncertain-banner-text">Calibrated spam probability falls within the [0.40, 0.60] borderline zone. Empirical 5-fold cross-validation on 24,369 training emails showed that 0.46% of messages fall into this band (nearly 50/50 ham vs spam). Automated classification is withheld; human review is recommended.</p>
+                      <span class="drop-overlay-text">Drop .eml or .txt file here to load</span>
                     </div>
                   </div>
 
-                  <!-- Confidence Section -->
-                  <div class="result-metric-block">
-                    <div class="metric-label-row">
-                      <span class="metric-title">Model Confidence</span>
-                      <div class="tooltip-container">
-                        <button type="button" class="tooltip-trigger" aria-label="Confidence explanation tooltip" aria-describedby="confidence-tip">?</button>
-                        <div class="tooltip-box" id="confidence-tip" role="tooltip">
-                          Estimated probability from the model. It is not a guarantee, and the model can be wrong, including confident mistakes.
-                        </div>
+                  <!-- Submission Form -->
+                  <form id="email-form" novalidate>
+                    <div class="form-group subject-group">
+                      <label for="subject-input" class="form-label">Subject Line <span class="text-muted">(Optional)</span></label>
+                      <input
+                        type="text"
+                        id="subject-input"
+                        class="form-control"
+                        placeholder="e.g., Action Required: Security Alert on Your Account"
+                        maxlength="2000"
+                        autocomplete="off"
+                      >
+                    </div>
+
+                    <div class="form-group body-group">
+                      <div class="label-row">
+                        <label for="body-input" class="form-label">Email Content / Body <span class="required-indicator">*</span></label>
+                        <span class="char-counter" id="body-char-counter">0 / 20,000</span>
                       </div>
-                      <span class="metric-value" id="confidence-value">--%</span>
-                    </div>
-                    <div class="progress-track" aria-hidden="true">
-                      <div class="progress-fill" id="confidence-bar"></div>
-                    </div>
-                    <div class="probability-subtext" id="probability-subtext">Calibrated spam probability: --</div>
-                  </div>
-
-                  <!-- Reliability & Warning Heuristics -->
-                  <div class="result-section-block">
-                    <div class="section-title-row">
-                      <h4 class="section-subtitle">Reliability Assessment</h4>
-                      <span class="reliability-pill" id="reliability-level-pill">Level: --</span>
-                    </div>
-                    <ul class="warnings-list" id="warnings-list">
-                      <!-- Populated dynamically via textContent -->
-                    </ul>
-                  </div>
-
-                  <!-- Interactive In-Text Highlights Section -->
-                  <div class="result-section-block highlight-section" id="highlight-section">
-                    <div class="section-title-row">
-                      <div>
-                        <h4 class="section-subtitle">In-Text Token Highlights</h4>
-                        <p class="section-desc">Key tokens colored by contribution direction. Hover or focus tokens to view model weights.</p>
+                      <div class="textarea-wrapper">
+                        <textarea
+                          id="body-input"
+                          class="form-control textarea-body"
+                          rows="6"
+                          placeholder="Paste your email content here..."
+                          required
+                        ></textarea>
                       </div>
-                      <div class="highlight-controls">
-                        <button type="button" class="btn btn-sm btn-outline stopword-toggle-btn" id="stopword-toggle-btn" aria-pressed="true" title="Toggle common words filtering">
-                          <span id="stopword-toggle-icon" aria-hidden="true">🔍</span>
-                          <span id="stopword-toggle-text">Filter Common Words (ON)</span>
+                      <div class="field-error hidden" id="body-error" role="alert" aria-live="polite"></div>
+                    </div>
+
+                    <!-- Option Toggles (No OCR toggle per Phase 12F rule) -->
+                    <div class="analyzer-options-row" role="group" aria-label="Analysis scan options">
+                      <label class="toggle-control">
+                        <input type="checkbox" id="opt-extract-urls" checked>
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                        <span class="toggle-text">Extract URLs</span>
+                      </label>
+                      <label class="toggle-control">
+                        <input type="checkbox" id="opt-analyze-headers" checked>
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                        <span class="toggle-text">Analyze Headers</span>
+                      </label>
+                      <label class="toggle-control">
+                        <input type="checkbox" id="opt-suspicious-links" checked>
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                        <span class="toggle-text">Detect Suspicious Links</span>
+                      </label>
+                    </div>
+
+                    <!-- General Alert Box -->
+                    <div class="alert alert-danger hidden" id="general-error" role="alert" aria-live="polite">
+                      <span class="alert-message" id="general-error-message"></span>
+                      <button type="button" class="btn btn-sm btn-outline hidden" id="retry-btn">Try again</button>
+                    </div>
+
+                    <!-- Cold Start Slow Request Banner -->
+                    <div class="alert alert-info hidden" id="waking-banner" role="status" aria-live="polite">
+                      <span class="spinner-small" aria-hidden="true"></span>
+                      <span>Server is processing request. Please wait...</span>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions">
+                      <button type="button" id="clear-btn" class="btn btn-secondary">Clear</button>
+                      <div class="form-actions-right">
+                        <span class="total-counter" id="total-char-counter">Total: 0 / 20,000</span>
+                        <button type="submit" id="analyze-btn" class="btn btn-primary btn-crimson" title="Analyze Email (Ctrl+Enter)">
+                          <span class="btn-text" id="analyze-btn-text">Analyze Email →</span>
+                          <span class="spinner-sm hidden" id="analyze-btn-spinner" aria-hidden="true"></span>
                         </button>
                       </div>
                     </div>
+                  </form>
+                </div>
 
-                    <!-- Legend with Non-Color Visual Cues -->
+                <!-- TAB PANEL 2: HEADER ANALYSIS -->
+                <div class="analyzer-tab-panel hidden" id="tab-panel-headers" role="tabpanel" aria-labelledby="tab-btn-headers">
+                  <div class="headers-panel-header">
+                    <h3 class="panel-subtitle">Email Routing & Authentication Telemetry</h3>
+                    <p class="panel-desc">Authentication-Results, SPF, DKIM, DMARC validation, sender spoofing, and relay hops.</p>
+                  </div>
+
+                  <!-- Empty state when no headers available -->
+                  <div id="headers-telemetry-empty" class="headers-empty-box">
+                    <span class="headers-empty-icon" aria-hidden="true">✉️</span>
+                    <h4 class="headers-empty-title">No Header Telemetry Yet</h4>
+                    <p class="headers-empty-desc">Import an RFC 5322 .eml file in the Email Content tab to view SPF, DKIM, DMARC, and routing telemetry here.</p>
+                    <button type="button" class="btn btn-sm btn-outline" id="load-eml-sample-btn">Load Sample .eml</button>
+                  </div>
+
+                  <!-- Active state when headers present -->
+                  <div id="headers-telemetry-active" class="headers-active-content hidden">
+                    <div class="headers-grid">
+                      <div class="header-stat-box">
+                        <span class="h-label">SPF Check</span>
+                        <span class="h-val badge-neutral" id="h-spf-val">none</span>
+                      </div>
+                      <div class="header-stat-box">
+                        <span class="h-label">DKIM Check</span>
+                        <span class="h-val badge-neutral" id="h-dkim-val">none</span>
+                      </div>
+                      <div class="header-stat-box">
+                        <span class="h-label">DMARC Check</span>
+                        <span class="h-val badge-neutral" id="h-dmarc-val">none</span>
+                      </div>
+                      <div class="header-stat-box">
+                        <span class="h-label">Sender Match</span>
+                        <span class="h-val badge-neutral" id="h-sender-match-val">Match</span>
+                      </div>
+                      <div class="header-stat-box">
+                        <span class="h-label">Relay Hops</span>
+                        <span class="h-val badge-neutral" id="h-hops-val">0 hops</span>
+                      </div>
+                    </div>
+
+                    <div class="raw-headers-block">
+                      <div class="raw-headers-bar">
+                        <span class="raw-headers-title">Extracted Headers</span>
+                        <button type="button" class="btn btn-xs btn-outline" id="copy-raw-headers-btn">Copy Headers</button>
+                      </div>
+                      <pre class="raw-headers-pre" id="raw-headers-pre" tabindex="0"></pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- CARD 2: ANALYSIS REPORT (MATCHES MOCKUP RIGHT CARD)           -->
+            <!-- ============================================================== -->
+            <div class="card report-card" id="analyzer-report-card">
+              <div class="card-maroon-header report-card-header">
+                <div class="card-header-left">
+                  <div class="card-header-icon" aria-hidden="true">📋</div>
+                  <div>
+                    <h2 class="card-maroon-title">Analysis Report</h2>
+                    <p class="card-maroon-sub">Detailed analysis of your email scan.</p>
+                  </div>
+                </div>
+                <div class="card-header-actions">
+                  <button type="button" class="btn btn-sm btn-outline new-scan-btn hidden" id="new-scan-btn">← New Scan</button>
+                </div>
+              </div>
+
+              <div class="card-body">
+                <!-- STATE 1: EMPTY STATE -->
+                <div class="report-empty-state" id="report-empty-state">
+                  <div class="report-empty-icon" aria-hidden="true">🛡️</div>
+                  <h3 class="report-empty-title">Ready for Analysis</h3>
+                  <p class="report-empty-desc">Paste an email message or drag and drop a .eml/.txt file in the Email Analyzer to generate risk scores, indicator chips, key findings, and highlighted tokens.</p>
+                  <div class="empty-features-list">
+                    <span class="empty-feature-item">✓ Real-time calibrated NLP inference</span>
+                    <span class="empty-feature-item">✓ SPF / DKIM header verification</span>
+                    <span class="empty-feature-item">✓ URL & Phishing camouflage checks</span>
+                  </div>
+                </div>
+
+                <!-- STATE 2: LOADING SKELETON -->
+                <div class="report-skeleton hidden" id="report-skeleton" aria-hidden="true">
+                  <div class="skeleton-ring-row">
+                    <div class="skeleton-shimmer skeleton-ring-circle"></div>
+                    <div class="skeleton-meta-box">
+                      <div class="skeleton-shimmer skeleton-line-lg"></div>
+                      <div class="skeleton-shimmer skeleton-line-md"></div>
+                      <div class="skeleton-shimmer skeleton-line-sm"></div>
+                    </div>
+                  </div>
+                  <div class="skeleton-shimmer skeleton-bar-box"></div>
+                  <div class="skeleton-shimmer skeleton-chips-box"></div>
+                  <div class="skeleton-shimmer skeleton-text-box"></div>
+                </div>
+
+                <!-- STATE 3: ACTIVE REPORT VIEW -->
+                <div class="report-active-view hidden" id="report-active-view" tabindex="-1" aria-live="polite">
+                  <!-- Top Row: SVG Risk Ring Gauge & Core Metadata -->
+                  <div class="report-top-row">
+                    <div class="risk-ring-container">
+                      <svg class="risk-ring-svg" width="130" height="130" viewBox="0 0 140 140" role="img" aria-label="Risk Score Gauge">
+                        <circle class="risk-ring-track" cx="70" cy="70" r="54" fill="none" stroke-width="12"></circle>
+                        <circle class="risk-ring-fill" id="risk-ring-fill" cx="70" cy="70" r="54" fill="none" stroke-width="12" stroke-linecap="round"></circle>
+                      </svg>
+                      <div class="risk-ring-center">
+                        <span class="risk-ring-num" id="risk-ring-num">0</span>
+                        <span class="risk-ring-caption">Risk Score</span>
+                        <span class="risk-ring-badge" id="risk-ring-badge">Safe</span>
+                      </div>
+                    </div>
+
+                    <div class="report-meta-grid">
+                      <div class="meta-card">
+                        <span class="meta-label">Classification</span>
+                        <span class="meta-value-verdict" id="report-classification-val">--</span>
+                      </div>
+                      <div class="meta-card">
+                        <span class="meta-label">Confidence</span>
+                        <span class="meta-value" id="report-confidence-val">--%</span>
+                      </div>
+                      <div class="meta-card">
+                        <span class="meta-label">Analyzed At</span>
+                        <span class="meta-value-sm" id="report-timestamp-val">Just now</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Uncertain Zone Callout Banner -->
+                  <div class="uncertain-banner hidden" id="report-uncertain-banner" role="status">
+                    <span class="uncertain-banner-icon" aria-hidden="true">⚖</span>
+                    <div class="uncertain-banner-content">
+                      <h3 class="uncertain-banner-title">Borderline Uncertainty Zone (Needs Review)</h3>
+                      <p class="uncertain-banner-text" id="report-uncertain-text">Calibrated spam probability falls within the borderline zone [0.40, 0.60]. Automated decision withheld; human review recommended.</p>
+                    </div>
+                  </div>
+
+                  <!-- Detected Indicators Section -->
+                  <div class="report-section" id="report-indicators-section">
+                    <div class="section-title-row">
+                      <h3 class="report-section-title">Detected Indicators</h3>
+                      <span class="indicator-count-badge" id="indicator-count-badge">0</span>
+                    </div>
+                    <div class="indicators-chips-container" id="indicators-chips-container">
+                      <!-- Populated dynamically via textContent & createElement -->
+                    </div>
+                  </div>
+
+                  <!-- Key Findings Section -->
+                  <div class="report-section" id="report-findings-section">
+                    <h3 class="report-section-title">Key Findings</h3>
+                    <ul class="findings-list" id="findings-list">
+                      <!-- Populated dynamically -->
+                    </ul>
+                  </div>
+
+                  <!-- Email Preview with Original / Extracted Switch -->
+                  <div class="report-section" id="report-preview-section">
+                    <div class="section-title-row">
+                      <h3 class="report-section-title">Email Preview & Token Highlights</h3>
+                      <div class="preview-switch-group" role="group" aria-label="Toggle email preview mode">
+                        <button type="button" class="preview-switch-btn active" id="btn-preview-original">Original</button>
+                        <button type="button" class="preview-switch-btn" id="btn-preview-extracted">Extracted</button>
+                      </div>
+                    </div>
+
+                    <div class="preview-meta-bar">
+                      <div class="meta-line"><strong>From:</strong> <span id="preview-from-val">user@example.com</span></div>
+                      <div class="meta-line"><strong>Subject:</strong> <span id="preview-subject-val">No Subject</span></div>
+                    </div>
+
+                    <!-- Highlighter Legend with Non-Color Visual Cues -->
                     <div class="highlight-legend" role="region" aria-label="Highlight Legend">
                       <span class="legend-item legend-spam">
                         <mark class="token-highlight token-spam"><span class="token-cue" aria-hidden="true">▲</span> Spam token</mark>
@@ -399,32 +535,30 @@
                       <span class="legend-item legend-neutral">
                         <span class="token-neutral-sample">Regular text</span>
                       </span>
+                      <button type="button" class="btn btn-xs btn-outline stopword-toggle-btn" id="stopword-toggle-btn" aria-pressed="true" title="Toggle common words filtering">
+                        <span id="stopword-toggle-text">Filter Common Words (ON)</span>
+                      </button>
                       <span class="legend-status" id="stopword-count-badge"></span>
                     </div>
 
-                    <!-- Scrollable Token Preview Container -->
                     <div class="highlight-preview-box" id="highlight-preview-box" tabindex="0" aria-label="Highlighted Email Content Preview">
-                      <!-- Populated dynamically via textContent and createTextNode only -->
+                      <!-- Dynamic token highlights -->
                     </div>
                   </div>
 
-                  <!-- Top Contributing Terms -->
-                  <div class="result-section-block">
-                    <h4 class="section-subtitle">Top Contributing Terms</h4>
-                    <p class="section-desc">Feature weights pushing the statistical prediction toward spam or legitimate email.</p>
-                    <div class="signals-list" id="signals-list">
-                      <!-- Populated dynamically via createElement only -->
-                    </div>
-                    <p class="footnote">Note: Feature weights reflect statistical score contributions to the linear model, not probability percentages.</p>
-                  </div>
-
-                  <!-- Persistent Dataset Notice -->
-                  <div class="notice-callout">
-                    <span class="notice-icon" aria-hidden="true">ℹ</span>
-                    <p class="notice-text">Trained on older (2000s-era) Enron corporate emails. Results on modern phishing or scam emails may be less accurate.</p>
+                  <!-- Report Action Buttons (Mockup buttons 'Block Sender' & 'Report Phishing' removed) -->
+                  <div class="report-actions-bar">
+                    <button type="button" class="btn btn-outline btn-sm" id="copy-report-btn">
+                      <span id="copy-report-icon" aria-hidden="true">📋</span>
+                      <span id="copy-report-text">Copy Report</span>
+                    </button>
+                    <button type="button" class="btn btn-primary btn-crimson btn-sm" id="export-json-btn">
+                      <span aria-hidden="true">📥</span>
+                      <span>Export (JSON)</span>
+                    </button>
                   </div>
                 </div>
-              </section>
+              </div>
             </div>
           </div>
         </section>

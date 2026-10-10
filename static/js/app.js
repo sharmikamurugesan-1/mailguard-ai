@@ -76,9 +76,60 @@
   var stopwordCountBadge = document.getElementById('stopword-count-badge');
   var toastContainer = document.getElementById('toast-container');
 
+  // Phase 12C Tab Elements
+  var tabBtnContent = document.getElementById('tab-btn-content');
+  var tabBtnHeaders = document.getElementById('tab-btn-headers');
+  var tabPanelContent = document.getElementById('tab-panel-content');
+  var tabPanelHeaders = document.getElementById('tab-panel-headers');
+  var loadEmlSampleBtn = document.getElementById('load-eml-sample-btn');
+
+  // Phase 12C Option Toggles
+  var optExtractUrls = document.getElementById('opt-extract-urls');
+  var optAnalyzeHeaders = document.getElementById('opt-analyze-headers');
+  var optSuspiciousLinks = document.getElementById('opt-suspicious-links');
+
+  // Phase 12C Report Elements
+  var reportEmptyState = document.getElementById('report-empty-state');
+  var reportSkeleton = document.getElementById('report-skeleton');
+  var reportActiveView = document.getElementById('report-active-view');
+  var newScanBtn = document.getElementById('new-scan-btn');
+  var riskRingFill = document.getElementById('risk-ring-fill');
+  var riskRingNum = document.getElementById('risk-ring-num');
+  var riskRingBadge = document.getElementById('risk-ring-badge');
+  var reportClassificationVal = document.getElementById('report-classification-val');
+  var reportConfidenceVal = document.getElementById('report-confidence-val');
+  var reportTimestampVal = document.getElementById('report-timestamp-val');
+  var reportUncertainBanner = document.getElementById('report-uncertain-banner');
+  var reportUncertainText = document.getElementById('report-uncertain-text');
+  var indicatorCountBadge = document.getElementById('indicator-count-badge');
+  var indicatorsChipsContainer = document.getElementById('indicators-chips-container');
+  var findingsList = document.getElementById('findings-list');
+  var btnPreviewOriginal = document.getElementById('btn-preview-original');
+  var btnPreviewExtracted = document.getElementById('btn-preview-extracted');
+  var previewFromVal = document.getElementById('preview-from-val');
+  var previewSubjectVal = document.getElementById('preview-subject-val');
+  var copyReportBtn = document.getElementById('copy-report-btn');
+  var copyReportIcon = document.getElementById('copy-report-icon');
+  var copyReportText = document.getElementById('copy-report-text');
+  var exportJsonBtn = document.getElementById('export-json-btn');
+
+  // Phase 12C Header Telemetry Elements
+  var headersTelemetryEmpty = document.getElementById('headers-telemetry-empty');
+  var headersTelemetryActive = document.getElementById('headers-telemetry-active');
+  var hSpfVal = document.getElementById('h-spf-val');
+  var hDkimVal = document.getElementById('h-dkim-val');
+  var hDmarcVal = document.getElementById('h-dmarc-val');
+  var hSenderMatchVal = document.getElementById('h-sender-match-val');
+  var hHopsVal = document.getElementById('h-hops-val');
+  var rawHeadersPre = document.getElementById('raw-headers-pre');
+  var copyRawHeadersBtn = document.getElementById('copy-raw-headers-btn');
+
   // Application State
   var filterStopwords = true;
   var currentPredictionData = null;
+  var currentAnalysisData = null;
+  var currentRawEml = null;
+  var isPreviewOriginal = true;
   var currentInputText = { subject: '', body: '' };
 
   // Model Info Elements
@@ -111,8 +162,20 @@
     borderline: {
       subject: 're : no java ?',
       body: 'you are cracking me up . basically you are the only thing keeping me awake today . .'
+    },
+    emlSample: {
+      raw: 'Received: from mail.suspicious-relay.biz (185.220.101.5) by mx.google.com; Fri, 09 Oct 2026 12:00:00 -0700\n' +
+           'Authentication-Results: mx.google.com; spf=fail; dmarc=fail\n' +
+           'From: Security Alert <service@paypal-notice.com>\n' +
+           'Reply-To: phisher@dark-inbox.ru\n' +
+           'Subject: URGENT: Your PayPal account has been restricted\n' +
+           'Content-Type: text/plain; charset=utf-8\n\n' +
+           'Dear valued customer, unauthorized activity was flagged on your debit card. ' +
+           'Please verify immediately at http://bit.ly/paypal-verify-alert to prevent permanent suspension.\n\n' +
+           'Thank you,\nAccount Protection Team'
     }
   };
+
 
   // Warning Code to Human Readable Map
   var WARNING_MESSAGES = {
@@ -360,6 +423,51 @@
   // --------------------------------------------------------------------------
   // API Prediction Fetch with Timeout & 1 Automatic Retry
   // --------------------------------------------------------------------------
+  // API Fetch with Timeout & 1 Automatic Retry (/api/analyze & /api/predict)
+  // --------------------------------------------------------------------------
+
+  async function callAnalyzeApi(payload, isRetry) {
+    var controller = new AbortController();
+    var timeoutId = setTimeout(function () {
+      controller.abort();
+    }, REQUEST_TIMEOUT_MS);
+
+    try {
+      var response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      var data = await response.json().catch(function () {
+        return null;
+      });
+
+      if (!response.ok) {
+        var errorMsg = data && data.error && data.error.message
+          ? data.error.message
+          : `Server returned error (${response.status})`;
+        throw new Error(errorMsg);
+      }
+
+      return data;
+    } catch (err) {
+      clearTimeout(timeoutId);
+
+      var isTimeout = err.name === 'AbortError';
+      var isNetwork = !navigator.onLine || (err.message && err.message.includes('Failed to fetch')) || isTimeout;
+
+      if (!isRetry && isNetwork) {
+        return await callAnalyzeApi(payload, true);
+      }
+
+      throw err;
+    }
+  }
 
   async function callPredictApi(payload, isRetry) {
     var controller = new AbortController();
@@ -489,6 +597,14 @@
 
     var nameParts = file.name.split('.');
     var ext = nameParts.length > 1 ? nameParts.pop().toLowerCase() : '';
+
+    if (ext === 'msg') {
+      bodyError.textContent = 'Outlook .msg format is not directly supported in the browser. Please save/export as .eml or paste the message text.';
+      bodyError.classList.remove('hidden');
+      showToast('Outlook .msg unsupported', 'error');
+      return;
+    }
+
     if (ext !== 'txt' && ext !== 'eml') {
       bodyError.textContent = `Unsupported file type (.${ext || 'unknown'}). Please choose a .txt or .eml file.`;
       bodyError.classList.remove('hidden');
@@ -500,13 +616,24 @@
     reader.onload = function (e) {
       var raw = e.target.result || '';
       if (ext === 'eml') {
+        currentRawEml = raw;
         var parsed = parseEml(raw);
         if (parsed.subject) {
           subjectInput.value = parsed.subject;
         }
         bodyInput.value = parsed.body;
+
+        if (rawHeadersPre) {
+          var headerEnd = raw.indexOf('\n\n');
+          rawHeadersPre.textContent = headerEnd !== -1 ? raw.substring(0, headerEnd).trim() : raw.substring(0, 500);
+        }
+        if (headersTelemetryEmpty) headersTelemetryEmpty.classList.add('hidden');
+        if (headersTelemetryActive) headersTelemetryActive.classList.remove('hidden');
       } else {
+        currentRawEml = null;
         bodyInput.value = raw.trim();
+        if (headersTelemetryEmpty) headersTelemetryEmpty.classList.remove('hidden');
+        if (headersTelemetryActive) headersTelemetryActive.classList.add('hidden');
       }
 
       updateCharCount();
@@ -835,39 +962,244 @@
   }
 
   // --------------------------------------------------------------------------
-  // Render Result Card with Gentle Focus & Transitions
+  // --------------------------------------------------------------------------
+  // Phase 12C: Render Analysis Report Card (SVG Ring, Indicators, Findings)
   // --------------------------------------------------------------------------
 
+  function renderAnalysisReport(data) {
+    currentAnalysisData = data;
+    var model = data.model || {};
+    var riskScore = typeof data.risk_score === 'number' ? data.risk_score : 50;
+    var classification = data.classification || 'Suspicious';
+    var conf = typeof model.confidence === 'number' ? model.confidence : 0.50;
+    var pSpam = typeof model.probability === 'number' ? model.probability : 0.50;
+    var uncertain = Boolean(model.uncertain);
+
+    // Switch card states: hide empty state & skeleton, show active view
+    if (reportEmptyState) reportEmptyState.classList.add('hidden');
+    if (reportSkeleton) reportSkeleton.classList.add('hidden');
+    if (reportActiveView) reportActiveView.classList.remove('hidden');
+    if (newScanBtn) newScanBtn.classList.remove('hidden');
+
+    // 1. Risk Ring gauge (circle r=54, circumference = 339.292)
+    var CIRCUMFERENCE = 339.292;
+    var clampedScore = Math.max(0, Math.min(100, riskScore));
+    var dashoffset = CIRCUMFERENCE * (1 - clampedScore / 100);
+
+    if (riskRingFill) {
+      riskRingFill.style.strokeDasharray = String(CIRCUMFERENCE);
+      riskRingFill.style.strokeDashoffset = dashoffset.toFixed(2);
+      riskRingFill.classList.remove('stroke-safe', 'stroke-suspicious', 'stroke-spam');
+
+      var strokeClass = 'stroke-safe';
+      if (classification === 'Spam' || clampedScore >= 70) {
+        strokeClass = 'stroke-spam';
+      } else if (classification === 'Suspicious' || clampedScore >= 40) {
+        strokeClass = 'stroke-suspicious';
+      }
+      riskRingFill.classList.add(strokeClass);
+    }
+
+    if (riskRingNum) {
+      riskRingNum.textContent = String(clampedScore);
+    }
+
+    if (riskRingBadge) {
+      riskRingBadge.textContent = classification;
+      riskRingBadge.className = 'risk-ring-badge';
+      if (classification === 'Spam') {
+        riskRingBadge.classList.add('badge-spam');
+      } else if (classification === 'Suspicious') {
+        riskRingBadge.classList.add('badge-suspicious');
+      } else {
+        riskRingBadge.classList.add('badge-safe');
+      }
+    }
+
+    // 2. Metadata Grid
+    if (reportClassificationVal) {
+      reportClassificationVal.textContent = classification;
+      reportClassificationVal.className = 'meta-value-verdict verdict-' + classification.toLowerCase();
+    }
+
+    if (reportConfidenceVal) {
+      reportConfidenceVal.textContent = (conf * 100).toFixed(1) + '%';
+    }
+
+    if (reportTimestampVal) {
+      var now = new Date();
+      reportTimestampVal.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    // 3. Uncertain Callout Banner
+    if (reportUncertainBanner) {
+      if (uncertain) {
+        reportUncertainBanner.classList.remove('hidden');
+        if (reportUncertainText) {
+          reportUncertainText.textContent = `Calibrated spam probability (${pSpam.toFixed(4)}) falls within the [0.40, 0.60] borderline zone. Empirical cross-validation on 24,369 emails shows near 50/50 balance in this band. Automated decision withheld; human review recommended.`;
+        }
+      } else {
+        reportUncertainBanner.classList.add('hidden');
+      }
+    }
+
+    // 4. Detected Indicators Chips
+    var indicators = data.indicators || [];
+    if (indicatorCountBadge) {
+      indicatorCountBadge.textContent = String(indicators.length);
+    }
+
+    if (indicatorsChipsContainer) {
+      while (indicatorsChipsContainer.firstChild) {
+        indicatorsChipsContainer.removeChild(indicatorsChipsContainer.firstChild);
+      }
+
+      if (indicators.length === 0) {
+        var cleanChip = document.createElement('div');
+        cleanChip.className = 'indicator-chip chip-clean';
+        var cleanIcon = document.createElement('span');
+        cleanIcon.setAttribute('aria-hidden', 'true');
+        cleanIcon.textContent = '✓';
+        var cleanText = document.createElement('span');
+        cleanText.textContent = 'No Threat Indicators Detected (Clean)';
+        cleanChip.appendChild(cleanIcon);
+        cleanChip.appendChild(cleanText);
+        indicatorsChipsContainer.appendChild(cleanChip);
+      } else {
+        indicators.forEach(function (ind) {
+          var chip = document.createElement('div');
+          var sev = (ind.severity || 'medium').toLowerCase();
+          chip.className = 'indicator-chip chip-' + sev;
+
+          var iconSpan = document.createElement('span');
+          iconSpan.setAttribute('aria-hidden', 'true');
+          iconSpan.textContent = sev === 'critical' ? '🚨' : sev === 'high' ? '⚠️' : sev === 'medium' ? '🔍' : 'ℹ️';
+
+          var textSpan = document.createElement('span');
+          var typeLabel = (ind.type || 'Indicator').replace(/_/g, ' ');
+          textSpan.textContent = `${typeLabel}: ${ind.detail || ''}`;
+
+          chip.appendChild(iconSpan);
+          chip.appendChild(textSpan);
+          indicatorsChipsContainer.appendChild(chip);
+        });
+      }
+    }
+
+    // 5. Key Findings Bullet List
+    if (findingsList) {
+      while (findingsList.firstChild) {
+        findingsList.removeChild(findingsList.firstChild);
+      }
+
+      var findings = data.key_findings || [];
+      if (findings.length === 0) {
+        var defaultLi = document.createElement('li');
+        defaultLi.className = 'finding-item';
+        var defBullet = document.createElement('span');
+        defBullet.className = 'finding-bullet';
+        defBullet.textContent = '•';
+        var defText = document.createElement('span');
+        defText.textContent = 'Standard email syntax and content patterns; no specific anomalies identified.';
+        defaultLi.appendChild(defBullet);
+        defaultLi.appendChild(defText);
+        findingsList.appendChild(defaultLi);
+      } else {
+        findings.forEach(function (f) {
+          var li = document.createElement('li');
+          li.className = 'finding-item';
+          var bullet = document.createElement('span');
+          bullet.className = 'finding-bullet';
+          bullet.textContent = '•';
+          var textNode = document.createElement('span');
+          textNode.textContent = f;
+          li.appendChild(bullet);
+          li.appendChild(textNode);
+          findingsList.appendChild(li);
+        });
+      }
+    }
+
+    // 6. Email Preview Header & Highlighter
+    if (previewFromVal) {
+      previewFromVal.textContent = (data.headers && data.headers.from) ? data.headers.from : (data.headers && data.headers['From']) || 'user@example.com';
+    }
+    if (previewSubjectVal) {
+      previewSubjectVal.textContent = (data.headers && data.headers.subject) || currentInputText.subject || '(No Subject)';
+    }
+
+    var tokens = data.top_tokens || [];
+    renderInTextHighlights(currentInputText.subject, currentInputText.body, tokens, filterStopwords);
+
+    // 7. Header Telemetry Panel (if headers present in API response)
+    if (data.headers) {
+      if (headersTelemetryEmpty) headersTelemetryEmpty.classList.add('hidden');
+      if (headersTelemetryActive) headersTelemetryActive.classList.remove('hidden');
+
+      if (hSpfVal) {
+        var spf = (data.headers.spf || 'none').toLowerCase();
+        hSpfVal.textContent = spf.toUpperCase();
+        hSpfVal.className = 'h-val ' + (spf === 'pass' ? 'badge-safe' : (spf === 'fail' ? 'badge-spam' : 'badge-neutral'));
+      }
+      if (hDkimVal) {
+        var dkim = (data.headers.dkim || 'none').toLowerCase();
+        hDkimVal.textContent = dkim.toUpperCase();
+        hDkimVal.className = 'h-val ' + (dkim === 'pass' ? 'badge-safe' : (dkim === 'fail' ? 'badge-spam' : 'badge-neutral'));
+      }
+      if (hDmarcVal) {
+        var dmarc = (data.headers.dmarc || 'none').toLowerCase();
+        hDmarcVal.textContent = dmarc.toUpperCase();
+        hDmarcVal.className = 'h-val ' + (dmarc === 'pass' ? 'badge-safe' : (dmarc === 'fail' ? 'badge-spam' : 'badge-neutral'));
+      }
+      if (hSenderMatchVal) {
+        var match = data.headers.sender_match;
+        hSenderMatchVal.textContent = match === true ? 'Match' : (match === false ? 'Mismatch' : 'N/A');
+        hSenderMatchVal.className = 'h-val ' + (match === false ? 'badge-spam' : 'badge-safe');
+      }
+      if (hHopsVal) {
+        hHopsVal.textContent = `${data.headers.hop_count || 0} hops`;
+      }
+      if (rawHeadersPre && data.headers.raw_headers) {
+        rawHeadersPre.textContent = data.headers.raw_headers;
+      }
+    }
+
+    // 8. Update Session Stats
+    updateSessionStats(classification.toLowerCase());
+
+    // 9. Focus management without harsh scroll
+    if (reportActiveView) {
+      reportActiveView.focus({ preventScroll: true });
+    }
+  }
+
+  // Legacy result card renderer guarded against null
   function renderPredictionResult(data) {
+    if (!resultCard) return;
     var prediction = data.prediction || 'uncertain';
     var labelDisplay = data.label_display || 'Needs review';
     var riskLevel = (data.risk_level || 'medium').toLowerCase();
     var conf = typeof data.confidence === 'number' ? data.confidence : 0.5;
     var spamProb = typeof data.spam_probability === 'number' ? data.spam_probability : 0.5;
 
-    // Reset card classes
     resultCard.classList.remove('hidden', 'verdict-spam-border', 'verdict-ham-border', 'verdict-uncertain-border', 'verdict-fade-in');
-    verdictIcon.className = 'verdict-icon';
-    riskBadge.className = 'risk-badge';
+    if (verdictIcon) verdictIcon.className = 'verdict-icon';
+    if (riskBadge) riskBadge.className = 'risk-badge';
 
-    // Set Verdict Styling, Icons & Uncertain Banner
     if (prediction === 'spam') {
       resultCard.classList.add('verdict-spam-border');
-      verdictIcon.classList.add('verdict-icon-spam');
-      verdictIcon.textContent = '🚨';
-      verdictTitle.textContent = labelDisplay;
+      if (verdictIcon) { verdictIcon.classList.add('verdict-icon-spam'); verdictIcon.textContent = '🚨'; }
+      if (verdictTitle) verdictTitle.textContent = labelDisplay;
       if (uncertainBanner) uncertainBanner.classList.add('hidden');
     } else if (prediction === 'ham') {
       resultCard.classList.add('verdict-ham-border');
-      verdictIcon.classList.add('verdict-icon-ham');
-      verdictIcon.textContent = '✓';
-      verdictTitle.textContent = labelDisplay;
+      if (verdictIcon) { verdictIcon.classList.add('verdict-icon-ham'); verdictIcon.textContent = '✓'; }
+      if (verdictTitle) verdictTitle.textContent = labelDisplay;
       if (uncertainBanner) uncertainBanner.classList.add('hidden');
     } else {
       resultCard.classList.add('verdict-uncertain-border');
-      verdictIcon.classList.add('verdict-icon-unc');
-      verdictIcon.textContent = '⚖';
-      verdictTitle.textContent = labelDisplay;
+      if (verdictIcon) { verdictIcon.classList.add('verdict-icon-unc'); verdictIcon.textContent = '⚖'; }
+      if (verdictTitle) verdictTitle.textContent = labelDisplay;
       if (uncertainBanner) {
         uncertainBanner.classList.remove('hidden');
         if (uncertainBannerText) {
@@ -876,74 +1208,263 @@
       }
     }
 
-    // Risk Badge
-    if (riskLevel === 'high') {
-      riskBadge.classList.add('risk-badge-high');
-      riskBadge.textContent = 'RISK: HIGH';
-    } else if (riskLevel === 'low') {
-      riskBadge.classList.add('risk-badge-low');
-      riskBadge.textContent = 'RISK: LOW';
-    } else {
-      riskBadge.classList.add('risk-badge-medium');
-      riskBadge.textContent = 'RISK: MEDIUM';
+    if (riskBadge) {
+      if (riskLevel === 'high') {
+        riskBadge.classList.add('risk-badge-high');
+        riskBadge.textContent = 'RISK: HIGH';
+      } else if (riskLevel === 'low') {
+        riskBadge.classList.add('risk-badge-low');
+        riskBadge.textContent = 'RISK: LOW';
+      } else {
+        riskBadge.classList.add('risk-badge-medium');
+        riskBadge.textContent = 'RISK: MEDIUM';
+      }
     }
 
-    // Confidence Display
-    var confPct = Math.min(100, Math.max(0, conf * 100)).toFixed(1);
-    confidenceValue.textContent = `${confPct}%`;
-    confidenceBar.style.width = `${confPct}%`;
-    probabilitySubtext.textContent = `Calibrated spam probability: ${spamProb.toFixed(4)}`;
-
-    // Reliability & Warnings
-    var rel = data.reliability || { level: 'medium', warnings: [] };
-    reliabilityLevelPill.textContent = `LEVEL: ${rel.level.toUpperCase()}`;
-
-    while (warningsList.firstChild) {
-      warningsList.removeChild(warningsList.firstChild);
+    if (confidenceValue && confidenceBar) {
+      var confPct = Math.min(100, Math.max(0, conf * 100)).toFixed(1);
+      confidenceValue.textContent = `${confPct}%`;
+      confidenceBar.style.width = `${confPct}%`;
+    }
+    if (probabilitySubtext) {
+      probabilitySubtext.textContent = `Calibrated spam probability: ${spamProb.toFixed(4)}`;
     }
 
-    var warnings = rel.warnings || [];
-    if (warnings.length === 0) {
-      var li = document.createElement('li');
-      li.className = 'warning-item';
-      li.textContent = 'No data heuristics triggered; standard input length and vocabulary coverage.';
-      warningsList.appendChild(li);
+    var tokensForHighlight = data.top_tokens || data.signals || [];
+    renderInTextHighlights(currentInputText.subject, currentInputText.body, tokensForHighlight, filterStopwords);
+    renderSignalsList(data.signals || [], filterStopwords);
+    resultCard.classList.add('verdict-fade-in');
+    updateSessionStats(prediction);
+  }
+
+  // --------------------------------------------------------------------------
+  // Preview Mode Switch: Original vs Extracted
+  // --------------------------------------------------------------------------
+
+  function updatePreviewMode(original) {
+    isPreviewOriginal = original;
+    if (btnPreviewOriginal) btnPreviewOriginal.classList.toggle('active', original);
+    if (btnPreviewExtracted) btnPreviewExtracted.classList.toggle('active', !original);
+
+    if (!currentAnalysisData) return;
+
+    if (original) {
+      renderInTextHighlights(currentInputText.subject, currentInputText.body, currentAnalysisData.top_tokens || [], filterStopwords);
     } else {
-      warnings.forEach(function (code) {
-        var wLi = document.createElement('li');
-        wLi.className = 'warning-item';
-        if (code !== 'dataset_age_notice') {
-          wLi.classList.add('warning-item-warn');
-        }
-        var text = WARNING_MESSAGES[code] || `Notice: ${code}`;
-        wLi.textContent = text;
-        warningsList.appendChild(wLi);
+      renderInTextHighlights(currentInputText.subject, currentInputText.body, currentAnalysisData.top_tokens || [], false);
+    }
+  }
+
+  if (btnPreviewOriginal) {
+    btnPreviewOriginal.addEventListener('click', function () {
+      updatePreviewMode(true);
+    });
+  }
+
+  if (btnPreviewExtracted) {
+    btnPreviewExtracted.addEventListener('click', function () {
+      updatePreviewMode(false);
+    });
+  }
+
+  // --------------------------------------------------------------------------
+  // Copy Report & Export JSON
+  // --------------------------------------------------------------------------
+
+  function copyAnalysisReport() {
+    if (!currentAnalysisData) {
+      showToast('No analysis report to copy', 'warn');
+      return;
+    }
+
+    var data = currentAnalysisData;
+    var model = data.model || {};
+    var lines = [
+      'MailGuard AI - Email Security Analysis Report',
+      '==============================================',
+      `Classification:    ${data.classification}`,
+      `Risk Score:        ${data.risk_score} / 100`,
+      `Model Confidence:  ${(model.confidence * 100).toFixed(1)}%`,
+      `Calibrated Spam P: ${(model.probability).toFixed(4)}`,
+      `Uncertain State:   ${model.uncertain ? 'YES (Human Review Recommended)' : 'NO'}`,
+      `Vocab Coverage:    ${data.vocab_coverage}%`,
+      '',
+      'Key Findings:'
+    ];
+
+    (data.key_findings || []).forEach(function (f) {
+      lines.push(`  • ${f}`);
+    });
+
+    lines.push('');
+    lines.push(`Detected Indicators (${(data.indicators || []).length}):`);
+    if ((data.indicators || []).length === 0) {
+      lines.push('  • (No threat indicators detected)');
+    } else {
+      data.indicators.forEach(function (ind) {
+        lines.push(`  • [${(ind.severity || 'MEDIUM').toUpperCase()}] ${ind.type}: ${ind.detail}`);
       });
     }
 
-    // Interactive In-Text Highlights
-    var tokensForHighlight = data.top_tokens || data.signals || [];
-    renderInTextHighlights(currentInputText.subject, currentInputText.body, tokensForHighlight, filterStopwords);
-
-    // Signals Rendering with Stopword Filtering
-    renderSignalsList(data.signals || [], filterStopwords);
-
-    // Trigger smooth fade-in
-    resultCard.classList.add('verdict-fade-in');
-
-    // Update session dashboard counters with real telemetry
-    updateSessionStats(prediction);
-
-    // Focus without jumping, gentle scroll only if offscreen
-    if (verdictTitle) {
-      verdictTitle.focus({ preventScroll: true });
+    if (data.headers) {
+      lines.push('');
+      lines.push('Header Authentication:');
+      lines.push(`  • SPF:    ${(data.headers.spf || 'none').toUpperCase()}`);
+      lines.push(`  • DKIM:   ${(data.headers.dkim || 'none').toUpperCase()}`);
+      lines.push(`  • DMARC:  ${(data.headers.dmarc || 'none').toUpperCase()}`);
+      lines.push(`  • Relay:  ${data.headers.hop_count || 0} hops`);
     }
-    var rect = resultCard.getBoundingClientRect();
-    var isOffScreen = rect.top < 0 || rect.bottom > (window.innerHeight || document.documentElement.clientHeight);
-    var prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (isOffScreen && !prefersReducedMotion) {
-      resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    lines.push('');
+    lines.push('Note: MailGuard AI provides statistical probability estimates, not absolute guarantees.');
+
+    var reportText = lines.join('\n');
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(reportText).then(function () {
+        if (copyReportText) copyReportText.textContent = 'Copied!';
+        if (copyReportIcon) copyReportIcon.textContent = '✓';
+        showToast('Analysis report copied to clipboard', 'success');
+        setTimeout(function () {
+          if (copyReportText) copyReportText.textContent = 'Copy Report';
+          if (copyReportIcon) copyReportIcon.textContent = '📋';
+        }, 2000);
+      }).catch(function () {
+        fallbackCopyText(reportText);
+      });
+    } else {
+      fallbackCopyText(reportText);
     }
+  }
+
+  function exportAnalysisJson() {
+    if (!currentAnalysisData) {
+      showToast('No analysis report to export', 'warn');
+      return;
+    }
+
+    try {
+      var exportPayload = {
+        meta: {
+          app: 'MailGuard AI',
+          version: '2.0.0',
+          exported_at: new Date().toISOString()
+        },
+        analysis: currentAnalysisData,
+        input_meta: {
+          subject_length: (currentInputText.subject || '').length,
+          body_length: (currentInputText.body || '').length,
+          has_raw_eml: Boolean(currentRawEml)
+        }
+      };
+
+      var jsonStr = JSON.stringify(exportPayload, null, 2);
+      var blob = new Blob([jsonStr], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = `mailguard-analysis-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Analysis report exported as JSON', 'success');
+    } catch (e) {
+      showToast('Failed to export JSON report', 'error');
+    }
+  }
+
+  function handleNewScan() {
+    if (reportActiveView) reportActiveView.classList.add('hidden');
+    if (reportSkeleton) reportSkeleton.classList.add('hidden');
+    if (reportEmptyState) reportEmptyState.classList.remove('hidden');
+    if (newScanBtn) newScanBtn.classList.add('hidden');
+    if (subjectInput) subjectInput.value = '';
+    if (bodyInput) bodyInput.value = '';
+    currentRawEml = null;
+    currentAnalysisData = null;
+    updateCharCount();
+    if (bodyInput) bodyInput.focus();
+  }
+
+  if (copyReportBtn) copyReportBtn.addEventListener('click', copyAnalysisReport);
+  if (exportJsonBtn) exportJsonBtn.addEventListener('click', exportAnalysisJson);
+  if (newScanBtn) newScanBtn.addEventListener('click', handleNewScan);
+
+  if (copyRawHeadersBtn) {
+    copyRawHeadersBtn.addEventListener('click', function () {
+      if (rawHeadersPre && rawHeadersPre.textContent) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(rawHeadersPre.textContent).then(function () {
+            showToast('Headers copied to clipboard', 'success');
+          });
+        } else {
+          fallbackCopyText(rawHeadersPre.textContent);
+        }
+      } else {
+        showToast('No raw headers to copy', 'warn');
+      }
+    });
+  }
+
+  // --------------------------------------------------------------------------
+  // Tab Switching (Email Content vs Header Analysis)
+  // --------------------------------------------------------------------------
+
+  function switchTab(tabName) {
+    if (tabName === 'content') {
+      if (tabBtnContent) {
+        tabBtnContent.classList.add('active');
+        tabBtnContent.setAttribute('aria-selected', 'true');
+      }
+      if (tabBtnHeaders) {
+        tabBtnHeaders.classList.remove('active');
+        tabBtnHeaders.setAttribute('aria-selected', 'false');
+      }
+      if (tabPanelContent) tabPanelContent.classList.remove('hidden');
+      if (tabPanelHeaders) tabPanelHeaders.classList.add('hidden');
+    } else if (tabName === 'headers') {
+      if (tabBtnHeaders) {
+        tabBtnHeaders.classList.add('active');
+        tabBtnHeaders.setAttribute('aria-selected', 'true');
+      }
+      if (tabBtnContent) {
+        tabBtnContent.classList.remove('active');
+        tabBtnContent.setAttribute('aria-selected', 'false');
+      }
+      if (tabPanelHeaders) tabPanelHeaders.classList.remove('hidden');
+      if (tabPanelContent) tabPanelContent.classList.add('hidden');
+    }
+  }
+
+  if (tabBtnContent) {
+    tabBtnContent.addEventListener('click', function () {
+      switchTab('content');
+    });
+  }
+
+  if (tabBtnHeaders) {
+    tabBtnHeaders.addEventListener('click', function () {
+      switchTab('headers');
+    });
+  }
+
+  if (loadEmlSampleBtn) {
+    loadEmlSampleBtn.addEventListener('click', function () {
+      currentRawEml = SAMPLES.emlSample.raw;
+      var parsed = parseEml(currentRawEml);
+      if (subjectInput) subjectInput.value = parsed.subject;
+      if (bodyInput) bodyInput.value = parsed.body;
+      if (rawHeadersPre) {
+        var headerEnd = currentRawEml.indexOf('\n\n');
+        rawHeadersPre.textContent = headerEnd !== -1 ? currentRawEml.substring(0, headerEnd).trim() : currentRawEml;
+      }
+      if (headersTelemetryEmpty) headersTelemetryEmpty.classList.add('hidden');
+      if (headersTelemetryActive) headersTelemetryActive.classList.remove('hidden');
+      updateCharCount();
+      showToast('Loaded sample .eml headers & content', 'success');
+      switchTab('content');
+    });
   }
 
   // --------------------------------------------------------------------------
@@ -963,10 +1484,14 @@
     currentInputText.subject = subVal;
     currentInputText.body = bodyVal;
 
-    var payload = {
-      subject: subVal,
-      body: bodyVal,
-      filter_stopwords: filterStopwords
+    var analyzePayload = {
+      text: subVal ? (`Subject: ${subVal}\n\n${bodyVal}`) : bodyVal,
+      eml: currentRawEml || null,
+      options: {
+        scan_urls: optExtractUrls ? optExtractUrls.checked : true,
+        analyze_headers: optAnalyzeHeaders ? optAnalyzeHeaders.checked : true,
+        sensitivity: (optSuspiciousLinks && optSuspiciousLinks.checked) ? "high" : "medium"
+      }
     };
 
     // UI Loading state
@@ -978,38 +1503,49 @@
     sampleHamBtn.disabled = true;
     sampleBorderlineBtn.disabled = true;
 
-    // Show skeleton, hide existing result card to eliminate layout jump
-    if (resultSkeleton) {
-      resultSkeleton.classList.remove('hidden');
-    }
-    resultCard.classList.add('hidden');
+    // Show skeletons, hide existing views to eliminate layout jump
+    if (reportSkeleton) reportSkeleton.classList.remove('hidden');
+    if (reportEmptyState) reportEmptyState.classList.add('hidden');
+    if (reportActiveView) reportActiveView.classList.add('hidden');
+    if (resultSkeleton) resultSkeleton.classList.remove('hidden');
+    if (resultCard) resultCard.classList.add('hidden');
 
     var wakingBannerTimer = setTimeout(function () {
       wakingBanner.classList.remove('hidden');
     }, WAKING_BANNER_DELAY_MS);
 
     try {
-      var resultData = await callPredictApi(payload, false);
+      var resultData = await callAnalyzeApi(analyzePayload, false);
       clearTimeout(wakingBannerTimer);
       wakingBanner.classList.add('hidden');
-      if (resultSkeleton) {
-        resultSkeleton.classList.add('hidden');
-      }
-      currentPredictionData = resultData;
-      renderPredictionResult(resultData);
+      if (reportSkeleton) reportSkeleton.classList.add('hidden');
+      if (resultSkeleton) resultSkeleton.classList.add('hidden');
+
+      currentAnalysisData = resultData;
+      currentPredictionData = {
+        prediction: resultData.model ? resultData.model.label : 'ham',
+        label_display: resultData.classification,
+        risk_level: resultData.classification === 'Spam' ? 'high' : (resultData.classification === 'Suspicious' ? 'medium' : 'low'),
+        confidence: resultData.model ? resultData.model.confidence : 0.5,
+        spam_probability: resultData.model ? resultData.model.probability : 0.5,
+        top_tokens: resultData.top_tokens || [],
+        signals: resultData.top_tokens || []
+      };
+
+      renderAnalysisReport(resultData);
     } catch (err) {
       clearTimeout(wakingBannerTimer);
       wakingBanner.classList.add('hidden');
-      if (resultSkeleton) {
-        resultSkeleton.classList.add('hidden');
-      }
+      if (reportSkeleton) reportSkeleton.classList.add('hidden');
+      if (resultSkeleton) resultSkeleton.classList.add('hidden');
+      if (reportEmptyState) reportEmptyState.classList.remove('hidden');
 
       generalErrorMessage.textContent = err.message || 'An unexpected error occurred while communicating with the server.';
       generalError.classList.remove('hidden');
       retryBtn.classList.remove('hidden');
     } finally {
       analyzeBtn.disabled = false;
-      analyzeBtnText.textContent = 'Analyze Email';
+      analyzeBtnText.textContent = 'Analyze Email →';
       analyzeBtnSpinner.classList.add('hidden');
       clearBtn.disabled = false;
       sampleSpamBtn.disabled = false;
@@ -1048,16 +1584,22 @@
   clearBtn.addEventListener('click', function () {
     subjectInput.value = '';
     bodyInput.value = '';
+    currentRawEml = null;
+    currentAnalysisData = null;
+    currentPredictionData = null;
     updateCharCount();
     bodyError.classList.add('hidden');
     bodyError.textContent = '';
     generalError.classList.add('hidden');
     generalErrorMessage.textContent = '';
     wakingBanner.classList.add('hidden');
-    if (resultSkeleton) {
-      resultSkeleton.classList.add('hidden');
-    }
-    resultCard.classList.add('hidden');
+    if (reportSkeleton) reportSkeleton.classList.add('hidden');
+    if (reportActiveView) reportActiveView.classList.add('hidden');
+    if (reportEmptyState) reportEmptyState.classList.remove('hidden');
+    if (newScanBtn) newScanBtn.classList.add('hidden');
+    if (headersTelemetryEmpty) headersTelemetryEmpty.classList.remove('hidden');
+    if (headersTelemetryActive) headersTelemetryActive.classList.add('hidden');
+    if (rawHeadersPre) rawHeadersPre.textContent = '';
     subjectInput.focus();
   });
 
@@ -1065,31 +1607,43 @@
     handleFormSubmit();
   });
 
-  // Sample Loaders (Click 1 fills form, Click 2 analyzes)
+  // Sample Loaders
   sampleSpamBtn.addEventListener('click', function () {
+    currentRawEml = null;
     subjectInput.value = SAMPLES.spam.subject;
     bodyInput.value = SAMPLES.spam.body;
     updateCharCount();
     bodyError.classList.add('hidden');
     generalError.classList.add('hidden');
+    if (headersTelemetryEmpty) headersTelemetryEmpty.classList.remove('hidden');
+    if (headersTelemetryActive) headersTelemetryActive.classList.add('hidden');
+    if (rawHeadersPre) rawHeadersPre.textContent = '';
     bodyInput.focus();
   });
 
   sampleHamBtn.addEventListener('click', function () {
+    currentRawEml = null;
     subjectInput.value = SAMPLES.ham.subject;
     bodyInput.value = SAMPLES.ham.body;
     updateCharCount();
     bodyError.classList.add('hidden');
     generalError.classList.add('hidden');
+    if (headersTelemetryEmpty) headersTelemetryEmpty.classList.remove('hidden');
+    if (headersTelemetryActive) headersTelemetryActive.classList.add('hidden');
+    if (rawHeadersPre) rawHeadersPre.textContent = '';
     bodyInput.focus();
   });
 
   sampleBorderlineBtn.addEventListener('click', function () {
+    currentRawEml = null;
     subjectInput.value = SAMPLES.borderline.subject;
     bodyInput.value = SAMPLES.borderline.body;
     updateCharCount();
     bodyError.classList.add('hidden');
     generalError.classList.add('hidden');
+    if (headersTelemetryEmpty) headersTelemetryEmpty.classList.remove('hidden');
+    if (headersTelemetryActive) headersTelemetryActive.classList.add('hidden');
+    if (rawHeadersPre) rawHeadersPre.textContent = '';
     bodyInput.focus();
   });
 
@@ -1150,7 +1704,14 @@
       if (stopwordToggleText) {
         stopwordToggleText.textContent = filterStopwords ? 'Filter Common Words (ON)' : 'Filter Common Words (OFF)';
       }
-      if (currentPredictionData) {
+      if (currentAnalysisData) {
+        renderInTextHighlights(
+          currentInputText.subject,
+          currentInputText.body,
+          currentAnalysisData.top_tokens || [],
+          filterStopwords
+        );
+      } else if (currentPredictionData) {
         renderInTextHighlights(
           currentInputText.subject,
           currentInputText.body,

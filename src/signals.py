@@ -513,12 +513,26 @@ def parse_eml_message(
     elif "dmarc=fail" in combined_auth:
         dmarc_status = "fail"
 
+    raw_headers_str = ""
+    if hasattr(msg, "as_string"):
+        try:
+            raw_parts = msg.as_string().split("\n\n")
+            raw_headers_str = raw_parts[0] if raw_parts else ""
+        except Exception:
+            raw_headers_str = ""
+
     header_dict = {
+        "from": from_addr,
+        "reply_to": reply_addr,
+        "subject": subject,
         "spf": spf_status,
         "dkim": dkim_status,
         "dmarc": dmarc_status,
+        "sender_match": not from_reply_mismatch,
         "from_reply_mismatch": from_reply_mismatch,
+        "hop_count": hops,
         "hops": hops,
+        "raw_headers": raw_headers_str,
     }
 
     # Generate Header Indicators
