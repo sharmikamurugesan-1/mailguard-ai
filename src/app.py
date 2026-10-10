@@ -31,6 +31,12 @@ from werkzeug.exceptions import (
 )
 
 from src import config
+from src.signals import (
+    compute_risk_score,
+    extract_and_check_urls,
+    generate_key_findings,
+    parse_eml_message,
+)
 
 try:
     from src.predictor import get_predictor
@@ -38,6 +44,7 @@ except Exception as _pred_err:
     get_predictor = None
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+
 logger = logging.getLogger("MailGuard-API")
 
 
@@ -375,7 +382,229 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
                 }
             }), 500
 
+    @app.route("/api/analyze", methods=["GET", "POST"])
+    def analyze_email():
+        """Deep email security analysis combining NLP ML model, heuristic signals, URL checks, and header validation."""
+        if request.method != "POST":
+            raise MethodNotAllowed()
+
+        # 1. Enforce Content-Type application/json
+        if not request.is_json:
+            return jsonify({
+                "error": {
+                    "code": "unsupported_media_type",
+                    "message": "Content-Type must be application/json.",
+                }
+            }), 415
+
+        # 2. Parse and validate JSON structure
+        try:
+            data = request.get_json(silent=False)
+        except RequestEntityTooLarge:
+            raise
+        except BadRequest:
+            return jsonify({
+                "error": {
+                    "code": "invalid_json",
+                    "message": "Malformed JSON payload.",
+                }
+            }), 400
+        except HTTPException:
+            raise
+        except Exception:
+            return jsonify({
+                "error": {
+                    "code": "invalid_json",
+                    "message": "Malformed JSON payload.",
+                }
+            }), 400
+
+        if not isinstance(data, dict):
+            return jsonify({
+                "error": {
+                    "code": "invalid_json",
+                    "message": "JSON body must be a valid key-value object.",
+                }
+            }), 400
+
+        # 3. Validate input field types
+        text_input = data.get("text")
+        if text_input is not None and not isinstance(text_input, str):
+            return jsonify({
+                "error": {
+                    "code": "invalid_type",
+                    "message": "Field 'text' must be a string if provided.",
+                }
+            }), 400
+
+        eml_input = data.get("eml")
+        if eml_input is not None and not isinstance(eml_input, str):
+            return jsonify({
+                "error": {
+                    "code": "invalid_type",
+                    "message": "Field 'eml' must be a string if provided.",
+                }
+            }), 400
+
+        options_input = data.get("options")
+        if options_input is not None and not isinstance(options_input, dict):
+            return jsonify({
+                "error": {
+                    "code": "invalid_type",
+                    "message": "Field 'options' must be a JSON object if provided.",
+                }
+            }), 400
+
+        # 4. Enforce size limits
+        max_chars = int(os.getenv("MAX_INPUT_CHARS", str(config.MAX_INPUT_CHARS)))
+        max_eml_chars = 1_000_000  # 1 MB raw payload limit
+
+        if text_input and len(text_input) > max_chars:
+            return jsonify({
+                "error": {
+                    "code": "payload_too_large",
+                    "message": f"Text input length ({len(text_input)} characters) exceeds maximum limit of {max_chars} characters.",
+                }
+            }), 413
+
+        if eml_input and len(eml_input) > max_eml_chars:
+            return jsonify({
+                "error": {
+                    "code": "payload_too_large",
+                    "message": f"Raw EML payload length ({len(eml_input)} characters) exceeds maximum limit of {max_eml_chars} characters.",
+                }
+            }), 413
+
+        # 5. Extract options
+        opts = options_input or {}
+        scan_urls = bool(opts.get("scan_urls", True))
+        analyze_headers = bool(opts.get("analyze_headers", True))
+        raw_sensitivity = str(opts.get("sensitivity", "medium")).lower()
+        sensitivity = raw_sensitivity if raw_sensitivity in ("low", "medium", "high") else "medium"
+
+        # 6. EML message parsing (if provided)
+        eml_body = ""
+        eml_html = ""
+        eml_subject = ""
+        eml_headers = None
+        eml_indicators = []
+
+        if eml_input and eml_input.strip():
+            eml_parsed = parse_eml_message(eml_input)
+            eml_body = eml_parsed.get("body", "") or ""
+            eml_html = eml_parsed.get("html_body", "") or ""
+            eml_subject = eml_parsed.get("subject", "") or ""
+            eml_headers = eml_parsed.get("headers")
+            eml_indicators = eml_parsed.get("indicators", [])
+
+        # 7. Determine effective content to analyze
+        if text_input and text_input.strip():
+            effective_body = text_input.strip()
+            effective_subject = eml_subject or data.get("subject", "") or ""
+            effective_html = eml_html
+        elif eml_body.strip() or eml_html.strip():
+            effective_body = eml_body.strip()
+            effective_subject = eml_subject
+            effective_html = eml_html
+        else:
+            return jsonify({
+                "error": {
+                    "code": "empty_input",
+                    "message": "Either 'text' or 'eml' must be provided with non-empty content.",
+                }
+            }), 400
+
+        # Check total combined length of effective subject and body
+        combined_text_len = len(effective_subject) + len(effective_body)
+        if combined_text_len > max_chars:
+            return jsonify({
+                "error": {
+                    "code": "payload_too_large",
+                    "message": f"Combined input length ({combined_text_len} characters) exceeds the maximum limit of {max_chars} characters.",
+                }
+            }), 413
+
+        # 8. URL Extraction and inspection
+        urls_list = []
+        url_indicators = []
+        if scan_urls:
+            urls_list, url_indicators = extract_and_check_urls(effective_body, effective_html)
+
+        # 9. Header telemetry and indicators
+        header_data = None
+        header_indicators_active = []
+        if analyze_headers and eml_headers is not None:
+            header_data = eml_headers
+            header_indicators_active = eml_indicators
+
+        # Combine heuristic threat indicators
+        all_indicators = url_indicators + header_indicators_active
+
+        # 10. Calibrated NLP Model Inference
+        p_spam = 0.50
+        confidence = 0.50
+        uncertain = True
+        top_tokens = []
+        vocab_coverage = 100.0
+
+        if get_predictor is not None:
+            try:
+                predictor = get_predictor()
+                pred_result = predictor.predict(
+                    subject=effective_subject,
+                    body=effective_body,
+                )
+                p_spam = float(pred_result.get("spam_probability", 0.50))
+                confidence = float(pred_result.get("confidence", 0.50))
+                uncertain = bool(pred_result.get("is_uncertain", False))
+                top_tokens = pred_result.get("top_tokens", [])
+                raw_cov = pred_result.get("reliability", {}).get("vocab_coverage", 1.0)
+                vocab_coverage = round(float(raw_cov) * 100.0, 2)
+            except Exception as e:
+                logger.warning(f"Predictor model execution in /api/analyze failed: {type(e).__name__}")
+
+        # 11. Compute unified Risk Score & Classification with guardrails
+        risk_score, classification = compute_risk_score(
+            probability=p_spam,
+            indicators=all_indicators,
+            sensitivity=sensitivity,
+        )
+
+        # 12. Synthesize concise Key Findings
+        findings = generate_key_findings(
+            probability=p_spam,
+            classification=classification,
+            indicators=all_indicators,
+            headers=header_data,
+            urls=urls_list,
+        )
+
+        # 13. Construct response
+        response_payload = {
+            "model": {
+                "label": "spam" if p_spam >= 0.50 else "ham",
+                "probability": round(p_spam, 4),
+                "confidence": round(confidence, 4),
+                "uncertain": uncertain,
+            },
+            "risk_score": risk_score,
+            "classification": classification,
+            "indicators": all_indicators,
+            "key_findings": findings,
+            "top_tokens": top_tokens,
+            "vocab_coverage": vocab_coverage,
+            "urls": urls_list,
+            "sensitivity": sensitivity,
+        }
+
+        # Include headers only if headers were present
+        if header_data is not None:
+            response_payload["headers"] = header_data
+
+        return jsonify(response_payload), 200
+
     return app
+
 
 
 # Root app instance for WSGI servers (Gunicorn)

@@ -20,12 +20,30 @@ import warnings
 import joblib
 import numpy as np
 import sklearn
-from sklearn.calibration import CalibratedClassifierCV
+try:
+    from sklearn.calibration import CalibratedClassifierCV
+except Exception:
+    CalibratedClassifierCV = None
+
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
-from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import MultinomialNB
+
+try:
+    from sklearn.linear_model import LogisticRegression
+except Exception:
+    LogisticRegression = None
+
+try:
+    from sklearn.naive_bayes import MultinomialNB
+except Exception:
+    MultinomialNB = None
+
 from sklearn.pipeline import Pipeline
-from sklearn.svm import LinearSVC
+
+try:
+    from sklearn.svm import LinearSVC
+except Exception:
+    LinearSVC = None
+
 
 from src.config import (
     METADATA_PATH,
@@ -138,18 +156,20 @@ class SpamPredictor:
 
         # Extract weights from classifier
         weights = None
-        if isinstance(clf, CalibratedClassifierCV):
+        clf_name = type(clf).__name__
+        if clf_name == "CalibratedClassifierCV" or (CalibratedClassifierCV is not None and isinstance(clf, CalibratedClassifierCV)):
             base_weights = []
-            for cal_clf in clf.calibrated_classifiers_:
+            for cal_clf in getattr(clf, "calibrated_classifiers_", []):
                 est = getattr(cal_clf, "estimator", None)
                 if est and hasattr(est, "coef_"):
                     base_weights.append(est.coef_[0])
             if base_weights:
                 weights = np.mean(base_weights, axis=0)
-        elif isinstance(clf, LogisticRegression):
+        elif clf_name == "LogisticRegression" or (LogisticRegression is not None and isinstance(clf, LogisticRegression)):
             weights = clf.coef_[0]
-        elif isinstance(clf, MultinomialNB):
+        elif clf_name == "MultinomialNB" or (MultinomialNB is not None and isinstance(clf, MultinomialNB)):
             weights = clf.feature_log_prob_[1] - clf.feature_log_prob_[0]
+
 
         if weights is None:
             return []
