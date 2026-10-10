@@ -499,8 +499,15 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
 
         # 7. Determine effective content to analyze
         if text_input and text_input.strip():
-            effective_body = text_input.strip()
-            effective_subject = eml_subject or data.get("subject", "") or ""
+            raw_t = text_input.strip()
+            if raw_t.lower().startswith("subject:") and "\n\n" in raw_t:
+                parts = raw_t.split("\n\n", 1)
+                sub_extracted = parts[0][len("subject:"):].strip()
+                effective_subject = eml_subject or data.get("subject", "") or sub_extracted
+                effective_body = parts[1].strip()
+            else:
+                effective_body = raw_t
+                effective_subject = eml_subject or data.get("subject", "") or ""
             effective_html = eml_html
         elif eml_body.strip() or eml_html.strip():
             effective_body = eml_body.strip()

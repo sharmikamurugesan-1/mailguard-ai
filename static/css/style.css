@@ -779,7 +779,7 @@ body {
 
 .stat-sub {
   font-size: 0.7rem;
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
 }
 
 .dashboard-split-grid {
@@ -2704,6 +2704,265 @@ body {
 .skeleton-line-md { height: 18px; width: 80%; border-radius: var(--radius-sm); }
 .skeleton-line-sm { height: 14px; width: 60%; border-radius: var(--radius-sm); }
 .skeleton-chips-box { height: 42px; margin-bottom: 1rem; border-radius: var(--radius-sm); }
+
+/* -------------------------------------------------------------------------- */
+/* Phase 12D: Local Analytics, Donut Chart, and Audit History Table           */
+/* -------------------------------------------------------------------------- */
+.privacy-note-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.privacy-note-banner strong {
+  color: var(--color-text-main);
+  margin-right: 0.35rem;
+}
+
+.privacy-note-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+/* Donut Chart Container */
+.threat-donut-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.5rem 0;
+}
+
+.donut-chart-wrapper {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.donut-svg {
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+.donut-track {
+  stroke: var(--color-border);
+}
+
+.donut-seg {
+  transition: stroke-dasharray 0.6s ease, stroke-dashoffset 0.6s ease;
+}
+
+.seg-ham { stroke: var(--color-ham); }
+.seg-uncertain { stroke: var(--color-uncertain); }
+.seg-spam { stroke: var(--color-spam); }
+
+.donut-center {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.donut-legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  width: 100%;
+}
+
+.donut-legend li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dot-spam { background-color: var(--color-spam); }
+.dot-uncertain { background-color: var(--color-uncertain); }
+.dot-ham { background-color: var(--color-ham); }
+
+/* Recent Scans Table on Dashboard */
+.recent-scans-table-wrapper {
+  overflow-x: auto;
+}
+
+.table-compact {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  text-align: left;
+}
+
+.table-compact th {
+  padding: 0.5rem 0.65rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg-subtle);
+}
+
+.table-compact td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-main);
+  vertical-align: middle;
+}
+
+/* Reports Toolbar */
+.reports-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  background-color: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.toolbar-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.filter-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.form-control-sm {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.date-filter-group input[type="date"] {
+  max-width: 130px;
+}
+
+.toolbar-exports {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+/* History Table in Reports */
+.table-responsive {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  text-align: left;
+}
+
+.history-table th {
+  padding: 0.65rem 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background-color: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.history-table td {
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-main);
+  vertical-align: middle;
+}
+
+.history-table tr:last-child td {
+  border-bottom: none;
+}
+
+.history-table tr:hover td {
+  background-color: var(--color-bg-subtle);
+}
+
+.th-actions {
+  text-align: right;
+  width: 90px;
+}
+
+.td-actions {
+  text-align: right;
+}
+
+.badge-source {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-secondary);
+  color: var(--color-secondary-text);
+  text-transform: uppercase;
+}
+
+.btn-danger-outline {
+  color: var(--color-spam);
+  border-color: var(--color-spam-border, rgba(185, 28, 28, 0.4));
+}
+
+.btn-danger-outline:hover:not(:disabled) {
+  background-color: var(--color-spam-bg);
+  border-color: var(--color-spam);
+  color: var(--color-spam);
+}
+
+/* Pagination Bar */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding: 0.5rem 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-current {
+  font-weight: 600;
+  color: var(--color-text-main);
+  padding: 0 0.25rem;
+}
 
 .hidden {
   display: none !important;

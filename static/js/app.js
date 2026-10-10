@@ -124,11 +124,59 @@
   var rawHeadersPre = document.getElementById('raw-headers-pre');
   var copyRawHeadersBtn = document.getElementById('copy-raw-headers-btn');
 
+  // Phase 12D Local Analytics & Reports Elements
+  var dashStatTotal = document.getElementById('dash-stat-total');
+  var dashStatTotalSub = document.getElementById('dash-stat-total-sub');
+  var dashStatSpam = document.getElementById('dash-stat-spam');
+  var dashStatSpamSub = document.getElementById('dash-stat-spam-sub');
+  var dashStatUncertain = document.getElementById('dash-stat-uncertain');
+  var dashStatUncertainSub = document.getElementById('dash-stat-uncertain-sub');
+  var dashStatSafe = document.getElementById('dash-stat-safe');
+  var dashStatSafeSub = document.getElementById('dash-stat-safe-sub');
+
+  var donutSegHam = document.getElementById('donut-seg-ham');
+  var donutSegUnc = document.getElementById('donut-seg-unc');
+  var donutSegSpam = document.getElementById('donut-seg-spam');
+  var donutNum = document.getElementById('donut-num');
+  var donutLegendSpam = document.getElementById('donut-legend-spam');
+  var donutLegendUnc = document.getElementById('donut-legend-unc');
+  var donutLegendHam = document.getElementById('donut-legend-ham');
+
+  var dashRecentEmpty = document.getElementById('dash-recent-empty');
+  var dashRecentActive = document.getElementById('dash-recent-active');
+  var dashRecentTbody = document.getElementById('dash-recent-tbody');
+
+  var storageFallbackBanner = document.getElementById('storage-fallback-banner');
+  var historySearchInput = document.getElementById('history-search-input');
+  var historyFilterVerdict = document.getElementById('history-filter-verdict');
+  var historyFilterSource = document.getElementById('history-filter-source');
+  var historySortBy = document.getElementById('history-sort-by');
+  var historyDateStart = document.getElementById('history-date-start');
+  var historyDateEnd = document.getElementById('history-date-end');
+  var exportHistoryCsvBtn = document.getElementById('export-history-csv-btn');
+  var exportHistoryJsonBtn = document.getElementById('export-history-json-btn');
+  var clearHistoryBtn = document.getElementById('clear-history-btn');
+
+  var historyEmptyState = document.getElementById('history-empty-state');
+  var historyEmptyTitle = document.getElementById('history-empty-title');
+  var historyEmptyDesc = document.getElementById('history-empty-desc');
+  var historyTableWrapper = document.getElementById('history-table-wrapper');
+  var historyTbody = document.getElementById('history-tbody');
+
+  var historyPaginationBar = document.getElementById('history-pagination-bar');
+  var historyPaginationInfo = document.getElementById('history-pagination-info');
+  var historyPagePrev = document.getElementById('history-page-prev');
+  var historyPageNext = document.getElementById('history-page-next');
+  var historyPageCurrent = document.getElementById('history-page-current');
+
   // Application State
   var filterStopwords = true;
   var currentPredictionData = null;
   var currentAnalysisData = null;
   var currentRawEml = null;
+  var currentSourceType = 'paste';
+  var reportsCurrentPage = 1;
+  var REPORTS_PAGE_SIZE = 5;
   var isPreviewOriginal = true;
   var currentInputText = { subject: '', body: '' };
 
@@ -617,6 +665,7 @@
       var raw = e.target.result || '';
       if (ext === 'eml') {
         currentRawEml = raw;
+        currentSourceType = 'eml';
         var parsed = parseEml(raw);
         if (parsed.subject) {
           subjectInput.value = parsed.subject;
@@ -631,6 +680,7 @@
         if (headersTelemetryActive) headersTelemetryActive.classList.remove('hidden');
       } else {
         currentRawEml = null;
+        currentSourceType = 'txt';
         bodyInput.value = raw.trim();
         if (headersTelemetryEmpty) headersTelemetryEmpty.classList.remove('hidden');
         if (headersTelemetryActive) headersTelemetryActive.classList.add('hidden');
@@ -1452,6 +1502,7 @@
   if (loadEmlSampleBtn) {
     loadEmlSampleBtn.addEventListener('click', function () {
       currentRawEml = SAMPLES.emlSample.raw;
+      currentSourceType = 'eml';
       var parsed = parseEml(currentRawEml);
       if (subjectInput) subjectInput.value = parsed.subject;
       if (bodyInput) bodyInput.value = parsed.body;
@@ -1485,12 +1536,14 @@
     currentInputText.body = bodyVal;
 
     var analyzePayload = {
+      subject: subVal,
       text: subVal ? (`Subject: ${subVal}\n\n${bodyVal}`) : bodyVal,
       eml: currentRawEml || null,
       options: {
         scan_urls: optExtractUrls ? optExtractUrls.checked : true,
         analyze_headers: optAnalyzeHeaders ? optAnalyzeHeaders.checked : true,
-        sensitivity: (optSuspiciousLinks && optSuspiciousLinks.checked) ? "high" : "medium"
+        detect_suspicious_links: optSuspiciousLinks ? optSuspiciousLinks.checked : true,
+        sensitivity: "medium"
       }
     };
 
@@ -1533,6 +1586,21 @@
       };
 
       renderAnalysisReport(resultData);
+
+      // Phase 12D: Persist scan record to local IndexedDB (zero server storage)
+      var scanRecord = {
+        timestamp: new Date().toISOString(),
+        created_at: Date.now(),
+        subject: subVal || (bodyVal.length > 60 ? bodyVal.substring(0, 60) + '...' : bodyVal) || 'Untitled Email',
+        label: resultData.classification || 'Safe',
+        risk_score: typeof resultData.risk_score === 'number' ? resultData.risk_score : (resultData.classification === 'Spam' ? 85 : (resultData.classification === 'Suspicious' ? 50 : 15)),
+        source_type: currentSourceType || 'paste',
+        confidence: resultData.model ? resultData.model.confidence : 0.5,
+        indicator_count: (resultData.indicators || []).length
+      };
+
+      await saveScanRecord(scanRecord);
+      await updateDashboardUI();
     } catch (err) {
       clearTimeout(wakingBannerTimer);
       wakingBanner.classList.add('hidden');
@@ -1610,6 +1678,7 @@
   // Sample Loaders
   sampleSpamBtn.addEventListener('click', function () {
     currentRawEml = null;
+    currentSourceType = 'paste';
     subjectInput.value = SAMPLES.spam.subject;
     bodyInput.value = SAMPLES.spam.body;
     updateCharCount();
@@ -1623,6 +1692,7 @@
 
   sampleHamBtn.addEventListener('click', function () {
     currentRawEml = null;
+    currentSourceType = 'paste';
     subjectInput.value = SAMPLES.ham.subject;
     bodyInput.value = SAMPLES.ham.body;
     updateCharCount();
@@ -1636,6 +1706,7 @@
 
   sampleBorderlineBtn.addEventListener('click', function () {
     currentRawEml = null;
+    currentSourceType = 'paste';
     subjectInput.value = SAMPLES.borderline.subject;
     bodyInput.value = SAMPLES.borderline.body;
     updateCharCount();
@@ -1725,35 +1796,702 @@
   }
 
   // --------------------------------------------------------------------------
-  // Session Telemetry & Dashboard Counters (Phase 12A)
+  // Phase 12D: Client-Side IndexedDB Storage & Local Analytics
   // --------------------------------------------------------------------------
 
-  var sessionStats = {
-    total: 0,
-    spam: 0,
-    uncertain: 0,
-    ham: 0
-  };
+  var DB_NAME = 'MailGuardDB';
+  var DB_VERSION = 1;
+  var DB_STORE = 'scans';
 
-  function updateSessionStats(prediction) {
-    sessionStats.total++;
-    if (prediction === 'spam') {
-      sessionStats.spam++;
-    } else if (prediction === 'uncertain') {
-      sessionStats.uncertain++;
-    } else {
-      sessionStats.ham++;
+  var isStorageFallback = false;
+  var memoryScanStore = [];
+  var dbInstance = null;
+  var dbInitPromise = null;
+
+  function initDatabase() {
+    if (dbInitPromise) return dbInitPromise;
+    dbInitPromise = new Promise(function (resolve) {
+      if (!window.indexedDB) {
+        console.warn('IndexedDB not supported in this browser. Falling back to in-memory store.');
+        isStorageFallback = true;
+        if (storageFallbackBanner) storageFallbackBanner.classList.remove('hidden');
+        resolve(null);
+        return;
+      }
+
+      try {
+        var req = window.indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = function (e) {
+          var db = e.target.result;
+          if (!db.objectStoreNames.contains(DB_STORE)) {
+            var store = db.createObjectStore(DB_STORE, { keyPath: 'id', autoIncrement: true });
+            store.createIndex('created_at', 'created_at', { unique: false });
+            store.createIndex('label', 'label', { unique: false });
+            store.createIndex('risk_score', 'risk_score', { unique: false });
+            store.createIndex('source_type', 'source_type', { unique: false });
+          }
+        };
+
+        req.onsuccess = function (e) {
+          dbInstance = e.target.result;
+          resolve(dbInstance);
+        };
+
+        req.onerror = function (e) {
+          console.warn('IndexedDB access error (e.g. private mode):', e.target.error);
+          isStorageFallback = true;
+          if (storageFallbackBanner) storageFallbackBanner.classList.remove('hidden');
+          resolve(null);
+        };
+      } catch (err) {
+        console.warn('IndexedDB initialization failed:', err);
+        isStorageFallback = true;
+        if (storageFallbackBanner) storageFallbackBanner.classList.remove('hidden');
+        resolve(null);
+      }
+    });
+
+    return dbInitPromise;
+  }
+
+  function saveScanRecord(record) {
+    return new Promise(function (resolve) {
+      record.created_at = record.created_at || Date.now();
+      record.timestamp = record.timestamp || new Date(record.created_at).toISOString();
+
+      if (isStorageFallback || !dbInstance) {
+        record.id = Date.now() + Math.floor(Math.random() * 1000);
+        memoryScanStore.unshift(record);
+        resolve(record);
+        return;
+      }
+
+      try {
+        var tx = dbInstance.transaction([DB_STORE], 'readwrite');
+        var store = tx.objectStore(DB_STORE);
+        var req = store.add(record);
+        req.onsuccess = function (e) {
+          record.id = e.target.result;
+          resolve(record);
+        };
+        req.onerror = function () {
+          record.id = Date.now();
+          memoryScanStore.unshift(record);
+          resolve(record);
+        };
+      } catch (err) {
+        record.id = Date.now();
+        memoryScanStore.unshift(record);
+        resolve(record);
+      }
+    });
+  }
+
+  function getAllScanRecords() {
+    return new Promise(function (resolve) {
+      if (isStorageFallback || !dbInstance) {
+        var memList = memoryScanStore.slice();
+        memList.sort(function (a, b) {
+          return (b.created_at || 0) - (a.created_at || 0);
+        });
+        resolve(memList);
+        return;
+      }
+
+      try {
+        var tx = dbInstance.transaction([DB_STORE], 'readonly');
+        var store = tx.objectStore(DB_STORE);
+        var req = store.getAll();
+        req.onsuccess = function (e) {
+          var records = e.target.result || [];
+          records.sort(function (a, b) {
+            return (b.created_at || 0) - (a.created_at || 0);
+          });
+          resolve(records);
+        };
+        req.onerror = function () {
+          resolve(memoryScanStore.slice());
+        };
+      } catch (err) {
+        resolve(memoryScanStore.slice());
+      }
+    });
+  }
+
+  function deleteScanRecord(id) {
+    return new Promise(function (resolve) {
+      if (isStorageFallback || !dbInstance) {
+        memoryScanStore = memoryScanStore.filter(function (r) {
+          return r.id !== id;
+        });
+        resolve(true);
+        return;
+      }
+
+      try {
+        var tx = dbInstance.transaction([DB_STORE], 'readwrite');
+        var store = tx.objectStore(DB_STORE);
+        var req = store.delete(id);
+        req.onsuccess = function () {
+          resolve(true);
+        };
+        req.onerror = function () {
+          resolve(false);
+        };
+      } catch (err) {
+        resolve(false);
+      }
+    });
+  }
+
+  function clearAllScanRecords() {
+    return new Promise(function (resolve) {
+      memoryScanStore = [];
+      if (isStorageFallback || !dbInstance) {
+        resolve(true);
+        return;
+      }
+
+      try {
+        var tx = dbInstance.transaction([DB_STORE], 'readwrite');
+        var store = tx.objectStore(DB_STORE);
+        var req = store.clear();
+        req.onsuccess = function () {
+          resolve(true);
+        };
+        req.onerror = function () {
+          resolve(false);
+        };
+      } catch (err) {
+        resolve(false);
+      }
+    });
+  }
+
+  function formatDateTime(ts) {
+    if (!ts) return '--';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return String(ts);
+    var pad = function (n) { return n < 10 ? '0' + n : String(n); };
+    var year = d.getFullYear();
+    var month = pad(d.getMonth() + 1);
+    var day = pad(d.getDate());
+    var hours = pad(d.getHours());
+    var mins = pad(d.getMinutes());
+    return `${year}-${month}-${day} ${hours}:${mins}`;
+  }
+
+  function csvEscape(val) {
+    if (val === null || val === undefined) return '""';
+    var str = String(val);
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return '"' + str + '"';
+  }
+
+  // Legacy compatibility stub
+  function updateSessionStats() {
+    updateDashboardUI();
+  }
+
+  // --------------------------------------------------------------------------
+  // Dashboard UI Updater (Threat Distribution Donut, Telemetry, Recent Scans)
+  // --------------------------------------------------------------------------
+
+  async function updateDashboardUI() {
+    var records = await getAllScanRecords();
+    var total = records.length;
+    var spamCount = 0;
+    var uncCount = 0;
+    var safeCount = 0;
+
+    var now = Date.now();
+    var oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+    var curWeekScans = 0;
+    var priorWeekScans = 0;
+
+    records.forEach(function (r) {
+      if (r.label === 'Spam') spamCount++;
+      else if (r.label === 'Suspicious') uncCount++;
+      else safeCount++;
+
+      var t = r.created_at || now;
+      if (t >= now - oneWeekMs) {
+        curWeekScans++;
+      } else if (t >= now - (2 * oneWeekMs)) {
+        priorWeekScans++;
+      }
+    });
+
+    // Stat Cards
+    if (dashStatTotal) dashStatTotal.textContent = String(total);
+    if (dashStatSpam) dashStatSpam.textContent = String(spamCount);
+    if (dashStatUncertain) dashStatUncertain.textContent = String(uncCount);
+    if (dashStatSafe) dashStatSafe.textContent = String(safeCount);
+
+    if (dashStatTotalSub) {
+      if (priorWeekScans > 0) {
+        var diff = curWeekScans - priorWeekScans;
+        var pct = Math.round((diff / priorWeekScans) * 100);
+        var sign = diff >= 0 ? '+' : '';
+        dashStatTotalSub.textContent = `${sign}${pct}% vs last week`;
+      } else {
+        dashStatTotalSub.textContent = '-- vs last week';
+      }
     }
 
-    var elTotal = document.getElementById('dash-stat-total');
-    var elSpam = document.getElementById('dash-stat-spam');
-    var elUnc = document.getElementById('dash-stat-uncertain');
-    var elDonutNum = document.querySelector('.donut-circle .donut-num');
+    if (dashStatSpamSub) {
+      dashStatSpamSub.textContent = total > 0 ? `${Math.round((spamCount / total) * 100)}% of total scans` : '0% of total scans';
+    }
+    if (dashStatUncertainSub) {
+      dashStatUncertainSub.textContent = total > 0 ? `${Math.round((uncCount / total) * 100)}% of total scans` : '0% of total scans';
+    }
+    if (dashStatSafeSub) {
+      dashStatSafeSub.textContent = total > 0 ? `${Math.round((safeCount / total) * 100)}% of total scans` : '0% of total scans';
+    }
 
-    if (elTotal) elTotal.textContent = String(sessionStats.total);
-    if (elSpam) elSpam.textContent = String(sessionStats.spam);
-    if (elUnc) elUnc.textContent = String(sessionStats.uncertain);
-    if (elDonutNum) elDonutNum.textContent = String(sessionStats.total);
+    // Donut Chart Calculations (Circumference = 2 * PI * 48 = 301.59)
+    var C = 301.59289;
+    if (donutNum) donutNum.textContent = String(total);
+
+    if (donutLegendSpam) {
+      var pctS = total > 0 ? Math.round((spamCount / total) * 100) : 0;
+      donutLegendSpam.textContent = `${spamCount} (${pctS}%)`;
+    }
+    if (donutLegendUnc) {
+      var pctU = total > 0 ? Math.round((uncCount / total) * 100) : 0;
+      donutLegendUnc.textContent = `${uncCount} (${pctU}%)`;
+    }
+    if (donutLegendHam) {
+      var pctH = total > 0 ? Math.round((safeCount / total) * 100) : 0;
+      donutLegendHam.textContent = `${safeCount} (${pctH}%)`;
+    }
+
+    if (donutSegSpam && donutSegUnc && donutSegHam) {
+      if (total === 0) {
+        donutSegSpam.style.strokeDasharray = '0 302';
+        donutSegSpam.style.strokeDashoffset = '0';
+        donutSegSpam.setAttribute('stroke-dasharray', '0 302');
+        donutSegSpam.setAttribute('stroke-dashoffset', '0');
+
+        donutSegUnc.style.strokeDasharray = '0 302';
+        donutSegUnc.style.strokeDashoffset = '0';
+        donutSegUnc.setAttribute('stroke-dasharray', '0 302');
+        donutSegUnc.setAttribute('stroke-dashoffset', '0');
+
+        donutSegHam.style.strokeDasharray = '0 302';
+        donutSegHam.style.strokeDashoffset = '0';
+        donutSegHam.setAttribute('stroke-dasharray', '0 302');
+        donutSegHam.setAttribute('stroke-dashoffset', '0');
+      } else {
+        var dashS = (spamCount / total) * C;
+        var dashU = (uncCount / total) * C;
+        var dashH = (safeCount / total) * C;
+
+        donutSegSpam.style.strokeDasharray = `${dashS.toFixed(2)} ${(C - dashS).toFixed(2)}`;
+        donutSegSpam.style.strokeDashoffset = '0';
+        donutSegSpam.setAttribute('stroke-dasharray', `${dashS.toFixed(2)} ${(C - dashS).toFixed(2)}`);
+        donutSegSpam.setAttribute('stroke-dashoffset', '0');
+
+        donutSegUnc.style.strokeDasharray = `${dashU.toFixed(2)} ${(C - dashU).toFixed(2)}`;
+        donutSegUnc.style.strokeDashoffset = `${(-dashS).toFixed(2)}`;
+        donutSegUnc.setAttribute('stroke-dasharray', `${dashU.toFixed(2)} ${(C - dashU).toFixed(2)}`);
+        donutSegUnc.setAttribute('stroke-dashoffset', `${(-dashS).toFixed(2)}`);
+
+        donutSegHam.style.strokeDasharray = `${dashH.toFixed(2)} ${(C - dashH).toFixed(2)}`;
+        donutSegHam.style.strokeDashoffset = `${(-(dashS + dashU)).toFixed(2)}`;
+        donutSegHam.setAttribute('stroke-dasharray', `${dashH.toFixed(2)} ${(C - dashH).toFixed(2)}`);
+        donutSegHam.setAttribute('stroke-dashoffset', `${(-(dashS + dashU)).toFixed(2)}`);
+      }
+    }
+
+    // Recent Scans Table on Dashboard
+    if (dashRecentEmpty && dashRecentActive && dashRecentTbody) {
+      if (total === 0) {
+        dashRecentEmpty.classList.remove('hidden');
+        dashRecentActive.classList.add('hidden');
+        while (dashRecentTbody.firstChild) {
+          dashRecentTbody.removeChild(dashRecentTbody.firstChild);
+        }
+      } else {
+        dashRecentEmpty.classList.add('hidden');
+        dashRecentActive.classList.remove('hidden');
+        while (dashRecentTbody.firstChild) {
+          dashRecentTbody.removeChild(dashRecentTbody.firstChild);
+        }
+
+        var recentList = records.slice(0, 5);
+        recentList.forEach(function (scan) {
+          var tr = document.createElement('tr');
+
+          var tdDate = document.createElement('td');
+          tdDate.textContent = formatDateTime(scan.created_at || scan.timestamp);
+          tr.appendChild(tdDate);
+
+          var tdSub = document.createElement('td');
+          var strongSub = document.createElement('strong');
+          var subTitle = scan.subject || 'Untitled Email';
+          if (subTitle.length > 40) subTitle = subTitle.substring(0, 40) + '...';
+          strongSub.textContent = subTitle;
+          tdSub.appendChild(strongSub);
+          tr.appendChild(tdSub);
+
+          var tdSource = document.createElement('td');
+          var badgeSource = document.createElement('span');
+          badgeSource.className = 'badge-source';
+          badgeSource.textContent = scan.source_type || 'paste';
+          tdSource.appendChild(badgeSource);
+          tr.appendChild(tdSource);
+
+          var tdRisk = document.createElement('td');
+          var badgeRisk = document.createElement('span');
+          var riskVal = typeof scan.risk_score === 'number' ? scan.risk_score : 0;
+          badgeRisk.className = 'badge ' + (riskVal >= 70 ? 'badge-danger' : (riskVal >= 35 ? 'badge-warning' : 'badge-success'));
+          badgeRisk.textContent = `${riskVal}/100`;
+          tdRisk.appendChild(badgeRisk);
+          tr.appendChild(tdRisk);
+
+          var tdVerdict = document.createElement('td');
+          var badgeVerdict = document.createElement('span');
+          badgeVerdict.className = 'risk-badge ' + (scan.label === 'Spam' ? 'risk-badge-high' : (scan.label === 'Suspicious' ? 'risk-badge-medium' : 'risk-badge-low'));
+          badgeVerdict.textContent = scan.label || 'Safe';
+          tdVerdict.appendChild(badgeVerdict);
+          tr.appendChild(tdVerdict);
+
+          dashRecentTbody.appendChild(tr);
+        });
+      }
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Reports View & Audit History (Filter, Sort, Paginate, Delete, Exports)
+  // --------------------------------------------------------------------------
+
+  function getFilteredScans(allRecords) {
+    var searchStr = (historySearchInput ? historySearchInput.value : '').trim().toLowerCase();
+    var verdictVal = historyFilterVerdict ? historyFilterVerdict.value : 'all';
+    var sourceVal = historyFilterSource ? historyFilterSource.value : 'all';
+    var sortVal = historySortBy ? historySortBy.value : 'newest';
+    var startVal = historyDateStart ? historyDateStart.value : '';
+    var endVal = historyDateEnd ? historyDateEnd.value : '';
+
+    var startMs = startVal ? new Date(startVal + 'T00:00:00').getTime() : null;
+    var endMs = endVal ? new Date(endVal + 'T23:59:59.999').getTime() : null;
+
+    var filtered = allRecords.filter(function (r) {
+      if (searchStr && !(r.subject || '').toLowerCase().includes(searchStr)) {
+        return false;
+      }
+      if (verdictVal !== 'all' && r.label !== verdictVal) {
+        return false;
+      }
+      if (sourceVal !== 'all' && (r.source_type || 'paste') !== sourceVal) {
+        return false;
+      }
+      var t = r.created_at || (r.timestamp ? new Date(r.timestamp).getTime() : 0);
+      if (startMs !== null && t < startMs) {
+        return false;
+      }
+      if (endMs !== null && t > endMs) {
+        return false;
+      }
+      return true;
+    });
+
+    filtered.sort(function (a, b) {
+      if (sortVal === 'oldest') {
+        return (a.created_at || 0) - (b.created_at || 0);
+      } else if (sortVal === 'risk_desc') {
+        return (b.risk_score || 0) - (a.risk_score || 0);
+      } else if (sortVal === 'risk_asc') {
+        return (a.risk_score || 0) - (b.risk_score || 0);
+      }
+      return (b.created_at || 0) - (a.created_at || 0);
+    });
+
+    return filtered;
+  }
+
+  async function renderReportsUI() {
+    var allRecords = await getAllScanRecords();
+    var filtered = getFilteredScans(allRecords);
+    var totalFiltered = filtered.length;
+
+    if (!historyEmptyState || !historyTableWrapper || !historyTbody) {
+      return;
+    }
+
+    if (allRecords.length === 0) {
+      if (historyEmptyTitle) historyEmptyTitle.textContent = 'No Scans Recorded Yet';
+      if (historyEmptyDesc) historyEmptyDesc.textContent = 'Your scan history will automatically appear here as you analyze emails.';
+      historyEmptyState.classList.remove('hidden');
+      historyTableWrapper.classList.add('hidden');
+      if (historyPaginationBar) historyPaginationBar.classList.add('hidden');
+      return;
+    }
+
+    if (totalFiltered === 0) {
+      if (historyEmptyTitle) historyEmptyTitle.textContent = 'No Matching Scans Found';
+      if (historyEmptyDesc) historyEmptyDesc.textContent = 'Try adjusting your search terms, verdict filter, or date range.';
+      historyEmptyState.classList.remove('hidden');
+      historyTableWrapper.classList.add('hidden');
+      if (historyPaginationBar) historyPaginationBar.classList.add('hidden');
+      return;
+    }
+
+    historyEmptyState.classList.add('hidden');
+    historyTableWrapper.classList.remove('hidden');
+
+    // Pagination calculations
+    var totalPages = Math.ceil(totalFiltered / REPORTS_PAGE_SIZE) || 1;
+    if (reportsCurrentPage > totalPages) reportsCurrentPage = totalPages;
+    if (reportsCurrentPage < 1) reportsCurrentPage = 1;
+
+    var startIndex = (reportsCurrentPage - 1) * REPORTS_PAGE_SIZE;
+    var endIndex = Math.min(startIndex + REPORTS_PAGE_SIZE, totalFiltered);
+    var pageRecords = filtered.slice(startIndex, endIndex);
+
+    if (historyPaginationBar) historyPaginationBar.classList.remove('hidden');
+    if (historyPaginationInfo) {
+      historyPaginationInfo.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${totalFiltered} scans`;
+    }
+    if (historyPageCurrent) {
+      historyPageCurrent.textContent = `Page ${reportsCurrentPage} of ${totalPages}`;
+    }
+    if (historyPagePrev) {
+      historyPagePrev.disabled = reportsCurrentPage <= 1;
+    }
+    if (historyPageNext) {
+      historyPageNext.disabled = reportsCurrentPage >= totalPages;
+    }
+
+    while (historyTbody.firstChild) {
+      historyTbody.removeChild(historyTbody.firstChild);
+    }
+
+    pageRecords.forEach(function (scan) {
+      var tr = document.createElement('tr');
+
+      var tdDate = document.createElement('td');
+      tdDate.textContent = formatDateTime(scan.created_at || scan.timestamp);
+      tr.appendChild(tdDate);
+
+      var tdSub = document.createElement('td');
+      var strongSub = document.createElement('strong');
+      var subTitle = scan.subject || 'Untitled Email';
+      if (subTitle.length > 55) subTitle = subTitle.substring(0, 55) + '...';
+      strongSub.textContent = subTitle;
+      tdSub.appendChild(strongSub);
+      tr.appendChild(tdSub);
+
+      var tdSource = document.createElement('td');
+      var badgeSource = document.createElement('span');
+      badgeSource.className = 'badge-source';
+      badgeSource.textContent = scan.source_type || 'paste';
+      tdSource.appendChild(badgeSource);
+      tr.appendChild(tdSource);
+
+      var tdRisk = document.createElement('td');
+      var badgeRisk = document.createElement('span');
+      var riskVal = typeof scan.risk_score === 'number' ? scan.risk_score : 0;
+      badgeRisk.className = 'badge ' + (riskVal >= 70 ? 'badge-danger' : (riskVal >= 35 ? 'badge-warning' : 'badge-success'));
+      badgeRisk.textContent = `${riskVal}/100`;
+      tdRisk.appendChild(badgeRisk);
+      tr.appendChild(tdRisk);
+
+      var tdVerdict = document.createElement('td');
+      var badgeVerdict = document.createElement('span');
+      badgeVerdict.className = 'risk-badge ' + (scan.label === 'Spam' ? 'risk-badge-high' : (scan.label === 'Suspicious' ? 'risk-badge-medium' : 'risk-badge-low'));
+      badgeVerdict.textContent = scan.label || 'Safe';
+      tdVerdict.appendChild(badgeVerdict);
+      tr.appendChild(tdVerdict);
+
+      var tdActions = document.createElement('td');
+      tdActions.className = 'td-actions';
+      var delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'btn btn-xs btn-outline btn-danger-outline';
+      delBtn.textContent = 'Delete';
+      delBtn.setAttribute('aria-label', `Delete scan for ${scan.subject}`);
+      delBtn.addEventListener('click', async function (e) {
+        e.stopPropagation();
+        var ok = await deleteScanRecord(scan.id);
+        if (ok) {
+          showToast('Scan record deleted', 'info');
+          await renderReportsUI();
+          await updateDashboardUI();
+        } else {
+          showToast('Failed to delete scan record', 'error');
+        }
+      });
+      tdActions.appendChild(delBtn);
+      tr.appendChild(tdActions);
+
+      historyTbody.appendChild(tr);
+    });
+  }
+
+  async function exportHistoryCsv() {
+    var allRecords = await getAllScanRecords();
+    var filtered = getFilteredScans(allRecords);
+
+    if (filtered.length === 0) {
+      showToast('No scan records to export', 'warn');
+      return;
+    }
+
+    try {
+      var lines = [
+        'ID,Timestamp,Subject,Source,Risk Score,Classification,Confidence,Indicator Count'
+      ];
+
+      filtered.forEach(function (r) {
+        var row = [
+          csvEscape(r.id),
+          csvEscape(r.timestamp || new Date(r.created_at).toISOString()),
+          csvEscape(r.subject || ''),
+          csvEscape(r.source_type || 'paste'),
+          csvEscape(r.risk_score ?? 0),
+          csvEscape(r.label || 'Safe'),
+          csvEscape(r.confidence ?? 0),
+          csvEscape(r.indicator_count ?? 0)
+        ];
+        lines.push(row.join(','));
+      });
+
+      var csvContent = lines.join('\r\n');
+      var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = `mailguard-history-${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Exported ${filtered.length} scan records to CSV`, 'success');
+    } catch (e) {
+      showToast('Failed to export CSV', 'error');
+    }
+  }
+
+  async function exportHistoryJson() {
+    var allRecords = await getAllScanRecords();
+    var filtered = getFilteredScans(allRecords);
+
+    if (filtered.length === 0) {
+      showToast('No scan records to export', 'warn');
+      return;
+    }
+
+    try {
+      var exportPayload = {
+        meta: {
+          app: 'MailGuard AI',
+          version: '2.0.0',
+          exported_at: new Date().toISOString(),
+          total_records: filtered.length,
+          source: isStorageFallback ? 'client_memory_fallback' : 'client_indexeddb'
+        },
+        records: filtered
+      };
+
+      var jsonStr = JSON.stringify(exportPayload, null, 2);
+      var blob = new Blob([jsonStr], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = `mailguard-history-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Exported ${filtered.length} scan records to JSON`, 'success');
+    } catch (e) {
+      showToast('Failed to export JSON', 'error');
+    }
+  }
+
+  function initReportsEventListeners() {
+    if (historySearchInput) {
+      historySearchInput.addEventListener('input', function () {
+        reportsCurrentPage = 1;
+        renderReportsUI();
+      });
+    }
+
+    if (historyFilterVerdict) {
+      historyFilterVerdict.addEventListener('change', function () {
+        reportsCurrentPage = 1;
+        renderReportsUI();
+      });
+    }
+
+    if (historyFilterSource) {
+      historyFilterSource.addEventListener('change', function () {
+        reportsCurrentPage = 1;
+        renderReportsUI();
+      });
+    }
+
+    if (historySortBy) {
+      historySortBy.addEventListener('change', function () {
+        renderReportsUI();
+      });
+    }
+
+    if (historyDateStart) {
+      historyDateStart.addEventListener('change', function () {
+        reportsCurrentPage = 1;
+        renderReportsUI();
+      });
+    }
+
+    if (historyDateEnd) {
+      historyDateEnd.addEventListener('change', function () {
+        reportsCurrentPage = 1;
+        renderReportsUI();
+      });
+    }
+
+    if (historyPagePrev) {
+      historyPagePrev.addEventListener('click', function () {
+        if (reportsCurrentPage > 1) {
+          reportsCurrentPage--;
+          renderReportsUI();
+        }
+      });
+    }
+
+    if (historyPageNext) {
+      historyPageNext.addEventListener('click', function () {
+        reportsCurrentPage++;
+        renderReportsUI();
+      });
+    }
+
+    if (exportHistoryCsvBtn) {
+      exportHistoryCsvBtn.addEventListener('click', exportHistoryCsv);
+    }
+
+    if (exportHistoryJsonBtn) {
+      exportHistoryJsonBtn.addEventListener('click', exportHistoryJson);
+    }
+
+    if (clearHistoryBtn) {
+      clearHistoryBtn.addEventListener('click', function () {
+        if (window.confirm('Are you sure you want to clear all scan history from this device? This action cannot be undone.')) {
+          clearAllScanRecords().then(function () {
+            showToast('All scan history cleared', 'info');
+            reportsCurrentPage = 1;
+            renderReportsUI();
+            updateDashboardUI();
+          });
+        }
+      });
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -1862,6 +2600,13 @@
 
     // 5. Close mobile drawer on navigation
     closeMobileDrawer();
+
+    // 6. Refresh view data when navigating to dashboard or reports
+    if (rawHash === '#/dashboard') {
+      updateDashboardUI();
+    } else if (rawHash === '#/reports') {
+      renderReportsUI();
+    }
   }
 
   function initAppShell() {
@@ -1869,6 +2614,9 @@
     window.addEventListener('hashchange', function () {
       handleRoute(window.location.hash);
     });
+
+    // Initialize reports view event listeners
+    initReportsEventListeners();
 
     // Mobile menu toggle button
     if (mobileMenuBtn) {
@@ -1956,6 +2704,9 @@
   checkServerHealth();
   loadModelInfo();
   updateCharCount();
-  initAppShell();
+  initDatabase().then(function () {
+    updateDashboardUI();
+    initAppShell();
+  });
 
 })();

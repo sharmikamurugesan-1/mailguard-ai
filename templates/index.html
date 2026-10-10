@@ -144,10 +144,19 @@
               <div class="card-header-icon" aria-hidden="true">📊</div>
               <div>
                 <h1 class="card-maroon-title">Dashboard</h1>
-                <p class="card-maroon-sub">Overview of your email security activity and calibrated telemetry.</p>
+                <p class="card-maroon-sub">Overview of your email security activity and local analytics.</p>
               </div>
             </div>
             <div class="card-body">
+              <!-- Privacy Local Storage Notice -->
+              <div class="privacy-note-banner" role="note">
+                <span class="privacy-note-icon" aria-hidden="true">🔒</span>
+                <div class="privacy-note-content">
+                  <strong>History stays on this device.</strong>
+                  <span>Your email scan history is stored locally in IndexedDB and is never sent to the server.</span>
+                </div>
+              </div>
+
               <!-- Telemetry Stats Row -->
               <div class="stats-grid">
                 <div class="stat-card">
@@ -155,7 +164,7 @@
                   <div class="stat-info">
                     <span class="stat-label">Total Emails</span>
                     <span class="stat-value" id="dash-stat-total">0</span>
-                    <span class="stat-sub">Session processed</span>
+                    <span class="stat-sub" id="dash-stat-total-sub">-- vs last week</span>
                   </div>
                 </div>
                 <div class="stat-card">
@@ -163,23 +172,23 @@
                   <div class="stat-info">
                     <span class="stat-label">Spam Detected</span>
                     <span class="stat-value" id="dash-stat-spam">0</span>
-                    <span class="stat-sub">Session flagged</span>
+                    <span class="stat-sub" id="dash-stat-spam-sub">0% of total scans</span>
                   </div>
                 </div>
                 <div class="stat-card">
                   <div class="stat-icon-wrapper icon-amber" aria-hidden="true">⚖️</div>
                   <div class="stat-info">
-                    <span class="stat-label">Borderline / Review</span>
+                    <span class="stat-label">Suspicious / Review</span>
                     <span class="stat-value" id="dash-stat-uncertain">0</span>
-                    <span class="stat-sub">[0.40, 0.60] band</span>
+                    <span class="stat-sub" id="dash-stat-uncertain-sub">0% of total scans</span>
                   </div>
                 </div>
                 <div class="stat-card">
                   <div class="stat-icon-wrapper icon-green" aria-hidden="true">✓</div>
                   <div class="stat-info">
-                    <span class="stat-label">Model Accuracy</span>
-                    <span class="stat-value">98.5%</span>
-                    <span class="stat-sub">5-fold CV (Enron)</span>
+                    <span class="stat-label">Safe Emails</span>
+                    <span class="stat-value" id="dash-stat-safe">0</span>
+                    <span class="stat-sub" id="dash-stat-safe-sub">0% of total scans</span>
                   </div>
                 </div>
               </div>
@@ -187,30 +196,54 @@
               <!-- Telemetry and Recent Scans -->
               <div class="dashboard-split-grid">
                 <div class="panel-box">
-                  <h3 class="panel-box-title">Threat Distribution</h3>
-                  <div class="threat-donut-placeholder" role="region" aria-label="Threat Distribution Summary">
-                    <div class="donut-circle">
-                      <span class="donut-num">0</span>
-                      <span class="donut-caption">Total Scans</span>
+                  <h2 class="panel-box-title">Threat Distribution</h2>
+                  <div class="threat-donut-container" role="region" aria-label="Threat Distribution Donut Chart">
+                    <div class="donut-chart-wrapper">
+                      <svg class="donut-svg" width="130" height="130" viewBox="0 0 140 140" role="img" aria-label="Threat Distribution Donut Chart">
+                        <circle class="donut-track" cx="70" cy="70" r="48" fill="none" stroke-width="14"></circle>
+                        <circle class="donut-seg seg-ham" id="donut-seg-ham" cx="70" cy="70" r="48" fill="none" stroke-width="14"></circle>
+                        <circle class="donut-seg seg-uncertain" id="donut-seg-unc" cx="70" cy="70" r="48" fill="none" stroke-width="14"></circle>
+                        <circle class="donut-seg seg-spam" id="donut-seg-spam" cx="70" cy="70" r="48" fill="none" stroke-width="14"></circle>
+                      </svg>
+                      <div class="donut-center">
+                        <span class="donut-num" id="donut-num">0</span>
+                        <span class="donut-caption" id="donut-caption">Total Scans</span>
+                      </div>
                     </div>
                     <ul class="donut-legend" role="list">
-                      <li><span class="legend-dot dot-spam"></span> Spam (Flagged)</li>
-                      <li><span class="legend-dot dot-uncertain"></span> Borderline Review</li>
-                      <li><span class="legend-dot dot-ham"></span> Safe / Legitimate</li>
+                      <li><span class="legend-dot dot-spam" aria-hidden="true"></span> Spam: <strong id="donut-legend-spam">0 (0%)</strong></li>
+                      <li><span class="legend-dot dot-uncertain" aria-hidden="true"></span> Suspicious: <strong id="donut-legend-unc">0 (0%)</strong></li>
+                      <li><span class="legend-dot dot-ham" aria-hidden="true"></span> Safe: <strong id="donut-legend-ham">0 (0%)</strong></li>
                     </ul>
                   </div>
                 </div>
 
                 <div class="panel-box">
                   <div class="panel-box-header">
-                    <h3 class="panel-box-title">Recent Scans</h3>
-                    <a href="#/analyzer" class="btn btn-sm btn-outline">Launch Scan →</a>
+                    <h2 class="panel-box-title">Recent Scans</h2>
+                    <a href="#/reports" class="btn btn-sm btn-outline">View All History →</a>
                   </div>
-                  <div class="empty-state-box">
+                  <div id="dash-recent-empty" class="empty-state-box">
                     <span class="empty-state-icon" aria-hidden="true">📬</span>
-                    <p class="empty-state-title">No emails scanned yet</p>
+                    <h3 class="empty-state-title">No emails scanned yet</h3>
                     <p class="empty-state-desc">Paste an email or drop a .txt/.eml file in the Email Analyzer to start scanning.</p>
                     <a href="#/analyzer" class="btn btn-primary btn-sm">Go to Email Analyzer</a>
+                  </div>
+                  <div id="dash-recent-active" class="recent-scans-table-wrapper hidden">
+                    <table class="table-compact" id="dash-recent-table" aria-label="Recent Scans Table">
+                      <thead>
+                        <tr>
+                          <th scope="col">Date/Time</th>
+                          <th scope="col">Subject</th>
+                          <th scope="col">Source</th>
+                          <th scope="col">Risk</th>
+                          <th scope="col">Verdict</th>
+                        </tr>
+                      </thead>
+                      <tbody id="dash-recent-tbody">
+                        <!-- Populated dynamically via textContent & createElement -->
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
@@ -590,20 +623,132 @@
         <!-- VIEW 4: REPORTS (#/reports)                                       -->
         <!-- ================================================================ -->
         <section class="view-panel hidden" id="view-reports" role="tabpanel" aria-labelledby="nav-reports">
-          <div class="card placeholder-card">
+          <div class="card reports-hero-card">
             <div class="card-maroon-header">
-              <div class="card-header-icon" aria-hidden="true">📋</div>
-              <div>
-                <h1 class="card-maroon-title">Analysis Reports</h1>
-                <p class="card-maroon-sub">Audit trail and detailed security reports from inspected emails.</p>
+              <div class="card-header-left">
+                <div class="card-header-icon" aria-hidden="true">📋</div>
+                <div>
+                  <h1 class="card-maroon-title">Scan History & Reports</h1>
+                  <p class="card-maroon-sub">Audit trail of emails analyzed on this device.</p>
+                </div>
+              </div>
+              <div class="card-header-actions">
+                <button type="button" class="btn btn-sm btn-outline btn-danger-outline" id="clear-history-btn">Clear All History</button>
               </div>
             </div>
+
             <div class="card-body">
-              <div class="empty-state-box">
-                <span class="empty-state-icon" aria-hidden="true">📑</span>
-                <p class="empty-state-title">No Scan History in Active Session</p>
-                <p class="empty-state-desc">To protect privacy, MailGuard AI never stores email text on the server. When an email is analyzed, you can copy the full summary report directly from the Email Analyzer.</p>
-                <a href="#/analyzer" class="btn btn-primary btn-sm">Scan an Email Now</a>
+              <!-- Privacy Local Storage Notice -->
+              <div class="privacy-note-banner" role="note">
+                <span class="privacy-note-icon" aria-hidden="true">🔒</span>
+                <div class="privacy-note-content">
+                  <strong>History stays on this device.</strong>
+                  <span>Your email scan history is stored locally in IndexedDB and is never sent to the server.</span>
+                </div>
+              </div>
+
+              <!-- Storage Fallback Banner (only visible in private browsing if IndexedDB fails) -->
+              <div class="alert alert-info hidden" id="storage-fallback-banner" role="status">
+                <span aria-hidden="true">ℹ️</span>
+                <span>Private browsing mode detected: Scan history is held in memory for this session only.</span>
+              </div>
+
+              <!-- Filter & Search Toolbar -->
+              <div class="reports-toolbar" role="region" aria-label="Scan history filters">
+                <div class="toolbar-search">
+                  <label for="history-search-input" class="sr-only">Search scans</label>
+                  <input type="search" id="history-search-input" class="form-control form-control-sm" placeholder="Search by subject or snippet...">
+                </div>
+
+                <div class="toolbar-filters">
+                  <div class="filter-group">
+                    <label for="history-filter-verdict" class="filter-label">Verdict:</label>
+                    <select id="history-filter-verdict" class="form-control form-control-sm">
+                      <option value="all">All Verdicts</option>
+                      <option value="Spam">Spam</option>
+                      <option value="Suspicious">Suspicious</option>
+                      <option value="Safe">Safe</option>
+                    </select>
+                  </div>
+
+                  <div class="filter-group">
+                    <label for="history-filter-source" class="filter-label">Source:</label>
+                    <select id="history-filter-source" class="form-control form-control-sm">
+                      <option value="all">All Sources</option>
+                      <option value="paste">Direct Paste</option>
+                      <option value="eml">.EML File</option>
+                      <option value="txt">.TXT File</option>
+                    </select>
+                  </div>
+
+                  <div class="filter-group">
+                    <label for="history-sort-by" class="filter-label">Sort:</label>
+                    <select id="history-sort-by" class="form-control form-control-sm">
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="risk_desc">Highest Risk</option>
+                      <option value="risk_asc">Lowest Risk</option>
+                    </select>
+                  </div>
+
+                  <div class="filter-group date-filter-group">
+                    <label for="history-date-start" class="filter-label">From:</label>
+                    <input type="date" id="history-date-start" class="form-control form-control-sm">
+                    <label for="history-date-end" class="filter-label">To:</label>
+                    <input type="date" id="history-date-end" class="form-control form-control-sm">
+                  </div>
+                </div>
+
+                <div class="toolbar-exports">
+                  <button type="button" class="btn btn-sm btn-outline" id="export-history-csv-btn">
+                    <span aria-hidden="true">📊</span>
+                    <span>Export CSV</span>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-primary btn-crimson" id="export-history-json-btn">
+                    <span aria-hidden="true">📥</span>
+                    <span>Export JSON</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- History Table View -->
+              <div class="reports-table-container">
+                <!-- Empty State -->
+                <div id="history-empty-state" class="empty-state-box">
+                  <span class="empty-state-icon" aria-hidden="true">📑</span>
+                  <h3 class="empty-state-title" id="history-empty-title">No Scans Recorded Yet</h3>
+                  <p class="empty-state-desc" id="history-empty-desc">Your scan history will automatically appear here as you analyze emails.</p>
+                  <a href="#/analyzer" class="btn btn-primary btn-sm">Scan an Email Now</a>
+                </div>
+
+                <!-- Active Table -->
+                <div id="history-table-wrapper" class="table-responsive hidden">
+                  <table class="history-table" id="history-table" aria-label="Email Scan History Audit Log">
+                    <thead>
+                      <tr>
+                        <th scope="col">Date & Time</th>
+                        <th scope="col">Subject / Snippet</th>
+                        <th scope="col">Source</th>
+                        <th scope="col">Risk Score</th>
+                        <th scope="col">Classification</th>
+                        <th scope="col" class="th-actions">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="history-tbody">
+                      <!-- Populated dynamically via textContent & createElement -->
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination Bar -->
+                <div class="pagination-bar hidden" id="history-pagination-bar" role="navigation" aria-label="Scan history pagination">
+                  <span class="pagination-info" id="history-pagination-info">Showing 1 to 5 of 5 scans</span>
+                  <div class="pagination-controls">
+                    <button type="button" class="btn btn-xs btn-outline" id="history-page-prev" disabled>← Previous</button>
+                    <span class="pagination-current" id="history-page-current">Page 1 of 1</span>
+                    <button type="button" class="btn btn-xs btn-outline" id="history-page-next" disabled>Next →</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
