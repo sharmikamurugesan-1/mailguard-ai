@@ -1,9 +1,10 @@
 # MailGuard AI — Launch State & Capacity Proof Report
 
-**Last Updated:** 2026-10-11T11:05:00Z  
-**Current Stage:** Stage A Complete -> **PENDING GATE 1**  
+**Last Updated:** 2026-10-11T12:05:00Z  
+**Current Stage:** Stage B In Progress (Backend Verified Live -> Frontend Configured)  
 **Active Branch:** `v2/redesign`  
 **Base Release Tag:** `v2.0.0` (`git merge-base --is-ancestor ee89e58 v2.0.0` PASSED)  
+**Verified Live Render Backend:** `https://mailguard-ai-6ljt.onrender.com`  
 
 ---
 
@@ -11,13 +12,13 @@
 
 | Item | Status | Verification Detail |
 |------|--------|---------------------|
-| **Current Stage** | **Stage A Complete** | Pre-flight, robustness test suite, capacity model, gunicorn tuning. |
-| **Pending Gate** | **GATE 1** | Awaiting User Render Web Service provisioning. |
-| **Preconditions** | **ALL PASSED** | `AGENTS.md`, `scripts/verify_all.py`, `scripts/set_api_origin.py` verified. |
-| **Pytest Suite** | **163 / 163 PASSED [LOCAL]** | 100% pass rate in 14.63s across all 13 test modules. |
-| **Static Export** | **15.75 MB [LOCAL]** | 11 assets exported cleanly in 0.18s (`scripts/build_frontend.py`). |
-| **E2E Split Test** | **PASSED [LOCAL]** | Playwright test passed in 26.77s (0 CSP errors, 0 console errors, Axe a11y passed). |
-| **Host Environment** | **Windows 11 / Python 3.12.10** | Docker CLI 29.8.1 installed; Docker daemon is unavailable on host. |
+| **Current Stage** | **Stage B (Frontend Configuration)** | Backend verified live; static origin & CSP updated. |
+| **Render Backend** | **LIVE [LIVE]** | `https://mailguard-ai-6ljt.onrender.com/api/health` returned HTTP 200 OK (`model_loaded: true`). |
+| **Model Info** | **VERIFIED [LIVE]** | `/api/model-info` returned HTTP 200 OK (Calibrated Linear SVM, 99.0% accuracy). |
+| **Pending Gate** | **GATE 2** | Awaiting User Vercel Frontend Deployment. |
+| **Pytest Suite** | **163 / 163 PASSED [LOCAL]** | 100% pass rate in 14.55s across all 13 test modules. |
+| **Static Export** | **15.75 MB [LOCAL]** | 22 assets cleanly exported in `frontend/` (`scripts/build_frontend.py`). |
+| **E2E Split Test** | **PASSED [LOCAL]** | Playwright test passed in 27.76s (0 CSP errors, 0 console errors, Axe a11y passed). |
 
 ---
 
@@ -142,13 +143,14 @@ $$\text{Theoretical Capacity} \approx \frac{\text{CPU Share}}{\text{Blended CPU 
 
 ---
 
-## 7. Current Gate: GATE 1
+## 7. Current Gate: GATE 2
 
 ```
 +-------------------------------------------------------------------------+
-|                                 GATE 1                                  |
-|                 Awaiting User Action: Render Backend                    |
+|                                 GATE 2                                  |
+|                 Awaiting User Action: Vercel Frontend                   |
 +-------------------------------------------------------------------------+
 ```
-All Stage A preparation, robustness tests, and capacity proofs are complete on branch `v2/redesign`.
-Execution is stopped at GATE 1 awaiting user dashboard setup.
+Stage B frontend configuration is complete. The backend origin and CSP have been bound to `https://mailguard-ai-6ljt.onrender.com`.
+The `frontend/` directory is fully packaged and ready for Vercel deployment.
+Execution is stopped at GATE 2 awaiting user Vercel dashboard import.

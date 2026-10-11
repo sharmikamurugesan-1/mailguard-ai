@@ -29,7 +29,7 @@
   var DEV_API_URL = 'http://127.0.0.1:5000';
 
   // Production Render backend endpoint placeholder (configured before production deployment)
-  var PROD_API_URL = 'https://REPLACE-WITH-RENDER-URL.invalid';
+  var PROD_API_URL = 'https://mailguard-ai-6ljt.onrender.com';
 
   var hostname = window.location.hostname;
   var isLocalhost = Boolean(

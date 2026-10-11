@@ -1,7 +1,7 @@
 # MailGuard AI Verification Report (Full)
 
 - **Mode:** `--full`
-- **Timestamp:** 2026-10-11T11:03:09Z
+- **Timestamp:** 2026-10-11T12:01:51Z
 - **Overall Result:** PASSED
 
 ### 1. Model Integrity Check: PASSED
@@ -16,7 +16,7 @@ Templates Directory: C:\Users\LENOVO\.gemini\antigravity\scratch\mailguard-ai\te
 Static Assets Directory: C:\Users\LENOVO\.gemini\antigravity\scratch\mailguard-ai\static
 Target Output Directory: C:\Users\LENOVO\.gemini\antigravity\scratch\mailguard-ai\frontend
 Cleaning existing output directory: C:\Users\LENOVO\.gemini\antigravity\scratch\mailguard-ai\frontend
-  [FILE] static/config.js -> frontend/config.js (3,491 bytes)
+  [FILE] static/config.js -> frontend/config.js (3,490 bytes)
   [DIR]  static/css -> frontend/css (1 files, 92,839 bytes)
   [DIR]  static/data -> frontend/data (1 files, 3,268 bytes)
   [FILE] static/favicon.ico -> frontend/favicon.ico (2,121 bytes)
@@ -31,7 +31,7 @@ Cleaning existing output directory: C:\Users\LENOVO\.gemini\antigravity\scratch\
 ============================================================
 Static frontend export SUCCESSFUL!
 Total files in frontend/: 22
-Total size: 16,511,396 bytes (15.75 MB)
+Total size: 16,511,395 bytes (15.75 MB)
 ============================================================
 
 ```
@@ -212,7 +212,7 @@ tests/test_v2_phase11c.py::test_top_tokens_schema_and_types PASSED       [ 98%]
 tests/test_v2_phase11c.py::test_filter_stopwords_toggle_behavior PASSED  [ 99%]
 tests/test_v2_phase11c.py::test_genuine_borderline_email_classification PASSED [100%]
 
-============================ 163 passed in 13.68s =============================
+============================ 163 passed in 13.46s =============================
 
 ```
 
@@ -307,7 +307,7 @@ vercel.json, and frontend/!
 
 --- TEST 6: OCR & QR Analysis in Split Mode (Vercel Headers) ---
   Testing Fixture 1: Email screenshot Web Worker OCR...
-  Fixture 1 OCR (1.69s) -> Verdict='Spam', Score='99.6 / 100'
+  Fixture 1 OCR (1.73s) -> Verdict='Spam', Score='99.6 / 100'
   Extracted text snippet: 'Security Alert - Action Required
 
 URGENT NOTICE: Your account access has been re...'
@@ -347,7 +347,7 @@ Templates Directory: C:\Users\LENOVO\.gemini\antigravity\scratch\mailguard-ai\te
 Static Assets Directory: C:\Users\LENOVO\.gemini\antigravity\scratch\mailguard-ai\static
 Target Output Directory: C:\Users\LENOVO\.gemini\antigravity\scratch\mailguard-ai\frontend
 Cleaning existing output directory: C:\Users\LENOVO\.gemini\antigravity\scratch\mailguard-ai\frontend
-  [FILE] static/config.js -> frontend/config.js (3,491 bytes)
+  [FILE] static/config.js -> frontend/config.js (3,490 bytes)
   [DIR]  static/css -> frontend/css (1 files, 92,839 bytes)
   [DIR]  static/data -> frontend/data (1 files, 3,268 bytes)
   [FILE] static/favicon.ico -> frontend/favicon.ico (2,121 bytes)
@@ -362,7 +362,7 @@ Cleaning existing output directory: C:\Users\LENOVO\.gemini\antigravity\scratch\
 ============================================================
 Static frontend export SUCCESSFUL!
 Total files in frontend/: 22
-Total size: 16,511,396 bytes (15.75 MB)
+Total size: 16,511,395 bytes (15.75 MB)
 ============================================================
 
 ```
