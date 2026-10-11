@@ -71,6 +71,33 @@ def get_allowed_origins(app: Flask) -> set:
     return allowed
 
 
+def get_rate_limit_analyze() -> str:
+    """Resolve dynamic rate limit string for /api/analyze."""
+    override = os.getenv("RATELIMIT_ANALYZE_LIMIT")
+    if override:
+        return override
+    per_min = os.getenv("RATELIMIT_ANALYZE_PER_MINUTE", str(config.RATELIMIT_ANALYZE_PER_MINUTE))
+    return f"{per_min} per minute"
+
+
+def get_rate_limit_predict() -> str:
+    """Resolve dynamic rate limit string for /api/predict."""
+    override = os.getenv("RATELIMIT_PREDICT_LIMIT")
+    if override:
+        return override
+    per_min = os.getenv("RATELIMIT_PREDICT_PER_MINUTE", str(config.RATELIMIT_PREDICT_PER_MINUTE))
+    return f"{per_min} per minute"
+
+
+def get_rate_limit_model_info() -> str:
+    """Resolve dynamic rate limit string for /api/model-info."""
+    override = os.getenv("RATELIMIT_MODEL_INFO_LIMIT")
+    if override:
+        return override
+    per_min = os.getenv("RATELIMIT_MODEL_INFO_PER_MINUTE", str(config.RATELIMIT_MODEL_INFO_PER_MINUTE))
+    return f"{per_min} per minute"
+
+
 def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
     """Create and configure Flask application instance."""
     app = Flask(
@@ -104,6 +131,15 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
         storage_uri="memory://",
     )
     app.limiter = limiter
+
+    # Eagerly preload and verify model integrity at startup during production (Gunicorn --preload)
+    if not is_testing and app.config.get("PRELOAD_MODEL", True):
+        try:
+            if get_predictor is not None:
+                get_predictor()
+        except Exception as _preload_err:
+            logger.critical(f"Fatal: Failed to preload and verify model integrity on startup: {_preload_err}")
+            raise
 
     # CORS Preflight Handler (Intercept OPTIONS on /api/*)
     @app.before_request
@@ -312,7 +348,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
         }), 200
 
     @app.route("/api/model-info", methods=["GET"])
-    @limiter.limit("120 per minute")
+    @limiter.limit(get_rate_limit_model_info)
     def model_info():
         """Retrieve model provenance, evaluation metrics, and operational limitations."""
         meta = {}
@@ -386,7 +422,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
         return jsonify(info), 200
 
     @app.route("/api/predict", methods=["GET", "POST"])
-    @limiter.limit("60 per minute")
+    @limiter.limit(get_rate_limit_predict)
     def predict_email():
         """Classify email subject and body as spam, ham, or uncertain."""
         if request.method != "POST":
@@ -501,7 +537,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
             }), 500
 
     @app.route("/api/analyze", methods=["GET", "POST"])
-    @limiter.limit("60 per minute")
+    @limiter.limit(get_rate_limit_analyze)
     def analyze_email():
         """Deep email security analysis combining NLP ML model, heuristic signals, URL checks, and header validation."""
         if request.method != "POST":

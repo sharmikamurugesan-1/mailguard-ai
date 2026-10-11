@@ -50,10 +50,21 @@ This guide details how to deploy MailGuard AI across two target architectures:
 | `MODEL_PATH` | `models/spam_pipeline.joblib` | Path to trained scikit-learn pipeline artifact. |
 | `METADATA_PATH` | `models/metadata.json` | Path to dataset and evaluation metadata. |
 | `CORS_ALLOWED_ORIGINS` | `https://mailguard-ai.vercel.app` | Comma-separated list of exact allowed origins. **Wildcard `*` is strictly rejected.** |
-| `RATELIMIT_ENABLED` | `1` | Enforces rate limits (60 req/min on `/api/analyze`, 120 req/min on `/api/model-info`). |
+| `RATELIMIT_ENABLED` | `1` | Enforces rate limits (1=enabled, 0=disabled). |
+| `RATELIMIT_ANALYZE_PER_MINUTE` | `60` (or `120`) | Per-client-IP per-minute limit for `/api/analyze`. |
+| `RATELIMIT_ANALYZE_BURST_PER_MINUTE` | `120` | Dynamic burst headroom for `/api/analyze`. |
+| `RATELIMIT_PREDICT_PER_MINUTE` | `60` | Per-client-IP per-minute limit for `/api/predict`. |
+| `RATELIMIT_MODEL_INFO_PER_MINUTE` | `120` | Per-client-IP per-minute limit for `/api/model-info`. |
 
 > [!IMPORTANT]
-> The backend automatically validates `models/spam_pipeline.joblib` with SHA-256 integrity verification against `models/model_hash.sha256` at startup. If the hash does not match, the process fails closed immediately.
+> **Model Preload & SHA-256 Verification:** The backend automatically validates `models/spam_pipeline.joblib` with SHA-256 integrity verification against `models/model_hash.sha256` at startup. With Gunicorn `--preload`, this check executes in the master process before worker fork, failing closed immediately if the model artifact is tampered with or corrupted.
+
+### NAT & Shared-IP Campus Network Considerations
+When MailGuard AI is accessed from a university campus, enterprise office, or classroom where multiple devices share a single outbound public IP (NAT), a strict 60 req/min limit per IP can cause benign users in the same classroom to experience 429 errors.
+- **Recommended Campus/Demo Configuration:**
+  - Set `RATELIMIT_ANALYZE_PER_MINUTE=120` in the Render Dashboard environment settings.
+  - Set `RATELIMIT_ANALYZE_BURST_PER_MINUTE=120` to comfortably accommodate concurrent users during live demonstrations.
+
 
 ### Frontend (`frontend/config.js`)
 

@@ -51,4 +51,12 @@ MODEL_EXPECTED_SHA256 = os.getenv(
     "453414c9bb3889c1cc2402ee26473e6d74bf7e7a78cef26eac24da2d8ddfc9f8",
 )
 
+# Rate Limiting Settings (Dynamic via Environment Variables)
+# Accommodates shared NAT/campus networks while protecting backend capacity
+RATELIMIT_ANALYZE_PER_MINUTE = int(os.getenv("RATELIMIT_ANALYZE_PER_MINUTE", "60"))
+RATELIMIT_ANALYZE_BURST_PER_MINUTE = int(os.getenv("RATELIMIT_ANALYZE_BURST_PER_MINUTE", "120"))
+RATELIMIT_PREDICT_PER_MINUTE = int(os.getenv("RATELIMIT_PREDICT_PER_MINUTE", "60"))
+RATELIMIT_MODEL_INFO_PER_MINUTE = int(os.getenv("RATELIMIT_MODEL_INFO_PER_MINUTE", "120"))
+
+
 

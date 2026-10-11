@@ -1,0 +1,145 @@
+{
+  "timestamp": "2026-10-11T10:56:31Z",
+  "target_url": "http://127.0.0.1:5000",
+  "knee_sustainable_rps": 40.0,
+  "abort_reason": null,
+  "steps": [
+    {
+      "target_rps": 1.0,
+      "duration_sec": 6.64,
+      "requests_sent": 5,
+      "successful_200": 5,
+      "errors": 0,
+      "rate_limited_429": 0,
+      "timeouts": 0,
+      "error_rate": 0.0,
+      "latency_sec": {
+        "p50": 0.0345,
+        "p95": 0.0945,
+        "p99": 0.0945
+      },
+      "system_metrics": {
+        "rss_mb": 41.23,
+        "cpu_percent": 7.0
+      }
+    },
+    {
+      "target_rps": 2.0,
+      "duration_sec": 2.92,
+      "requests_sent": 10,
+      "successful_200": 10,
+      "errors": 0,
+      "rate_limited_429": 0,
+      "timeouts": 0,
+      "error_rate": 0.0,
+      "latency_sec": {
+        "p50": 0.0304,
+        "p95": 0.0434,
+        "p99": 0.0434
+      },
+      "system_metrics": {
+        "rss_mb": 42.21,
+        "cpu_percent": 12.6
+      }
+    },
+    {
+      "target_rps": 5.0,
+      "duration_sec": 8.35,
+      "requests_sent": 25,
+      "successful_200": 25,
+      "errors": 0,
+      "rate_limited_429": 0,
+      "timeouts": 0,
+      "error_rate": 0.0,
+      "latency_sec": {
+        "p50": 0.0289,
+        "p95": 0.0911,
+        "p99": 0.1335
+      },
+      "system_metrics": {
+        "rss_mb": 42.35,
+        "cpu_percent": 10.6
+      }
+    },
+    {
+      "target_rps": 10.0,
+      "duration_sec": 4.89,
+      "requests_sent": 50,
+      "successful_200": 50,
+      "errors": 0,
+      "rate_limited_429": 0,
+      "timeouts": 0,
+      "error_rate": 0.0,
+      "latency_sec": {
+        "p50": 0.0303,
+        "p95": 0.0765,
+        "p99": 0.0952
+      },
+      "system_metrics": {
+        "rss_mb": 42.79,
+        "cpu_percent": 10.9
+      }
+    },
+    {
+      "target_rps": 20.0,
+      "duration_sec": 4.68,
+      "requests_sent": 100,
+      "successful_200": 100,
+      "errors": 0,
+      "rate_limited_429": 0,
+      "timeouts": 0,
+      "error_rate": 0.0,
+      "latency_sec": {
+        "p50": 0.0465,
+        "p95": 0.1491,
+        "p99": 0.1859
+      },
+      "system_metrics": {
+        "rss_mb": 43.41,
+        "cpu_percent": 13.8
+      }
+    },
+    {
+      "target_rps": 40.0,
+      "duration_sec": 5.35,
+      "requests_sent": 200,
+      "successful_200": 200,
+      "errors": 0,
+      "rate_limited_429": 0,
+      "timeouts": 0,
+      "error_rate": 0.0,
+      "latency_sec": {
+        "p50": 0.2137,
+        "p95": 0.6966,
+        "p99": 0.7475
+      },
+      "system_metrics": {
+        "rss_mb": 45.53,
+        "cpu_percent": 20.7
+      }
+    }
+  ],
+  "scenarios": {
+    "S1 (1000 static visitors / 10m)": {
+      "demand_rps": 1.67,
+      "architecture": "Vercel Edge CDN (Static)",
+      "backend_rps_needed": 0.0,
+      "verdict": "PASS",
+      "notes": "100% served by Vercel Edge; 0 backend load."
+    },
+    "S2 (1000 users, 30% analyzing 1/min)": {
+      "demand_rps": 5.0,
+      "backend_rps_needed": 5.0,
+      "render_free_0.1cpu_verdict": "MARGINAL (Theoretical max ~5.8 RPS; 86% load; cold-start sleep risk)",
+      "render_starter_0.5cpu_verdict": "PASS (Theoretical max ~29.1 RPS; 17% load; no sleep)",
+      "recommended_instance": "Render Starter ($7/mo)"
+    },
+    "S3 (Burst 100 analyses in 10s)": {
+      "demand_rps": 10.0,
+      "backend_rps_needed": 10.0,
+      "render_free_0.1cpu_verdict": "FAIL (Demand 10.0 RPS exceeds 0.1 vCPU capacity of 5.8 RPS by 72%)",
+      "render_starter_0.5cpu_verdict": "PASS (Theoretical max ~29.1 RPS; handles 10.0 RPS at 34% load)",
+      "recommended_instance": "Render Starter ($7/mo)"
+    }
+  }
+}

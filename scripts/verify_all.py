@@ -124,7 +124,7 @@ def verify_full() -> int:
     log_sections.append(f"### 2. Static Frontend Export\n```\n{out}\n```")
 
     # 3. Full pytest suite
-    rc_pytest, out_pytest = run_command([sys.executable, "-m", "pytest", "-v"], "Full Pytest Suite (149 Tests)")
+    rc_pytest, out_pytest = run_command([sys.executable, "-m", "pytest", "-v"], "Full Pytest Suite (163 Tests)")
     if rc_pytest != 0:
         all_passed = False
     log_sections.append(f"### 3. Full Pytest Suite\n```\n{out_pytest}\n```")
