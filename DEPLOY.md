@@ -64,51 +64,82 @@ No secrets or environment variables are required on Vercel. `frontend/config.js`
 
 ---
 
-## 3. Render Backend Deployment Steps
+## 3. Step-by-Step Split Deployment Sequence (Solving Chicken-and-Egg)
 
-### Option A: Render Blueprint (Infrastructure as Code)
-1. Push your branch to GitHub.
-2. In the Render Dashboard, select **New +** > **Blueprint**.
-3. Select your repository. Render automatically reads `render.yaml`.
-4. Review the plan (Free tier web service) and click **Apply**.
+Deploying a split architecture involves a chicken-and-egg dependency:
+* Vercel needs the Render URL in `frontend/config.js` and `vercel.json` CSP `connect-src`.
+* Render needs the Vercel URL in `CORS_ALLOWED_ORIGINS` to accept cross-origin requests.
 
-### Option B: Manual Web Service Setup
-1. In the Render Dashboard, select **New +** > **Web Service**.
-2. Connect your GitHub repository.
-3. Configure the following service settings:
-   - **Name:** `mailguard-ai`
-   - **Region:** Oregon (US West) or closest to your users
-   - **Branch:** `v2/redesign` (or `master`)
-   - **Runtime:** `Python 3`
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120`
-   - **Health Check Path:** `/api/health`
-4. Under **Environment Variables**, add:
-   - `CORS_ALLOWED_ORIGINS` = `https://<your-vercel-app>.vercel.app`
-   - `PYTHON_VERSION` = `3.12.10`
-   - `FLASK_DEBUG` = `0`
-   - `MODEL_PATH` = `models/spam_pipeline.joblib`
-   - `METADATA_PATH` = `models/metadata.json`
-5. Click **Create Web Service**.
-6. Note your Render URL: `https://<your-app>.onrender.com`.
+Follow this exact six-step sequence (a through f) to deploy reliably without guess-work:
+
+### Step (a): Provision Render Backend
+1. In the Render Dashboard, create your Web Service (`mailguard-ai`) pointing to your repository branch.
+2. Set initial environment variables (`PYTHON_VERSION=3.12.10`, `FLASK_DEBUG=0`, `RATELIMIT_ENABLED=1`).
+3. Set `CORS_ALLOWED_ORIGINS` to a temporary placeholder (or leave blank for now).
+4. Deploy the service.
+
+### Step (b): Obtain Assigned Render URL
+1. Once Render provisions the service, copy the assigned backend URL from the dashboard:
+   `https://<your-service-name>.onrender.com`
+2. Test that the backend is alive by visiting `https://<your-service-name>.onrender.com/api/health`.
+
+### Step (c): Configure API Origin Locally & Rebuild Frontend
+Run the single-source-of-truth configuration tool locally:
+```bash
+python scripts/set_api_origin.py --origin https://<your-service-name>.onrender.com
+```
+This automated command:
+- Validates strict HTTPS and rejects wildcards (`*`, `?`).
+- Updates `PROD_API_URL` in `static/config.js`.
+- Updates the CSP `connect-src` directive in `vercel.json`.
+- Regenerates all assets in `frontend/` via `scripts/build_frontend.py`.
+
+Commit and push these updated files to your repository:
+```bash
+git add static/config.js vercel.json frontend/
+git commit -m "chore(deploy): set production render api origin"
+git push
+```
+
+### Step (d): Deploy Vercel Static Frontend
+1. In the Vercel Dashboard, import the repository.
+2. Select **Framework Preset:** `Other`, **Root Directory:** `./`.
+3. Vercel automatically detects `vercel.json` and serves `frontend/`.
+4. Deploy the project.
+
+### Step (e): Obtain Assigned Vercel URL
+1. Copy your assigned production Vercel URL (e.g. `https://mailguard-ai.vercel.app`).
+2. Verify in your browser that the site loads and `config.js` points to your Render backend.
+
+### Step (f): Update Render CORS Allow-List & Verify
+1. In the Render Dashboard under **Environment Variables**, set:
+   ```env
+   CORS_ALLOWED_ORIGINS=https://mailguard-ai.vercel.app
+   ```
+2. Render automatically restarts the service with the new CORS origin.
+3. Verify live operation with the automated smoke test script:
+   ```bash
+   python scripts/smoke_test_deployed.py --api-url https://<your-service-name>.onrender.com --frontend-url https://mailguard-ai.vercel.app
+   ```
 
 ---
 
-## 4. Vercel Frontend Deployment Steps
+## 4. Vercel Preview Deployments Policy & CORS Handling
 
-The `frontend/` directory is pre-built with static HTML, CSS, JavaScript, fonts, and WASM cores.
+### Strict Exact Origins Policy
+* The Flask backend **strictly rejects** wildcard origins (`*`) and wildcard domain patterns (such as `*.vercel.app`).
+* Every allowed origin must be an exact HTTPS URL.
+* **By design, dynamic Vercel preview branch deployments are blocked from communicating with the production backend.** This prevents arbitrary preview builds or PR forks from accessing production rate-limit quotas or backend resources.
 
-1. In the Vercel Dashboard, select **Add New...** > **Project**.
-2. Import your Git repository.
-3. Configure the project:
-   - **Framework Preset:** `Other`
-   - **Root Directory:** `./`
-   - **Build Command:** *(Leave empty; static assets are committed in `frontend/`)*
-   - **Output Directory:** `frontend` *(Overridden automatically by root `vercel.json`)*
-4. Under **Environment Variables**, leave empty (zero secrets required).
-5. Click **Deploy**.
-6. Once deployed, copy your production Vercel URL (e.g. `https://mailguard-ai.vercel.app`).
-7. Update `CORS_ALLOWED_ORIGINS` on Render to include your exact Vercel URL.
+### Temporary Preview URL Testing Procedure
+If you need to test a specific Vercel preview deployment against the Render backend:
+1. Copy the exact preview URL generated by Vercel (e.g. `https://mailguard-ai-git-feature-preview.vercel.app`).
+2. In the Render Dashboard under **Environment Variables**, temporarily append the preview URL to `CORS_ALLOWED_ORIGINS` (comma-separated):
+   ```env
+   CORS_ALLOWED_ORIGINS=https://mailguard-ai.vercel.app,https://mailguard-ai-git-feature-preview.vercel.app
+   ```
+3. Test your preview deployment.
+4. Once verification is complete, remove the preview URL and restore only the production URL.
 
 ---
 

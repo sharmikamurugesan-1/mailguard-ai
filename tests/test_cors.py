@@ -35,6 +35,7 @@ def test_allowed_origin_get_health(client):
     assert res.status_code == 200
     assert res.headers.get("Access-Control-Allow-Origin") == "http://127.0.0.1:3000"
     assert "Origin" in res.headers.get("Vary", "")
+    assert res.headers.get("Cache-Control") == "no-store"
 
 
 def test_allowed_vercel_origin_model_info(client):

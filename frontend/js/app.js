@@ -22,6 +22,14 @@
     return base ? (base + endpoint) : endpoint;
   }
 
+  // Runtime guard: checks if backend API origin is properly configured
+  function isBackendConfigured() {
+    if (window.APP_CONFIG && window.APP_CONFIG.IS_CONFIGURED === false) return false;
+    var base = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || window.API_BASE_URL || '';
+    if (base.indexOf('.invalid') !== -1) return false;
+    return true;
+  }
+
   // Theme Elements
   var themeToggleBtn = document.getElementById('theme-toggle-btn');
   var themeIcon = document.getElementById('theme-icon');
@@ -345,6 +353,11 @@
   // --------------------------------------------------------------------------
 
   async function checkServerHealth() {
+    if (!isBackendConfigured()) {
+      statusDot.className = 'status-indicator status-offline';
+      statusText.textContent = 'Backend Not Configured';
+      return;
+    }
     try {
       var res = await fetch(getApiUrl('/api/health'));
       if (!res.ok) {
@@ -387,8 +400,8 @@
   });
 
   async function runBoundedHealthRecheck() {
+    if (!isBackendConfigured()) return;
     if (isRecheckingHealth) return;
-    isRecheckingHealth = true;
     var maxAttempts = 3;
     var delays = [1000, 2000, 4000];
 
@@ -424,6 +437,7 @@
   }
 
   async function loadModelInfo() {
+    if (!isBackendConfigured()) return;
     try {
       var res = await fetch(getApiUrl('/api/model-info'));
       if (!res.ok) throw new Error('Failed to load model info');
@@ -558,6 +572,9 @@
   // --------------------------------------------------------------------------
 
   async function callAnalyzeApi(payload, isRetry) {
+    if (!isBackendConfigured()) {
+      throw new Error('Backend not configured: Production API origin has not been set (REPLACE-WITH-RENDER-URL.invalid). Run scripts/set_api_origin.py --origin https://<your-render-url>');
+    }
     var controller = new AbortController();
     var timeoutId = setTimeout(function () {
       controller.abort();
@@ -610,6 +627,9 @@
   }
 
   async function callPredictApi(payload, isRetry) {
+    if (!isBackendConfigured()) {
+      throw new Error('Backend not configured: Production API origin has not been set (REPLACE-WITH-RENDER-URL.invalid). Run scripts/set_api_origin.py --origin https://<your-render-url>');
+    }
     var controller = new AbortController();
     var timeoutId = setTimeout(function () {
       controller.abort();
@@ -3130,6 +3150,9 @@
           sensitivity: 'medium'
         };
       } else {
+        if (!isBackendConfigured()) {
+          throw new Error('Backend not configured: Production API origin has not been set (REPLACE-WITH-RENDER-URL.invalid). Run scripts/set_api_origin.py --origin https://<your-render-url>');
+        }
         var sensSelect = document.getElementById('analyzer-sensitivity-select');
         var sens = sensSelect ? sensSelect.value : 'medium';
         var resp = await fetch(getApiUrl('/api/analyze'), {
@@ -3669,6 +3692,13 @@
     }
 
     var fullText = subVal ? (subVal + '\n\n' + bodyVal) : bodyVal;
+
+    if (!isBackendConfigured()) {
+      showToast('Backend not configured: Production API origin has not been set (REPLACE-WITH-RENDER-URL.invalid). Run scripts/set_api_origin.py --origin https://<your-render-url>', 'error');
+      if (emptyState) emptyState.classList.remove('hidden');
+      if (analyzeBtn) analyzeBtn.disabled = false;
+      return;
+    }
 
     if (skeleton) skeleton.classList.remove('hidden');
     if (emptyState) emptyState.classList.add('hidden');

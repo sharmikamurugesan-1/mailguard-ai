@@ -346,6 +346,28 @@ def test_security_headers_present(client):
     assert "frame-ancestors 'none'" in csp
 
 
+def test_api_endpoints_cache_control_no_store(client):
+    """Assert all /api/* responses include Cache-Control: no-store."""
+    res_health = client.get("/api/health")
+    assert res_health.headers.get("Cache-Control") == "no-store"
+
+    res_model_info = client.get("/api/model-info")
+    assert res_model_info.headers.get("Cache-Control") == "no-store"
+
+    res_predict = client.post("/api/predict", json={"body": "Hello meeting tomorrow"})
+    assert res_predict.headers.get("Cache-Control") == "no-store"
+
+    res_analyze = client.post("/api/analyze", json={"body": "Check this link out"})
+    assert res_analyze.headers.get("Cache-Control") == "no-store"
+
+    res_404 = client.get("/api/non-existent-endpoint")
+    assert res_404.headers.get("Cache-Control") == "no-store"
+
+    # HTML page should NOT have Cache-Control: no-store forced
+    res_html = client.get("/")
+    assert res_html.headers.get("Cache-Control") != "no-store"
+
+
 def test_405_method_not_allowed_get_predict(client):
     """GET /api/predict returns 405 Method Not Allowed in unified JSON shape."""
     response = client.get("/api/predict")

@@ -147,6 +147,10 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
             "frame-ancestors 'none';"
         )
 
+        # Enforce no-store on all API endpoints to prevent caching of sensitive analysis data
+        if request.path.startswith("/api"):
+            response.headers["Cache-Control"] = "no-store"
+
         # CORS Header Injection for allowed origins (Exact matches, never '*')
         origin = request.headers.get("Origin")
         if origin and request.path.startswith("/api"):
