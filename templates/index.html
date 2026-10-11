@@ -340,7 +340,7 @@
                       <div class="field-error hidden" id="body-error" role="alert" aria-live="polite"></div>
                     </div>
 
-                    <!-- Option Toggles (No OCR toggle per Phase 12F rule) -->
+                    <!-- Option Toggles -->
                     <div class="analyzer-options-row" role="group" aria-label="Analysis scan options">
                       <label class="toggle-control">
                         <input type="checkbox" id="opt-extract-urls" checked>
@@ -356,6 +356,11 @@
                         <input type="checkbox" id="opt-suspicious-links" checked>
                         <span class="toggle-slider" aria-hidden="true"></span>
                         <span class="toggle-text">Detect Suspicious Links</span>
+                      </label>
+                      <label class="toggle-control" id="ocr-toggle-wrapper">
+                        <input type="checkbox" id="opt-image-ocr">
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                        <span class="toggle-text">Image OCR &amp; QR</span>
                       </label>
                       <div class="analyzer-sensitivity-control">
                         <label for="analyzer-sensitivity-select" class="analyzer-sensitivity-label">Sensitivity:</label>
@@ -608,20 +613,160 @@
         <!-- VIEW 3: IMAGE ANALYSIS (#/image-analysis)                         -->
         <!-- ================================================================ -->
         <section class="view-panel hidden" id="view-image-analysis" role="tabpanel" aria-labelledby="nav-image-analysis">
-          <div class="card placeholder-card">
+          <div class="card image-analysis-card">
             <div class="card-maroon-header">
               <div class="card-header-icon" aria-hidden="true">🖼️</div>
               <div>
-                <h1 class="card-maroon-title">Image Analysis</h1>
-                <p class="card-maroon-sub">Extract text, QR codes, and embedded indicators from email screenshots.</p>
+                <h1 class="card-maroon-title">Image Threat Analyzer</h1>
+                <p class="card-maroon-sub">Client-side optical character recognition (OCR) and QR code security scanning.</p>
               </div>
             </div>
+
             <div class="card-body">
-              <div class="empty-state-box">
-                <span class="empty-state-icon" aria-hidden="true">📷</span>
-                <p class="empty-state-title">Multi-Modal Vision Engine (Planned)</p>
-                <p class="empty-state-desc">Optical character recognition (OCR) and visual phishing detection are scheduled for Phase 12B/C. Currently, full text and MIME .eml analysis is fully operational in the Email Analyzer.</p>
-                <a href="#/analyzer" class="btn btn-primary btn-sm">Switch to Email Analyzer</a>
+              <!-- Privacy Guarantee Banner -->
+              <div class="privacy-note-banner" role="note">
+                <span class="privacy-note-icon" aria-hidden="true">🔒</span>
+                <div class="privacy-note-content">
+                  <strong>Zero-Upload Privacy Guarantee:</strong>
+                  <span>Images are processed entirely on your device using client-side Web Workers and WebAssembly. Your images and extracted text are NEVER uploaded to or stored on any server.</span>
+                </div>
+              </div>
+
+              <!-- Drag-and-Drop Image Dropzone -->
+              <div class="upload-drop-zone" id="img-drop-zone" tabindex="0" role="region" aria-label="Image drag and drop upload zone">
+                <div class="upload-icon-wrapper" aria-hidden="true">
+                  <svg class="upload-svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                </div>
+                <p class="upload-title">Drag and drop an email screenshot or QR image</p>
+                <span class="upload-or">or</span>
+                <input type="file" id="img-file-input" class="file-input-hidden" accept=".png,.jpg,.jpeg,image/png,image/jpeg" aria-label="Select image file">
+                <button type="button" class="btn btn-crimson btn-sm file-picker-trigger" id="img-browse-btn">Choose Image</button>
+                <p class="upload-hint">Supports PNG, JPG, JPEG (Max 5 MB). File type validated by content magic bytes.</p>
+                <div class="drop-overlay hidden" id="img-drop-overlay" aria-hidden="true">
+                  <span class="drop-overlay-text">Drop image here to load</span>
+                </div>
+              </div>
+
+              <!-- Image Alert Box (Validation, Errors, Warnings) -->
+              <div class="alert alert-danger hidden" id="img-alert-box" role="alert" aria-live="assertive"></div>
+
+              <!-- Selected Image Preview & Action Controls -->
+              <div class="image-preview-card hidden" id="img-preview-box">
+                <div class="image-thumb-wrapper">
+                  <img id="img-thumb" class="image-thumb" src="" alt="Selected email screenshot preview">
+                </div>
+                <div class="image-file-meta" id="img-meta-text">
+                  <!-- e.g. screenshot.png (14.4 KB) - 800x350 px -->
+                </div>
+                <div class="image-action-buttons">
+                  <button type="button" class="btn btn-primary btn-crimson" id="img-start-scan-btn">
+                    <span>⚡ Analyze Image Threats</span>
+                  </button>
+                  <button type="button" class="btn btn-outline" id="img-clear-selection-btn">
+                    <span>Clear Image</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- OCR & QR Progress Tracker -->
+              <div class="image-progress-box hidden" id="img-progress-box" role="region" aria-label="Analysis Progress">
+                <div class="image-progress-header">
+                  <span id="img-progress-status-text">Initializing OCR engine...</span>
+                  <span id="img-progress-percent">0%</span>
+                </div>
+                <div class="image-progress-track">
+                  <div class="image-progress-fill" id="img-progress-fill"></div>
+                </div>
+                <div class="image-progress-footer">
+                  <span id="img-progress-timer-text">Timeout limit: 30s</span>
+                  <button type="button" class="btn btn-sm btn-outline btn-danger-outline" id="img-cancel-scan-btn">Cancel Analysis</button>
+                </div>
+              </div>
+
+              <!-- Analysis Report Card -->
+              <div class="image-report-container hidden" id="img-report-container" role="region" aria-label="Image Threat Analysis Report">
+                <!-- Accuracy / Scope Disclaimer Notice -->
+                <div class="disclaimer-banner alert-warning" role="note">
+                  <span class="disclaimer-icon" aria-hidden="true">⚠️</span>
+                  <div>
+                    <strong>Accuracy Notice:</strong>
+                    <span>OCR text extraction can be inaccurate or imperfect on complex typography or low-contrast backgrounds. Always verify critical sender domains and URLs.</span>
+                  </div>
+                </div>
+
+                <!-- Overall Verdict Banner -->
+                <div class="report-verdict-banner" id="img-verdict-banner">
+                  <div class="verdict-summary">
+                    <span class="verdict-label">Overall Image Threat Assessment:</span>
+                    <span class="badge verdict-badge" id="img-verdict-badge">Safe</span>
+                  </div>
+                  <div class="verdict-metrics-row">
+                    <div class="verdict-metric">
+                      <span class="metric-title">Risk Score</span>
+                      <span class="metric-val" id="img-risk-score-val">0 / 100</span>
+                    </div>
+                    <div class="verdict-metric">
+                      <span class="metric-title">OCR Confidence</span>
+                      <span class="metric-val" id="img-ocr-conf-val">0%</span>
+                    </div>
+                    <div class="verdict-metric">
+                      <span class="metric-title">Model Confidence</span>
+                      <span class="metric-val" id="img-model-conf-val">0%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Section: Decoded QR Codes -->
+                <div class="image-report-section" id="img-qr-section">
+                  <div class="panel-box-header">
+                    <h3 class="panel-box-title">Decoded QR Code Content</h3>
+                    <button type="button" class="btn btn-sm btn-outline hidden" id="img-copy-qr-btn">Copy QR Content</button>
+                  </div>
+                  <div id="img-qr-empty" class="text-muted">No QR codes detected in this image.</div>
+                  <div id="img-qr-content-box" class="qr-result-box hidden">
+                    <span id="img-qr-text-val"></span>
+                  </div>
+                </div>
+
+                <!-- Section: Extracted OCR Text -->
+                <div class="image-report-section">
+                  <div class="panel-box-header">
+                    <h3 class="panel-box-title">Extracted Text (OCR)</h3>
+                    <div class="report-header-actions">
+                      <button type="button" class="btn btn-sm btn-outline" id="img-copy-text-btn">Copy Text</button>
+                      <button type="button" class="btn btn-sm btn-primary" id="img-send-to-analyzer-btn">Send to Email Analyzer &rarr;</button>
+                    </div>
+                  </div>
+                  <div id="img-ocr-empty" class="text-muted hidden">No text detected in this image.</div>
+                  <div class="image-ocr-textbox" id="img-ocr-text-display" tabindex="0"></div>
+                </div>
+
+                <!-- Section: Extracted URLs & Threat Flags -->
+                <div class="image-report-section" id="img-urls-section">
+                  <h3 class="panel-box-title">Extracted URLs &amp; Threat Indicators</h3>
+                  <div id="img-urls-empty" class="text-muted">No URLs found in image content.</div>
+                  <div id="img-urls-table-wrapper" class="table-responsive hidden">
+                    <table class="table-compact" aria-label="Extracted Image URLs">
+                      <thead>
+                        <tr>
+                          <th scope="col">URL</th>
+                          <th scope="col">Security Flags</th>
+                        </tr>
+                      </thead>
+                      <tbody id="img-urls-tbody"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Section: Key Findings & Heuristic Indicators -->
+                <div class="image-report-section">
+                  <h3 class="panel-box-title">Key Findings &amp; Heuristics</h3>
+                  <ul class="findings-list" id="img-findings-list"></ul>
+                </div>
               </div>
             </div>
           </div>

@@ -338,7 +338,11 @@ def test_security_headers_present(client):
     assert "default-src 'self'" in csp
     assert "style-src 'self'" in csp
     assert "'unsafe-inline'" not in csp
-    assert "script-src 'self'" in csp
+    assert "'unsafe-eval'" not in csp.replace("'wasm-unsafe-eval'", "")
+    assert "'wasm-unsafe-eval'" in csp
+    assert "worker-src 'self' blob:" in csp
+    assert "connect-src 'self' blob:" in csp
+    assert "img-src 'self' data: blob:" in csp
     assert "frame-ancestors 'none'" in csp
 
 

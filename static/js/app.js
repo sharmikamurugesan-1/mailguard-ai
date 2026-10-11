@@ -716,8 +716,20 @@
       return;
     }
 
+    if (ext === 'png' || ext === 'jpg' || ext === 'jpeg') {
+      var optOcr = document.getElementById('opt-image-ocr');
+      if (!optOcr || !optOcr.checked) {
+        bodyError.textContent = `Image file selected (.${ext}). Enable the "Image OCR & QR" toggle below or switch to the Image Analysis view.`;
+        bodyError.classList.remove('hidden');
+        showToast('Enable Image OCR toggle to scan images', 'warn');
+        return;
+      }
+      processImageForAnalyzer(file);
+      return;
+    }
+
     if (ext !== 'txt' && ext !== 'eml') {
-      bodyError.textContent = `Unsupported file type (.${ext || 'unknown'}). Please choose a .txt or .eml file.`;
+      bodyError.textContent = `Unsupported file type (.${ext || 'unknown'}). Please choose a .txt or .eml file (or .png/.jpg with OCR toggle).`;
       bodyError.classList.remove('hidden');
       showToast('Unsupported file type', 'error');
       return;
@@ -2564,6 +2576,780 @@
   }
 
   // --------------------------------------------------------------------------
+  // Phase 12F: Image Threat Analysis (Client-Side OCR & QR Engine)
+  // --------------------------------------------------------------------------
+
+  var isJsQRLoaded = false;
+  var isTesseractLoaded = false;
+  var jsQRLoadPromise = null;
+  var tesseractLoadPromise = null;
+  var currentOcrWorker = null;
+  var isAnalysisCancelled = false;
+  var selectedImageFile = null;
+  var currentImageObjectUrl = null;
+
+  // DOM Elements - Image Analysis View
+  var imgDropZone = document.getElementById('img-drop-zone');
+  var imgFileInput = document.getElementById('img-file-input');
+  var imgBrowseBtn = document.getElementById('img-browse-btn');
+  var imgDropOverlay = document.getElementById('img-drop-overlay');
+  var imgAlertBox = document.getElementById('img-alert-box');
+  var imgPreviewBox = document.getElementById('img-preview-box');
+  var imgThumb = document.getElementById('img-thumb');
+  var imgMetaText = document.getElementById('img-meta-text');
+  var imgStartScanBtn = document.getElementById('img-start-scan-btn');
+  var imgClearSelectionBtn = document.getElementById('img-clear-selection-btn');
+  var imgProgressBox = document.getElementById('img-progress-box');
+  var imgProgressStatusText = document.getElementById('img-progress-status-text');
+  var imgProgressPercent = document.getElementById('img-progress-percent');
+  var imgProgressFill = document.getElementById('img-progress-fill');
+  var imgProgressTimerText = document.getElementById('img-progress-timer-text');
+  var imgCancelScanBtn = document.getElementById('img-cancel-scan-btn');
+  var imgReportContainer = document.getElementById('img-report-container');
+  var imgVerdictBanner = document.getElementById('img-verdict-banner');
+  var imgVerdictBadge = document.getElementById('img-verdict-badge');
+  var imgRiskScoreVal = document.getElementById('img-risk-score-val');
+  var imgOcrConfVal = document.getElementById('img-ocr-conf-val');
+  var imgModelConfVal = document.getElementById('img-model-conf-val');
+  var imgQrSection = document.getElementById('img-qr-section');
+  var imgQrEmpty = document.getElementById('img-qr-empty');
+  var imgQrContentBox = document.getElementById('img-qr-content-box');
+  var imgQrTextVal = document.getElementById('img-qr-text-val');
+  var imgCopyQrBtn = document.getElementById('img-copy-qr-btn');
+  var imgOcrEmpty = document.getElementById('img-ocr-empty');
+  var imgOcrTextDisplay = document.getElementById('img-ocr-text-display');
+  var imgCopyTextBtn = document.getElementById('img-copy-text-btn');
+  var imgSendToAnalyzerBtn = document.getElementById('img-send-to-analyzer-btn');
+  var imgUrlsEmpty = document.getElementById('img-urls-empty');
+  var imgUrlsTableWrapper = document.getElementById('img-urls-table-wrapper');
+  var imgUrlsTbody = document.getElementById('img-urls-tbody');
+  var imgFindingsList = document.getElementById('img-findings-list');
+  var optImageOcr = document.getElementById('opt-image-ocr');
+
+  function loadScriptOnce(src) {
+    return new Promise(function (resolve, reject) {
+      var existing = document.querySelector('script[src="' + src + '"]');
+      if (existing) {
+        if (existing.dataset.loaded === 'true') {
+          return resolve();
+        }
+        existing.addEventListener('load', function () { resolve(); });
+        existing.addEventListener('error', function (err) { reject(err); });
+        return;
+      }
+      var script = document.createElement('script');
+      script.src = src;
+      script.async = true;
+      script.addEventListener('load', function () {
+        script.dataset.loaded = 'true';
+        resolve();
+      });
+      script.addEventListener('error', function () {
+        reject(new Error('Failed to load self-hosted library: ' + src));
+      });
+      document.head.appendChild(script);
+    });
+  }
+
+  function ensureVendorLibrariesLoaded() {
+    var promises = [];
+    if (!isJsQRLoaded) {
+      if (!jsQRLoadPromise) {
+        jsQRLoadPromise = loadScriptOnce('/vendor/jsqr/jsQR.js').then(function () {
+          isJsQRLoaded = true;
+        });
+      }
+      promises.push(jsQRLoadPromise);
+    }
+    if (!isTesseractLoaded) {
+      if (!tesseractLoadPromise) {
+        tesseractLoadPromise = loadScriptOnce('/vendor/tesseract/tesseract.min.js').then(function () {
+          isTesseractLoaded = true;
+        });
+      }
+      promises.push(tesseractLoadPromise);
+    }
+    return Promise.all(promises);
+  }
+
+  function validateImageMagicBytes(file) {
+    return new Promise(function (resolve) {
+      if (!file) {
+        return resolve({ valid: false, error: 'No file provided.' });
+      }
+      var MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+      if (file.size > MAX_SIZE) {
+        var sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        return resolve({
+          valid: false,
+          error: `File size (${sizeMb} MB) exceeds maximum allowed limit of 5 MB.`
+        });
+      }
+      if (file.size < 8) {
+        return resolve({ valid: false, error: 'File is too small or corrupted.' });
+      }
+
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var buffer = e.target.result;
+        var bytes = new Uint8Array(buffer);
+        // PNG: 89 50 4E 47
+        var isPng = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47;
+        // JPEG: FF D8 FF
+        var isJpg = bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF;
+
+        if (isPng || isJpg) {
+          resolve({ valid: true, type: isPng ? 'PNG' : 'JPEG' });
+        } else {
+          resolve({
+            valid: false,
+            error: 'Invalid file format: File content does not match PNG or JPEG magic bytes signature.'
+          });
+        }
+      };
+      reader.onerror = function () {
+        resolve({ valid: false, error: 'Failed to read file contents for magic bytes verification.' });
+      };
+      reader.readAsArrayBuffer(file.slice(0, 16));
+    });
+  }
+
+  function loadImageToCanvas(file) {
+    return new Promise(function (resolve, reject) {
+      var objectUrl = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var w = img.naturalWidth || img.width;
+        var h = img.naturalHeight || img.height;
+        var maxDim = Math.max(w, h);
+        var targetW = w;
+        var targetH = h;
+        // Downscale large images (max 1600px longest dimension) to preserve memory and speed
+        if (maxDim > 1600) {
+          var scale = 1600 / maxDim;
+          targetW = Math.round(w * scale);
+          targetH = Math.round(h * scale);
+        }
+
+        var canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        var ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        resolve({
+          canvas: canvas,
+          ctx: ctx,
+          width: targetW,
+          height: targetH,
+          originalWidth: w,
+          originalHeight: h,
+          objectUrl: objectUrl
+        });
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Failed to decode image pixels into canvas.'));
+      };
+      img.src = objectUrl;
+    });
+  }
+
+  function scanQrCode(canvas, ctx, width, height) {
+    try {
+      if (typeof window.jsQR !== 'function') {
+        return null;
+      }
+      var imageData = ctx.getImageData(0, 0, width, height);
+      var code = window.jsQR(imageData.data, width, height, {
+        inversionAttempts: 'attemptBoth'
+      });
+      return code ? code.data : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function runOcrOnCanvas(canvas, onProgress) {
+    return new Promise(function (resolve, reject) {
+      if (!window.Tesseract) {
+        return reject(new Error('Tesseract.js OCR library is not available.'));
+      }
+
+      var isTerminated = false;
+      var worker = null;
+
+      // 30s timeout
+      var timeoutId = setTimeout(function () {
+        if (!isTerminated && worker) {
+          isTerminated = true;
+          worker.terminate().catch(function () {});
+          reject(new Error('OCR recognition timed out after 30 seconds.'));
+        }
+      }, 30000);
+
+      window.Tesseract.createWorker(['eng'], 1, {
+        workerPath: '/vendor/tesseract/worker.min.js',
+        corePath: '/vendor/tesseract/tesseract-core-simd-lstm.wasm.js',
+        langPath: '/vendor/tesseract',
+        gzip: true,
+        logger: function (m) {
+          if (isTerminated) return;
+          if (typeof onProgress === 'function') {
+            onProgress(m);
+          }
+        }
+      }).then(function (w) {
+        if (isTerminated) {
+          w.terminate().catch(function () {});
+          return;
+        }
+        worker = w;
+        currentOcrWorker = w;
+        return worker.recognize(canvas);
+      }).then(function (res) {
+        clearTimeout(timeoutId);
+        currentOcrWorker = null;
+        if (isTerminated) return;
+        isTerminated = true;
+        if (worker) {
+          worker.terminate().catch(function () {});
+        }
+        var text = (res && res.data && res.data.text) ? res.data.text.trim() : '';
+        var confidence = (res && res.data && typeof res.data.confidence === 'number') ? res.data.confidence : 0;
+        resolve({ text: text, confidence: confidence });
+      }).catch(function (err) {
+        clearTimeout(timeoutId);
+        currentOcrWorker = null;
+        if (isTerminated) return;
+        isTerminated = true;
+        if (worker) {
+          worker.terminate().catch(function () {});
+        }
+        reject(err);
+      });
+    });
+  }
+
+  function showImageAlert(msg, type = 'danger') {
+    if (!imgAlertBox) return;
+    imgAlertBox.textContent = msg;
+    imgAlertBox.className = `alert alert-${type}`;
+    imgAlertBox.classList.remove('hidden');
+  }
+
+  function hideImageAlert() {
+    if (!imgAlertBox) return;
+    imgAlertBox.textContent = '';
+    imgAlertBox.classList.add('hidden');
+  }
+
+  function updateImageProgress(pct, statusText) {
+    if (typeof pct === 'number' && imgProgressPercent && imgProgressFill) {
+      var clamped = Math.max(0, Math.min(100, pct));
+      imgProgressPercent.textContent = `${clamped}%`;
+      imgProgressFill.style.width = `${clamped}%`;
+    }
+    if (statusText && imgProgressStatusText) {
+      imgProgressStatusText.textContent = statusText;
+    }
+  }
+
+  async function handleImageFileSelection(file) {
+    if (!file) return;
+    hideImageAlert();
+    if (imgReportContainer) imgReportContainer.classList.add('hidden');
+
+    var validation = await validateImageMagicBytes(file);
+    if (!validation.valid) {
+      showImageAlert(validation.error, 'danger');
+      if (imgPreviewBox) imgPreviewBox.classList.add('hidden');
+      selectedImageFile = null;
+      if (imgFileInput) imgFileInput.value = '';
+      return;
+    }
+
+    selectedImageFile = file;
+
+    if (currentImageObjectUrl) {
+      URL.revokeObjectURL(currentImageObjectUrl);
+    }
+    currentImageObjectUrl = URL.createObjectURL(file);
+
+    if (imgThumb) {
+      imgThumb.src = currentImageObjectUrl;
+    }
+
+    var sizeKb = (file.size / 1024).toFixed(1);
+    var imgTemp = new Image();
+    imgTemp.onload = function () {
+      if (imgMetaText) {
+        imgMetaText.textContent = `${file.name} (${sizeKb} KB) — ${imgTemp.naturalWidth} × ${imgTemp.naturalHeight} px (${validation.type})`;
+      }
+    };
+    imgTemp.src = currentImageObjectUrl;
+
+    if (imgPreviewBox) imgPreviewBox.classList.remove('hidden');
+    // Lazy-load vendor libraries in background while user views preview
+    ensureVendorLibrariesLoaded().catch(function () {});
+  }
+
+  function renderImageAnalysisReport(analysisData, ocrText, ocrConfidence, qrContent) {
+    if (!imgReportContainer) return;
+
+    // Verdict
+    var classification = analysisData.classification || 'Safe';
+    if (imgVerdictBadge) {
+      imgVerdictBadge.textContent = classification;
+      imgVerdictBadge.className = 'badge verdict-badge verdict-' + classification.toLowerCase();
+    }
+
+    if (imgRiskScoreVal) {
+      imgRiskScoreVal.textContent = `${analysisData.risk_score.toFixed(1)} / 100`;
+    }
+
+    if (imgOcrConfVal) {
+      imgOcrConfVal.textContent = `${ocrConfidence.toFixed(1)}%`;
+    }
+
+    if (imgModelConfVal) {
+      var modelConf = analysisData.model ? (analysisData.model.confidence * 100).toFixed(1) : '0.0';
+      imgModelConfVal.textContent = `${modelConf}%`;
+    }
+
+    // QR Code
+    if (qrContent) {
+      if (imgQrEmpty) imgQrEmpty.classList.add('hidden');
+      if (imgQrContentBox) imgQrContentBox.classList.remove('hidden');
+      if (imgCopyQrBtn) imgCopyQrBtn.classList.remove('hidden');
+      if (imgQrTextVal) imgQrTextVal.textContent = qrContent;
+    } else {
+      if (imgQrEmpty) imgQrEmpty.classList.remove('hidden');
+      if (imgQrContentBox) imgQrContentBox.classList.add('hidden');
+      if (imgCopyQrBtn) imgCopyQrBtn.classList.add('hidden');
+      if (imgQrTextVal) imgQrTextVal.textContent = '';
+    }
+
+    // Extracted OCR text
+    if (ocrText && ocrText.trim()) {
+      if (imgOcrEmpty) imgOcrEmpty.classList.add('hidden');
+      if (imgOcrTextDisplay) {
+        imgOcrTextDisplay.classList.remove('hidden');
+        imgOcrTextDisplay.textContent = ocrText;
+      }
+    } else {
+      if (imgOcrEmpty) imgOcrEmpty.classList.remove('hidden');
+      if (imgOcrTextDisplay) {
+        imgOcrTextDisplay.classList.add('hidden');
+        imgOcrTextDisplay.textContent = '';
+      }
+    }
+
+    // Extracted URLs
+    while (imgUrlsTbody && imgUrlsTbody.firstChild) {
+      imgUrlsTbody.removeChild(imgUrlsTbody.firstChild);
+    }
+
+    var urls = analysisData.urls || [];
+    if (urls.length > 0 && imgUrlsTbody) {
+      urls.forEach(function (uObj) {
+        var tr = document.createElement('tr');
+        var tdUrl = document.createElement('td');
+        var codeEl = document.createElement('code');
+        codeEl.textContent = uObj.url;
+        tdUrl.appendChild(codeEl);
+
+        var tdFlags = document.createElement('td');
+        var flags = uObj.flags || [];
+        if (flags.length === 0) {
+          var cleanBadge = document.createElement('span');
+          cleanBadge.className = 'badge badge-safe';
+          cleanBadge.textContent = 'benign';
+          tdFlags.appendChild(cleanBadge);
+        } else {
+          flags.forEach(function (f) {
+            var fBadge = document.createElement('span');
+            fBadge.className = 'badge badge-warn';
+            fBadge.textContent = f;
+            tdFlags.appendChild(fBadge);
+          });
+        }
+
+        tr.appendChild(tdUrl);
+        tr.appendChild(tdFlags);
+        imgUrlsTbody.appendChild(tr);
+      });
+
+      if (imgUrlsEmpty) imgUrlsEmpty.classList.add('hidden');
+      if (imgUrlsTableWrapper) imgUrlsTableWrapper.classList.remove('hidden');
+    } else {
+      if (imgUrlsEmpty) imgUrlsEmpty.classList.remove('hidden');
+      if (imgUrlsTableWrapper) imgUrlsTableWrapper.classList.add('hidden');
+    }
+
+    // Key findings
+    while (imgFindingsList && imgFindingsList.firstChild) {
+      imgFindingsList.removeChild(imgFindingsList.firstChild);
+    }
+    var findings = analysisData.key_findings || [];
+    if (imgFindingsList) {
+      findings.forEach(function (fText) {
+        var li = document.createElement('li');
+        li.textContent = fText;
+        imgFindingsList.appendChild(li);
+      });
+    }
+  }
+
+  async function startImageThreatAnalysis() {
+    if (!selectedImageFile) {
+      showImageAlert('Please select an image file first.', 'danger');
+      return;
+    }
+
+    isAnalysisCancelled = false;
+    hideImageAlert();
+    if (imgReportContainer) imgReportContainer.classList.add('hidden');
+    if (imgProgressBox) imgProgressBox.classList.remove('hidden');
+    if (imgStartScanBtn) imgStartScanBtn.disabled = true;
+
+    updateImageProgress(5, 'Loading vision engine (WASM & OCR)...');
+
+    var timeoutSeconds = 30;
+    if (imgProgressTimerText) imgProgressTimerText.textContent = `Timeout limit: ${timeoutSeconds}s`;
+
+    var timerInterval = setInterval(function () {
+      timeoutSeconds--;
+      if (imgProgressTimerText) {
+        imgProgressTimerText.textContent = `Timeout limit: ${timeoutSeconds}s`;
+      }
+      if (timeoutSeconds <= 0) {
+        clearInterval(timerInterval);
+      }
+    }, 1000);
+
+    var imgCanvasData = null;
+
+    try {
+      // 1. Ensure vendor libraries are loaded
+      await ensureVendorLibrariesLoaded();
+      if (isAnalysisCancelled) throw new Error('Analysis cancelled by user.');
+
+      updateImageProgress(20, 'Preparing downscaled image canvas...');
+
+      // 2. Load to off-screen canvas & downscale
+      imgCanvasData = await loadImageToCanvas(selectedImageFile);
+      if (isAnalysisCancelled) throw new Error('Analysis cancelled by user.');
+
+      updateImageProgress(30, 'Scanning for embedded QR codes...');
+
+      // 3. Scan QR code
+      var qrContent = scanQrCode(imgCanvasData.canvas, imgCanvasData.ctx, imgCanvasData.width, imgCanvasData.height);
+      if (isAnalysisCancelled) throw new Error('Analysis cancelled by user.');
+
+      updateImageProgress(40, 'Executing OCR character recognition...');
+
+      // 4. Run Tesseract OCR with progress updates
+      var ocrResult = await runOcrOnCanvas(imgCanvasData.canvas, function (m) {
+        if (isAnalysisCancelled) return;
+        if (m.status === 'recognizing text' && typeof m.progress === 'number') {
+          var mappedPct = 40 + Math.round(m.progress * 45); // 40% to 85%
+          updateImageProgress(mappedPct, `Extracting text (${Math.round(m.progress * 100)}%)...`);
+        } else if (m.status) {
+          updateImageProgress(null, m.status);
+        }
+      });
+
+      if (isAnalysisCancelled) throw new Error('Analysis cancelled by user.');
+
+      var ocrText = ocrResult.text || '';
+      var ocrConfidence = ocrResult.confidence || 0;
+
+      updateImageProgress(90, 'Evaluating threat indicators & NLP signals...');
+
+      // 5. Submit to backend /api/analyze
+      var combinedText = ocrText;
+      if (qrContent) {
+        combinedText += (combinedText ? '\n\n' : '') + '[Decoded QR Code]: ' + qrContent;
+      }
+
+      var analysisData = null;
+      if (!combinedText.trim()) {
+        // Plain benign image with zero text and zero QR code
+        analysisData = {
+          model: { label: 'ham', probability: 0.0, confidence: 0.99, uncertain: false },
+          risk_score: 0.0,
+          classification: 'Safe',
+          indicators: [],
+          key_findings: [
+            'Clean image: Zero text, phishing lures, or suspicious QR codes detected.',
+            'OCR scan detected no extractable character data.'
+          ],
+          urls: [],
+          top_tokens: [],
+          vocab_coverage: 100.0,
+          sensitivity: 'medium'
+        };
+      } else {
+        var sensSelect = document.getElementById('analyzer-sensitivity-select');
+        var sens = sensSelect ? sensSelect.value : 'medium';
+        var resp = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: combinedText,
+            options: {
+              scan_urls: true,
+              analyze_headers: false,
+              sensitivity: sens
+            }
+          })
+        });
+
+        if (!resp.ok) {
+          var errJson = await resp.json().catch(function () { return {}; });
+          throw new Error(errJson.error && errJson.error.message ? errJson.error.message : `Server returned error ${resp.status}`);
+        }
+        analysisData = await resp.json();
+      }
+
+      if (isAnalysisCancelled) throw new Error('Analysis cancelled by user.');
+
+      updateImageProgress(100, 'Scan complete!');
+      clearInterval(timerInterval);
+
+      // 6. Render report and record to IndexedDB
+      renderImageAnalysisReport(analysisData, ocrText, ocrConfidence, qrContent);
+
+      if (imgProgressBox) imgProgressBox.classList.add('hidden');
+      if (imgReportContainer) imgReportContainer.classList.remove('hidden');
+
+      // Save scan to IndexedDB
+      var previewSubject = 'Image: ' + (ocrText.slice(0, 40).replace(/\n/g, ' ') || (qrContent ? qrContent.slice(0, 40) : '') || selectedImageFile.name);
+      await saveScanRecord({
+        timestamp: Date.now(),
+        subject: previewSubject,
+        verdict: analysisData.classification,
+        riskScore: analysisData.risk_score,
+        sourceType: 'image'
+      });
+      await updateDashboardUI();
+      showToast('Image threat analysis complete', 'success');
+
+    } catch (err) {
+      clearInterval(timerInterval);
+      if (imgProgressBox) imgProgressBox.classList.add('hidden');
+      if (isAnalysisCancelled) {
+        showImageAlert('Image analysis was cancelled.', 'info');
+      } else {
+        showImageAlert(err.message || 'Image threat analysis failed.', 'danger');
+      }
+    } finally {
+      if (timerInterval) clearInterval(timerInterval);
+      if (imgStartScanBtn) imgStartScanBtn.disabled = false;
+      if (imgCanvasData && imgCanvasData.objectUrl) {
+        URL.revokeObjectURL(imgCanvasData.objectUrl);
+      }
+      currentOcrWorker = null;
+    }
+  }
+
+  async function processImageForAnalyzer(file) {
+    if (!file) return;
+    try {
+      showToast('Processing image with OCR...', 'info');
+      var val = await validateImageMagicBytes(file);
+      if (!val.valid) {
+        bodyError.textContent = val.error;
+        bodyError.classList.remove('hidden');
+        showToast(val.error, 'error');
+        return;
+      }
+      await ensureVendorLibrariesLoaded();
+      var imgData = await loadImageToCanvas(file);
+      var qrContent = scanQrCode(imgData.canvas, imgData.ctx, imgData.width, imgData.height);
+      var ocrResult = await runOcrOnCanvas(imgData.canvas, function (m) {
+        if (m.status === 'recognizing text' && typeof m.progress === 'number') {
+          showToast(`OCR extracting: ${Math.round(m.progress * 100)}%`, 'info');
+        }
+      });
+      if (imgData.objectUrl) URL.revokeObjectURL(imgData.objectUrl);
+
+      var ocrText = ocrResult.text || '';
+      var combined = ocrText;
+      if (qrContent) {
+        combined += (combined ? '\n\n' : '') + '[Decoded QR Code]: ' + qrContent;
+      }
+
+      if (!combined.trim()) {
+        bodyError.textContent = 'No text or QR codes were detected in the image.';
+        bodyError.classList.remove('hidden');
+        showToast('No text detected in image', 'warn');
+        return;
+      }
+
+      bodyInput.value = combined;
+      updateCharCount();
+      bodyError.classList.add('hidden');
+      showToast('Image OCR extracted successfully', 'success');
+      handleFormSubmit();
+    } catch (err) {
+      bodyError.textContent = 'Image OCR failed: ' + err.message;
+      bodyError.classList.remove('hidden');
+      showToast('Image processing failed: ' + err.message, 'error');
+    }
+  }
+
+  function initImageAnalysisModule() {
+    if (imgDropZone) {
+      ['dragenter', 'dragover'].forEach(function (ev) {
+        imgDropZone.addEventListener(ev, function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          imgDropZone.classList.add('drag-over');
+          if (imgDropOverlay) imgDropOverlay.classList.remove('hidden');
+        });
+      });
+
+      ['dragleave', 'dragend'].forEach(function (ev) {
+        imgDropZone.addEventListener(ev, function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          imgDropZone.classList.remove('drag-over');
+          if (imgDropOverlay) imgDropOverlay.classList.add('hidden');
+        });
+      });
+
+      imgDropZone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        imgDropZone.classList.remove('drag-over');
+        if (imgDropOverlay) imgDropOverlay.classList.add('hidden');
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          handleImageFileSelection(e.dataTransfer.files[0]);
+        }
+      });
+    }
+
+    if (imgBrowseBtn && imgFileInput) {
+      imgBrowseBtn.addEventListener('click', function () {
+        imgFileInput.click();
+      });
+
+      imgFileInput.addEventListener('change', function () {
+        if (imgFileInput.files && imgFileInput.files.length > 0) {
+          handleImageFileSelection(imgFileInput.files[0]);
+        }
+      });
+    }
+
+    if (imgClearSelectionBtn) {
+      imgClearSelectionBtn.addEventListener('click', function () {
+        selectedImageFile = null;
+        if (currentImageObjectUrl) {
+          URL.revokeObjectURL(currentImageObjectUrl);
+          currentImageObjectUrl = null;
+        }
+        if (imgThumb) imgThumb.src = '';
+        if (imgPreviewBox) imgPreviewBox.classList.add('hidden');
+        if (imgReportContainer) imgReportContainer.classList.add('hidden');
+        hideImageAlert();
+        if (imgFileInput) imgFileInput.value = '';
+      });
+    }
+
+    if (imgStartScanBtn) {
+      imgStartScanBtn.addEventListener('click', function () {
+        startImageThreatAnalysis();
+      });
+    }
+
+    if (imgCancelScanBtn) {
+      imgCancelScanBtn.addEventListener('click', function () {
+        isAnalysisCancelled = true;
+        if (currentOcrWorker) {
+          currentOcrWorker.terminate().catch(function () {});
+          currentOcrWorker = null;
+        }
+        if (imgProgressBox) imgProgressBox.classList.add('hidden');
+        if (imgStartScanBtn) imgStartScanBtn.disabled = false;
+        showImageAlert('Image analysis was cancelled by user.', 'info');
+        showToast('Image scan cancelled', 'info');
+      });
+    }
+
+    if (imgCopyTextBtn && imgOcrTextDisplay) {
+      imgCopyTextBtn.addEventListener('click', function () {
+        var t = imgOcrTextDisplay.textContent || '';
+        if (!t) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(t).then(function () {
+            showToast('OCR text copied to clipboard', 'success');
+          }).catch(function () {
+            fallbackCopyText(t);
+          });
+        } else {
+          fallbackCopyText(t);
+        }
+      });
+    }
+
+    if (imgCopyQrBtn && imgQrTextVal) {
+      imgCopyQrBtn.addEventListener('click', function () {
+        var q = imgQrTextVal.textContent || '';
+        if (!q) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(q).then(function () {
+            showToast('QR code content copied to clipboard', 'success');
+          }).catch(function () {
+            fallbackCopyText(q);
+          });
+        } else {
+          fallbackCopyText(q);
+        }
+      });
+    }
+
+    if (imgSendToAnalyzerBtn && imgOcrTextDisplay) {
+      imgSendToAnalyzerBtn.addEventListener('click', function () {
+        var t = imgOcrTextDisplay.textContent || '';
+        if (!t) return;
+        bodyInput.value = t;
+        updateCharCount();
+        window.location.hash = '#/analyzer';
+        showToast('Transferred OCR text to Email Analyzer', 'info');
+      });
+    }
+
+    // OCR Toggle in Email Analyzer
+    if (optImageOcr) {
+      try {
+        var savedOcr = localStorage.getItem('mailguard_opt_image_ocr');
+        if (savedOcr === 'true') {
+          optImageOcr.checked = true;
+          if (filePickerInput) {
+            filePickerInput.accept = '.eml,.txt,.msg,.png,.jpg,.jpeg';
+          }
+        }
+      } catch (e) {}
+
+      optImageOcr.addEventListener('change', function () {
+        try {
+          localStorage.setItem('mailguard_opt_image_ocr', optImageOcr.checked ? 'true' : 'false');
+        } catch (e) {}
+        if (filePickerInput) {
+          filePickerInput.accept = optImageOcr.checked ? '.eml,.txt,.msg,.png,.jpg,.jpeg' : '.eml,.txt,.msg';
+        }
+        if (optImageOcr.checked) {
+          ensureVendorLibrariesLoaded().catch(function () {});
+          showToast('Image OCR & QR enabled in analyzer', 'info');
+        }
+      });
+    }
+  }
+
+  // --------------------------------------------------------------------------
   // App Shell & Hash-Based Routing (Phase 12A)
   // --------------------------------------------------------------------------
 
@@ -2675,6 +3461,8 @@
       updateDashboardUI();
     } else if (rawHash === '#/reports') {
       renderReportsUI();
+    } else if (rawHash === '#/image-analysis') {
+      ensureVendorLibrariesLoaded().catch(function () {});
     }
   }
 
@@ -2686,6 +3474,9 @@
 
     // Initialize reports view event listeners
     initReportsEventListeners();
+
+    // Initialize image threat analysis module
+    initImageAnalysisModule();
 
     // Mobile menu toggle button
     if (mobileMenuBtn) {

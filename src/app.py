@@ -88,15 +88,26 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
     # Security Headers Hook
     @app.after_request
     def set_security_headers(response):
-        """Inject strict security and privacy headers into every response."""
+        """Inject strict security and privacy headers into every response.
+
+        CSP Rationale (Phase 12F Image OCR & Threat Analysis):
+        - worker-src 'self' blob: allows self-hosted Tesseract worker and Blob-URL worker initialization.
+        - script-src 'self' 'wasm-unsafe-eval': W3C CSP Level 3 standard allowing WebAssembly compilation
+          while strictly prohibiting JavaScript 'eval' or inline scripts.
+        - connect-src 'self' blob: allows fetching self-hosted wasm cores and traineddata.
+        - img-src 'self' data: blob: allows previewing dropped image files via URL.createObjectURL.
+        - Zero external CDNs allowed; zero 'unsafe-inline' or 'unsafe-eval' permitted.
+        """
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "style-src 'self'; "
-            "script-src 'self'; "
-            "img-src 'self' data:; "
+            "script-src 'self' 'wasm-unsafe-eval'; "
+            "worker-src 'self' blob:; "
+            "connect-src 'self' blob:; "
+            "img-src 'self' data: blob:; "
             "font-src 'self'; "
             "frame-ancestors 'none';"
         )
