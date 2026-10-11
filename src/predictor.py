@@ -10,10 +10,10 @@ Phase 6: Predictor Implementation
 - Safe terminology: "Likely legitimate" for ham (never "safe" or "100%").
 """
 
+import hashlib
 import json
 import logging
 from pathlib import Path
-import pickle
 from typing import Any, Dict, List, Optional
 import warnings
 
@@ -47,6 +47,7 @@ except Exception:
 
 from src.config import (
     METADATA_PATH,
+    MODEL_EXPECTED_SHA256,
     MODEL_PATH,
 )
 from src.preprocessing import clean_text_for_nlp, combine_email, tokenize_text
@@ -70,6 +71,15 @@ def is_stopword_term(term: str) -> bool:
     return False
 
 
+def compute_file_sha256(filepath: Path) -> str:
+    """Compute lowercase hex SHA-256 checksum of a file in 64 KB blocks."""
+    sha = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            sha.update(chunk)
+    return sha.hexdigest().lower()
+
+
 class SpamPredictor:
     """Production predictor wrapping trained scikit-learn pipeline and metadata."""
 
@@ -77,16 +87,18 @@ class SpamPredictor:
         self,
         model_path: Path = MODEL_PATH,
         metadata_path: Path = METADATA_PATH,
+        expected_sha256: Optional[str] = None,
     ):
         self.model_path = model_path
         self.metadata_path = metadata_path
+        self.expected_sha256 = expected_sha256
         self.pipeline: Optional[Pipeline] = None
         self.metadata: Dict[str, Any] = {}
         self.load_count: int = 0
         self._load_artifacts()
 
     def _load_artifacts(self) -> None:
-        """Load pipeline artifact and metadata once, checking version compatibility."""
+        """Load pipeline artifact and metadata once, checking version compatibility and SHA-256 integrity."""
         # 1. Load Metadata
         metadata_filename = Path(self.metadata_path).name
         if self.metadata_path.exists():
@@ -112,13 +124,33 @@ class SpamPredictor:
             warnings.warn(warn_msg, RuntimeWarning)
             logger.warning(warn_msg)
 
-        # 2. Load Pipeline Artifact
+        # 2. Check Model Artifact Existence
         model_filename = Path(self.model_path).name
         if not self.model_path.exists():
             raise FileNotFoundError(
                 f"Model artifact not found: {model_filename}. "
                 f"Ensure models/{model_filename} exists."
             )
+
+        # 3. Model Integrity Verification (SHA-256)
+        # Determine expected hash: explicit argument > metadata.json > committed constant
+        resolved_expected = (
+            self.expected_sha256
+            or self.metadata.get("model_sha256")
+            or (MODEL_EXPECTED_SHA256 if Path(self.model_path).resolve() == Path(MODEL_PATH).resolve() else None)
+        )
+
+        if resolved_expected:
+            actual_hash = compute_file_sha256(self.model_path)
+            if actual_hash.lower() != resolved_expected.lower():
+                err_msg = (
+                    f"Model integrity verification failed for {model_filename}! "
+                    f"Expected SHA-256: {resolved_expected.lower()}, got: {actual_hash}. "
+                    "Refusing to load untrusted or tampered model artifact."
+                )
+                logger.error(err_msg)
+                raise ValueError(err_msg)
+            logger.info(f"Model integrity verified (SHA-256: {actual_hash[:12]}...).")
 
         logger.info(f"Loading model pipeline from {model_filename}... ")
         self.pipeline = joblib.load(self.model_path)

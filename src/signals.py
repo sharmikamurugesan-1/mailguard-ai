@@ -241,8 +241,8 @@ def _extract_domain(url_or_text: str) -> Optional[str]:
         parsed = urllib.parse.urlparse(candidate)
         if parsed.netloc:
             return _normalize_hostname(parsed.netloc)
-    except Exception:
-        pass
+    except (ValueError, AttributeError):
+        return None
     return None
 
 

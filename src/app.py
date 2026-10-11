@@ -324,7 +324,8 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
 
         # Sanitize to ensure no local paths are leaked
         raw_str = json.dumps(info)
-        assert "\\" not in raw_str and "C:" not in raw_str and "/Users/" not in raw_str, "Path leak in model-info"
+        if "\\" in raw_str or "C:" in raw_str or "/Users/" in raw_str:
+            raise RuntimeError("Path leak detected in model-info response")
 
         return jsonify(info), 200
 

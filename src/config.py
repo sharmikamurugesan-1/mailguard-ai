@@ -39,10 +39,16 @@ MIN_TOKEN_COUNT = int(os.getenv("MIN_TOKEN_COUNT", "10"))
 MIN_VOCAB_COVERAGE = float(os.getenv("MIN_VOCAB_COVERAGE", "0.50"))
 
 # Server & Security Settings
-HOST = os.getenv("HOST", "0.0.0.0")
+HOST = os.getenv("HOST", "0.0.0.0")  # nosec B104
 PORT = int(os.getenv("PORT", "5000"))
 DEBUG = os.getenv("FLASK_DEBUG", "0").lower() in ("1", "true", "yes")
 MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", str(2 * 1024 * 1024)))  # 2 MB payload limit
 MAX_INPUT_CHARS = int(os.getenv("MAX_INPUT_CHARS", "20000"))  # 20k characters text limit
+
+# Model Integrity (SHA-256)
+MODEL_EXPECTED_SHA256 = os.getenv(
+    "MODEL_EXPECTED_SHA256",
+    "453414c9bb3889c1cc2402ee26473e6d74bf7e7a78cef26eac24da2d8ddfc9f8",
+)
 
 

@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 import json
 import logging
 from pathlib import Path
-import pickle
+import pickle  # nosec B403
 from typing import Any, Dict, List, Tuple
 
 import joblib
@@ -388,7 +388,7 @@ def run_evaluation_and_save() -> None:
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving winning pipeline to {MODEL_PKL_PATH}...")
     with open(MODEL_PKL_PATH, "wb") as f:
-        pickle.dump(winner_pipeline, f)
+        pickle.dump(winner_pipeline, f)  # nosec B301
 
     logger.info(f"Saving joblib mirror to {MODEL_PATH}...")
     joblib.dump(winner_pipeline, MODEL_PATH)

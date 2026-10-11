@@ -15,6 +15,7 @@
   "language": "en",
   "trained_at": "2026-10-07T14:34:49.307108+00:00",
   "sklearn_version": "1.9.1",
+  "model_sha256": "453414c9bb3889c1cc2402ee26473e6d74bf7e7a78cef26eac24da2d8ddfc9f8",
   "selection_criterion": "Spam precision >= 0.98 first, then highest recall on spam, then F1 score. Never select by accuracy alone.",
   "selection_basis": "5-Fold Stratified Cross-Validation on TRAIN set",
   "selected_model": "Calibrated Linear SVM",
