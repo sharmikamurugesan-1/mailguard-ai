@@ -532,4 +532,57 @@ def test_rate_limiting_ip_forwarded_for_separation():
     assert res_b.status_code == 200, f"Expected IP B to succeed (200), got {res_b.status_code}"
 
 
+def test_html_404_error_page(client):
+    """Browser request to non-existent route returns themed 404 HTML page."""
+    res = client.get("/non-existent-web-page", headers={"Accept": "text/html,application/xhtml+xml"})
+    assert res.status_code == 404
+    assert not res.is_json
+    html = res.get_data(as_text=True)
+    assert "404" in html
+    assert "Page Not Found" in html
+    assert "MailGuard AI" in html
+    assert "Return to Dashboard" in html
+
+
+def test_favicon_endpoints(client):
+    """Favicon ICO and SVG endpoints are served with proper content types."""
+    res_ico = client.get("/favicon.ico")
+    assert res_ico.status_code == 200
+    assert "image/vnd.microsoft.icon" in res_ico.content_type
+
+    res_svg = client.get("/favicon.svg")
+    assert res_svg.status_code == 200
+    assert "image/svg+xml" in res_svg.content_type
+
+
+def test_static_examples_dataset(client):
+    """GET /data/examples.json serves 7 validated examples with test domains."""
+    res = client.get("/data/examples.json")
+    assert res.status_code == 200
+    assert res.is_json
+    data = res.get_json()
+    assert isinstance(data, list)
+    assert len(data) == 7
+
+    categories = [ex["category"] for ex in data]
+    assert categories.count("spam") == 3
+    assert categories.count("safe") == 3
+    assert categories.count("borderline") == 1
+
+    for ex in data:
+        assert "id" in ex
+        assert "label" in ex
+        assert "subject" in ex
+        assert "body" in ex
+        # Ensure domains are strictly example.test to avoid real/defamatory targets
+        if "http" in ex["body"] or "@" in ex["body"]:
+            assert "example.test" in ex["body"]
+
+
+def test_og_preview_image(client):
+    """GET /img/og-preview.png serves valid PNG preview image."""
+    res = client.get("/img/og-preview.png")
+    assert res.status_code == 200
+    assert "image/png" in res.content_type
+    assert len(res.data) > 1000
 

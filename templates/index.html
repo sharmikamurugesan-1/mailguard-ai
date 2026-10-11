@@ -4,7 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MailGuard AI - AI-Powered Email Spam Detection</title>
-  <meta name="description" content="Portfolio-grade email spam classification system using NLP and calibrated machine learning models.">
+  <meta name="description" content="Portfolio-grade explainable email threat and spam classification platform using NLP and calibrated machine learning models.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="alternate icon" href="/favicon.ico">
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="MailGuard AI — Explainable Email Threat &amp; Spam Detection">
+  <meta property="og:description" content="AI-powered email security analysis with calibrated linear SVM classification, client-side vision OCR, and local-only telemetry.">
+  <meta property="og:image" content="/img/og-preview.png">
+  <meta property="og:url" content="https://mailguard.example.test">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MailGuard AI — Explainable Email Threat &amp; Spam Detection">
+  <meta name="twitter:description" content="AI-powered email security analysis with calibrated linear SVM classification, client-side vision OCR, and local-only telemetry.">
+  <meta name="twitter:image" content="/img/og-preview.png">
   <link rel="stylesheet" href="/css/style.css">
   <script src="/js/theme-init.js"></script>
 </head>
@@ -100,6 +113,7 @@
               <li><a href="#/features" class="top-nav-item" id="top-nav-features">Features</a></li>
               <li><a href="#/model-card" class="top-nav-item" id="top-nav-model-card">Model Card</a></li>
               <li><a href="#/docs" class="top-nav-item" id="top-nav-docs">Docs</a></li>
+              <li><a href="#/privacy" class="top-nav-item" id="top-nav-privacy">Privacy</a></li>
             </ul>
           </nav>
         </div>
@@ -380,8 +394,11 @@
 
                     <!-- Cold Start Slow Request Banner -->
                     <div class="alert alert-info hidden" id="waking-banner" role="status" aria-live="polite">
-                      <span class="spinner-small" aria-hidden="true"></span>
-                      <span>Server is processing request. Please wait...</span>
+                      <div class="waking-banner-inner">
+                        <span class="spinner-small" aria-hidden="true"></span>
+                        <span class="waking-banner-text">Waking up the server, this can take up to a minute on the free host</span>
+                      </div>
+                      <button type="button" class="btn btn-outline btn-xs" id="waking-retry-btn">Retry Connection</button>
                     </div>
 
                     <!-- Form Actions -->
@@ -1124,13 +1141,14 @@ print(response.json())</code></pre>
         <!-- VIEW 6: HOME (#/home)                                             -->
         <!-- ================================================================ -->
         <section class="view-panel hidden" id="view-home" role="tabpanel" aria-labelledby="top-nav-home">
+          <!-- Hero Section -->
           <div class="card home-hero-card">
             <div class="hero-content">
               <span class="badge badge-accent hero-badge">Next-Gen Email Protection</span>
               <h1 class="hero-headline">Smarter Email Security with <span class="text-coral-gradient">AI-Powered</span> Threat Detection</h1>
               <p class="hero-subtext">MailGuard AI analyzes your emails, detects spam, phishing, and suspicious vocabulary using calibrated machine learning and explainable feature contributions.</p>
               <div class="hero-actions">
-                <a href="#/analyzer" class="btn btn-primary">Get Started →</a>
+                <a href="#/analyzer" class="btn btn-primary btn-crimson">Open Full Analyzer →</a>
                 <a href="#/model-card" class="btn btn-outline">Explore Model Card</a>
               </div>
 
@@ -1159,41 +1177,285 @@ print(response.json())</code></pre>
               </div>
             </div>
           </div>
+
+          <!-- Quick-Analyze Sandbox Card -->
+          <div class="card home-quick-card" id="home-quick-card">
+            <div class="card-maroon-header">
+              <div class="card-header-icon" aria-hidden="true">⚡</div>
+              <div>
+                <h2 class="card-maroon-title">Quick Email Threat Scan</h2>
+                <p class="card-maroon-sub">Try synthetic attack samples or paste custom text for instant calibrated classification.</p>
+              </div>
+            </div>
+
+            <div class="card-body home-quick-body">
+              <!-- Try an Example Section -->
+              <div class="home-examples-section">
+                <div class="examples-header-row">
+                  <span class="examples-label"><span class="examples-icon" aria-hidden="true">🧪</span> Try an example:</span>
+                  <span class="examples-subtext">Safe synthetic samples (<code>example.test</code> domains)</span>
+                </div>
+                <div class="examples-chips-container" id="home-examples-chips" role="group" aria-label="Synthetic email examples">
+                  <!-- Populated dynamically from /data/examples.json with fallback -->
+                </div>
+              </div>
+
+              <!-- Quick Scan Input Form -->
+              <form id="home-quick-form" class="home-quick-form" novalidate>
+                <div class="form-group">
+                  <label for="home-quick-subject" class="form-label">Subject Line <span class="text-muted">(Optional)</span></label>
+                  <input type="text" id="home-quick-subject" class="form-input" placeholder="e.g., Urgent: Account Security Verification" maxlength="500">
+                </div>
+
+                <div class="form-group">
+                  <div class="label-with-meta">
+                    <label for="home-quick-text" class="form-label">Email Content <span class="required-indicator">*</span></label>
+                    <span class="char-count" id="home-quick-char-count">0 / 10,000</span>
+                  </div>
+                  <textarea id="home-quick-text" class="form-textarea" rows="4" placeholder="Paste email text here or select an example above..." maxlength="10000" required></textarea>
+                </div>
+
+                <div class="home-form-actions">
+                  <div class="home-action-buttons">
+                    <button type="submit" class="btn btn-primary btn-crimson" id="home-quick-analyze-btn">
+                      <span class="btn-icon" aria-hidden="true">🛡️</span> Quick Analyze
+                    </button>
+                    <button type="button" class="btn btn-outline" id="home-quick-clear-btn">Clear</button>
+                  </div>
+                  <span class="shortcut-tip"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> to analyze</span>
+                </div>
+              </form>
+
+              <!-- Cold-start Slow Request Banner -->
+              <div class="alert alert-info hidden" id="home-waking-banner" role="status" aria-live="polite">
+                <div class="waking-banner-inner">
+                  <span class="spinner-small" aria-hidden="true"></span>
+                  <span class="waking-banner-text">Waking up the server, this can take up to a minute on the free host</span>
+                </div>
+                <button type="button" class="btn btn-outline btn-xs" id="home-waking-retry-btn">Retry Connection</button>
+              </div>
+
+              <!-- Quick Analysis Result Area -->
+              <div class="home-quick-result-area" id="home-quick-result-area">
+                <!-- Skeleton Loading State -->
+                <div class="home-quick-skeleton hidden" id="home-quick-skeleton" aria-hidden="true">
+                  <div class="skeleton-line skeleton-title"></div>
+                  <div class="skeleton-row">
+                    <div class="skeleton-box"></div>
+                    <div class="skeleton-box"></div>
+                  </div>
+                  <div class="skeleton-line"></div>
+                </div>
+
+                <!-- Initial Empty State -->
+                <div class="home-quick-empty" id="home-quick-empty">
+                  <div class="empty-icon" aria-hidden="true">💡</div>
+                  <h3 class="empty-title">Ready for Quick Threat Analysis</h3>
+                  <p class="empty-text">Select one of the synthetic example chips above or paste email text to inspect real ML predictions, risk scoring, and key findings.</p>
+                </div>
+
+                <!-- Populated Result Card -->
+                <div class="home-quick-result-card hidden" id="home-quick-result-card" role="region" aria-label="Quick analysis result">
+                  <div class="quick-result-header">
+                    <div class="quick-result-verdict-box">
+                      <span class="verdict-label">Classification Verdict</span>
+                      <div class="verdict-badge-row">
+                        <span class="badge badge-lg" id="home-result-badge">Safe</span>
+                        <span class="uncertainty-pill hidden" id="home-result-uncertain">⚠️ Needs Review</span>
+                      </div>
+                    </div>
+                    <div class="quick-result-score-box">
+                      <span class="score-label">Risk Score</span>
+                      <div class="score-display">
+                        <span class="score-number" id="home-result-score">0</span>
+                        <span class="score-max">/ 100</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="quick-score-bar-track">
+                    <div class="quick-score-bar-fill" id="home-result-bar"></div>
+                  </div>
+
+                  <div class="quick-metrics-row">
+                    <div class="quick-metric">
+                      <span class="metric-name">Spam Probability</span>
+                      <span class="metric-val" id="home-result-prob">0.0%</span>
+                    </div>
+                    <div class="quick-metric">
+                      <span class="metric-name">Confidence</span>
+                      <span class="metric-val" id="home-result-conf">0.0%</span>
+                    </div>
+                    <div class="quick-metric">
+                      <span class="metric-name">Device Telemetry</span>
+                      <span class="metric-val text-success">Saved to IndexedDB</span>
+                    </div>
+                  </div>
+
+                  <!-- Key Findings List -->
+                  <div class="quick-findings-section" id="home-result-findings-sec">
+                    <h4 class="quick-findings-title">Key Findings</h4>
+                    <ul class="quick-findings-list" id="home-result-findings-list" role="list">
+                      <!-- Populated dynamically via textContent -->
+                    </ul>
+                  </div>
+
+                  <!-- Token Highlights Preview -->
+                  <div class="quick-tokens-section" id="home-result-tokens-sec">
+                    <h4 class="quick-findings-title">Top Explaining Signals</h4>
+                    <div class="quick-tokens-chips" id="home-result-tokens-chips">
+                      <!-- Populated dynamically via textContent -->
+                    </div>
+                  </div>
+
+                  <!-- Actions -->
+                  <div class="quick-result-footer">
+                    <button type="button" class="btn btn-primary btn-sm btn-crimson" id="home-open-analyzer-btn">
+                      Open in Full Analyzer &amp; View Headers →
+                    </button>
+                    <span class="quick-storage-note">Scan saved to your device only. Zero email content stored on server.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <!-- ================================================================ -->
         <!-- VIEW 7: FEATURES (#/features)                                     -->
         <!-- ================================================================ -->
         <section class="view-panel hidden" id="view-features" role="tabpanel" aria-labelledby="top-nav-features">
-          <div class="card placeholder-card">
+          <div class="card features-container-card">
             <div class="card-maroon-header">
               <div class="card-header-icon" aria-hidden="true">✨</div>
               <div>
-                <h1 class="card-maroon-title">Platform Features</h1>
-                <p class="card-maroon-sub">Key capabilities of the MailGuard AI threat classification platform.</p>
+                <h1 class="card-maroon-title">Platform Features &amp; Capabilities</h1>
+                <p class="card-maroon-sub">Active detection mechanisms, architecture components, and operational boundaries.</p>
               </div>
             </div>
             <div class="card-body">
+              <!-- Active Features Grid -->
               <div class="features-grid">
                 <div class="feature-card">
                   <span class="feature-icon" aria-hidden="true">🎯</span>
-                  <h3 class="feature-title">Calibrated Probabilities</h3>
-                  <p class="feature-desc">Unlike raw SVM hyperplane distances, Platt scaling produces genuine, calibrated probability estimates.</p>
-                </div>
-                <div class="feature-card">
-                  <span class="feature-icon" aria-hidden="true">⚖️</span>
-                  <h3 class="feature-title">Uncertainty Band Handling</h3>
-                  <p class="feature-desc">Predictions falling in the empirical [0.40, 0.60] boundary automatically flag as Needs Review for human verification.</p>
+                  <h2 class="feature-title">Calibrated Probabilities</h2>
+                  <p class="feature-desc">LinearSVC paired with Platt scaling (CalibratedClassifierCV) generates reliable, well-calibrated posterior probabilities rather than raw uncalibrated distances.</p>
                 </div>
                 <div class="feature-card">
                   <span class="feature-icon" aria-hidden="true">🔎</span>
-                  <h3 class="feature-title">In-Text Token Highlighting</h3>
-                  <p class="feature-desc">Spam-driving (▲) and legitimate-driving (▼) n-grams are highlighted directly in the email content with non-color cues.</p>
+                  <h2 class="feature-title">Explainable Token Cues</h2>
+                  <p class="feature-desc">In-text n-gram highlighting isolates spam-driving (▲) and legitimate-driving (▼) vocabulary with accessible, non-color-only directional indicators.</p>
                 </div>
                 <div class="feature-card">
-                  <span class="feature-icon" aria-hidden="true">🛡️</span>
-                  <h3 class="feature-title">Security & Privacy First</h3>
-                  <p class="feature-desc">Full CSP, zero innerHTML, self-hosted Poppins fonts, and complete client-side .eml and .txt parsing.</p>
+                  <span class="feature-icon" aria-hidden="true">✉️</span>
+                  <h2 class="feature-title">MIME Header Inspection</h2>
+                  <p class="feature-desc">Parses authentic .eml files via Python's standard email module, auditing SPF, DKIM, DMARC alignment, Received hop counts, and From vs. Reply-To mismatches.</p>
+                </div>
+                <div class="feature-card">
+                  <span class="feature-icon" aria-hidden="true">🔗</span>
+                  <h2 class="feature-title">Suspicious Link Heuristics</h2>
+                  <p class="feature-desc">Identifies IP-literal hosts, known URL shorteners, multiple redirect constructs, and credential phishing link patterns within email bodies.</p>
+                </div>
+                <div class="feature-card">
+                  <span class="feature-icon" aria-hidden="true">🖼️</span>
+                  <h2 class="feature-title">Client-Side Image OCR</h2>
+                  <p class="feature-desc">Zero-upload visual spam inspection powered by self-hosted Tesseract.js running WebAssembly in an isolated in-browser Web Worker.</p>
+                </div>
+                <div class="feature-card">
+                  <span class="feature-icon" aria-hidden="true">🔒</span>
+                  <h2 class="feature-title">Local-Only Analytics</h2>
+                  <p class="feature-desc">Scan telemetry resides strictly on the user's device in IndexedDB. Zero email text or telemetry is logged or persisted to backend servers.</p>
+                </div>
+              </div>
+
+              <!-- Scope & Boundaries: What this can and can't do -->
+              <div class="scope-comparison-card" id="scope-comparison-card">
+                <div class="scope-header">
+                  <span class="scope-header-icon" aria-hidden="true">⚖️</span>
+                  <div>
+                    <h2 class="scope-title">What MailGuard AI Can and Can't Do</h2>
+                    <p class="scope-subtext">Clear, honest operational boundaries ensuring transparency and realistic security expectations.</p>
+                  </div>
+                </div>
+
+                <div class="scope-comparison-grid">
+                  <!-- Column 1: What it CAN do -->
+                  <div class="scope-column scope-column-can">
+                    <div class="scope-col-header">
+                      <span class="scope-badge badge-can">✓ What It Can Do</span>
+                    </div>
+                    <ul class="scope-list" role="list">
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✓</span>
+                        <div>
+                          <strong>Calibrated Spam &amp; Phishing Classification:</strong> Accurately predicts whether email text is Safe, Suspicious, or Spam using trained TF-IDF distributions.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✓</span>
+                        <div>
+                          <strong>Explainable Feature Importance:</strong> Provides exact directional token weights showing which words increased or decreased the threat score.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✓</span>
+                        <div>
+                          <strong>Header Authentication Auditing:</strong> Checks SPF, DKIM, and DMARC alignment from raw uploaded .eml files.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✓</span>
+                        <div>
+                          <strong>Suspicious URL Flagging:</strong> Detects IP hosts, shorteners, and obfuscated destinations in email content.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✓</span>
+                        <div>
+                          <strong>100% In-Browser Vision OCR:</strong> Analyzes promotional screenshot text locally without sending image data over the network.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✓</span>
+                        <div>
+                          <strong>Private Device History:</strong> Stores scans in local IndexedDB with CSV/JSON exports and zero server-side logging.
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <!-- Column 2: What it CANNOT do -->
+                  <div class="scope-column scope-column-cannot">
+                    <div class="scope-col-header">
+                      <span class="scope-badge badge-cannot">✕ What It Cannot Do</span>
+                    </div>
+                    <ul class="scope-list" role="list">
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✕</span>
+                        <div>
+                          <strong>Spam detection only, not malware:</strong> Does not scan binary files, executable attachments, macros, or ZIP archives for malware, trojans, or ransomware payloads.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✕</span>
+                        <div>
+                          <strong>Not an automated mail filter:</strong> Does not integrate into mail exchange gateways (SMTP/IMAP/Exchange) or auto-quarantine incoming inbox mail. It is an on-demand analysis tool.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✕</span>
+                        <div>
+                          <strong>No user accounts or cloud storage:</strong> No user registration, remote database profiles, or cross-device cloud synchronization. All telemetry remains on your current device.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✕</span>
+                        <div>
+                          <strong>Not ground truth for zero-day phishing:</strong> ML predictions reflect learned corpus patterns. Unseen or heavily obfuscated attacks trigger the Suspicious uncertainty band and require human review.
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1746,11 +2008,125 @@ print(response.json())</code></pre>
           </div>
         </section>
 
+        <!-- ================================================================ -->
+        <!-- VIEW 10: PRIVACY & ARCHITECTURE (#/privacy, #/about)              -->
+        <!-- ================================================================ -->
+        <section class="view-panel hidden" id="view-privacy" role="tabpanel" aria-labelledby="top-nav-privacy">
+          <div class="card privacy-container-card">
+            <div class="card-maroon-header">
+              <div class="card-header-icon" aria-hidden="true">🔒</div>
+              <div>
+                <h1 class="card-maroon-title">Privacy &amp; Security Architecture</h1>
+                <p class="card-maroon-sub">Zero server-side persistence, local-only client storage, and auditable security guarantees.</p>
+              </div>
+            </div>
+
+            <div class="card-body privacy-body">
+              <!-- Grid of Policy Pillars -->
+              <div class="privacy-grid">
+                <!-- Pillar 1: In-Memory Processing -->
+                <div class="privacy-card">
+                  <div class="privacy-card-header">
+                    <span class="privacy-icon" aria-hidden="true">⚡</span>
+                    <h2 class="privacy-title">What is Processed</h2>
+                  </div>
+                  <p class="privacy-desc">
+                    When you submit text or email headers to <code>POST /api/analyze</code>, the payload is processed strictly in-memory during HTTP request execution.
+                  </p>
+                  <ul class="privacy-checklist" role="list">
+                    <li>Held in volatile RAM only to compute TF-IDF feature vectors and heuristic threat rules.</li>
+                    <li>Memory buffers are cleared immediately once the JSON response is delivered.</li>
+                    <li>Zero server background logging or disk caching of raw email bodies or headers.</li>
+                  </ul>
+                </div>
+
+                <!-- Pillar 2: Local-Only Storage -->
+                <div class="privacy-card">
+                  <div class="privacy-card-header">
+                    <span class="privacy-icon" aria-hidden="true">💾</span>
+                    <h2 class="privacy-title">What is Stored (Local Only)</h2>
+                  </div>
+                  <p class="privacy-desc">
+                    Scan telemetry and configuration exist exclusively within your browser's local sandbox.
+                  </p>
+                  <ul class="privacy-checklist" role="list">
+                    <li><strong>IndexedDB (mailguard_db):</strong> Scan timestamps, truncated subject snippets (&le;60 chars), risk scores, and verdicts.</li>
+                    <li><strong>localStorage:</strong> Sensitivity levels, URL scan options, header scan options, and visual theme.</li>
+                    <li><strong>User Control:</strong> Clear all history or export to CSV/JSON at any time. History never leaves this device.</li>
+                  </ul>
+                </div>
+
+                <!-- Pillar 3: Never Stored -->
+                <div class="privacy-card">
+                  <div class="privacy-card-header">
+                    <span class="privacy-icon" aria-hidden="true">🚫</span>
+                    <h2 class="privacy-title">What is Never Stored</h2>
+                  </div>
+                  <p class="privacy-desc">
+                    MailGuard AI operates without server-side databases or third-party trackers.
+                  </p>
+                  <ul class="privacy-checklist" role="list">
+                    <li><strong>Zero Server Database:</strong> No email text or subject lines are written to disk or databases.</li>
+                    <li><strong>Zero Server Image Handling:</strong> Image OCR runs 100% in-browser via WebAssembly; images never leave your machine.</li>
+                    <li><strong>Zero Tracking:</strong> No tracking cookies, external analytics scripts, or user fingerprinting.</li>
+                  </ul>
+                </div>
+
+                <!-- Pillar 4: Architecture & Stack -->
+                <div class="privacy-card">
+                  <div class="privacy-card-header">
+                    <span class="privacy-icon" aria-hidden="true">🛠️</span>
+                    <h2 class="privacy-title">Technology Stack</h2>
+                  </div>
+                  <p class="privacy-desc">
+                    Minimal, self-contained architecture engineered for auditable security.
+                  </p>
+                  <ul class="privacy-checklist" role="list">
+                    <li><strong>ML Pipeline:</strong> scikit-learn (LinearSVC + Platt scaling via CalibratedClassifierCV, TF-IDF n-grams).</li>
+                    <li><strong>Backend API:</strong> Python 3.10+, Flask, Flask-Limiter, Werkzeug ProxyFix.</li>
+                    <li><strong>Client Runtime:</strong> Vanilla ES6+, CSS Tokens, IndexedDB, self-hosted Tesseract.js (WASM).</li>
+                    <li><strong>Content Security Policy:</strong> Strict CSP Level 3, zero CDNs, zero inline scripts or styles.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Open Source / Repo Section -->
+              <div class="privacy-repo-card">
+                <div class="repo-card-content">
+                  <div class="repo-card-icon" aria-hidden="true">📦</div>
+                  <div>
+                    <h3 class="repo-card-title">Auditable Open-Source Codebase</h3>
+                    <p class="repo-card-desc">Review our complete source code, reproducible training pipelines, and privacy safeguards.</p>
+                  </div>
+                </div>
+                <div class="repo-card-action">
+                  <a href="https://github.com/example/mailguard-ai" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+                    View on GitHub ↗
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </main>
 
       <!-- App Footer -->
       <footer class="app-footer">
-        <p class="footer-text">MailGuard AI — Portfolio-grade email security using Calibrated Linear SVM & NLP. Trained on Enron dataset.</p>
+        <div class="footer-inner">
+          <p class="footer-text">MailGuard AI — Explainable email threat and spam detection using Calibrated Linear SVM &amp; NLP. Trained on Enron dataset.</p>
+          <div class="footer-links" role="navigation" aria-label="Footer links">
+            <a href="#/privacy" class="footer-link">Privacy &amp; Architecture</a>
+            <span class="footer-sep" aria-hidden="true">•</span>
+            <a href="#/features" class="footer-link">Features</a>
+            <span class="footer-sep" aria-hidden="true">•</span>
+            <a href="#/model-card" class="footer-link">Model Card</a>
+            <span class="footer-sep" aria-hidden="true">•</span>
+            <a href="#/docs" class="footer-link">API Docs</a>
+            <span class="footer-sep" aria-hidden="true">•</span>
+            <a href="https://github.com/example/mailguard-ai" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub ↗</a>
+          </div>
+        </div>
       </footer>
     </div>
   </div>

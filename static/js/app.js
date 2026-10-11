@@ -10,7 +10,7 @@
   // Constants
   var MAX_INPUT_CHARS = 20000;
   var REQUEST_TIMEOUT_MS = 90000; // 90 seconds
-  var WAKING_BANNER_DELAY_MS = 5000; // 5 seconds
+  var WAKING_BANNER_DELAY_MS = 3000; // 3 seconds per Phase 12H specification
 
   // Theme Elements
   var themeToggleBtn = document.getElementById('theme-toggle-btn');
@@ -3350,19 +3350,433 @@
   }
 
   // --------------------------------------------------------------------------
-  // App Shell & Hash-Based Routing (Phase 12A)
+  // Phase 12H: First-Time Visitor Experience & Quick Threat Sandbox
+  // --------------------------------------------------------------------------
+
+  var FALLBACK_EXAMPLES = [
+    {
+      id: "spam-1",
+      category: "spam",
+      label: "Spam: Credential Phish",
+      badge: "Spam",
+      subject: "Urgent: Unauthorized login attempt detected on account",
+      body: "We noticed an unauthorized sign-in attempt to your workspace from an unrecognized IP address. Please verify your identity immediately to prevent permanent service suspension: http://account-verify.example.test/login. Your access will be restricted within 24 hours if not confirmed."
+    },
+    {
+      id: "spam-2",
+      category: "spam",
+      label: "Spam: Grant / Lottery Prize",
+      badge: "Spam",
+      subject: "Congratulations! International Grant Selection Notification",
+      body: "Dear beneficiary, You have been awarded $850,000.00 USD in the international fiscal grant program. To claim your funds immediately, remit the nominal courier fee of $250 via wire transfer and reply with your bank details to payout@lottery-claims.example.test."
+    },
+    {
+      id: "spam-3",
+      category: "spam",
+      label: "Spam: Overdue Invoice Demand",
+      badge: "Spam",
+      subject: "FINAL NOTICE: Overdue Invoice #INV-92812 Immediate Settlement Required",
+      body: "Your account has an outstanding balance of $3,420.50 due immediately. Failure to settle this amount within 12 hours will result in referral to external legal collection and additional penalty charges. Remit payment to: http://billing-settle.example.test/pay."
+    },
+    {
+      id: "safe-1",
+      category: "safe",
+      label: "Safe: Engineering Sprint Sync",
+      badge: "Safe",
+      subject: "Sprint 42 planning notes and retrospective action items",
+      body: "Hi team, Here are the notes from our morning sprint retrospective. We agreed to prioritize technical debt reduction on the parser module and roll out the unit test coverage improvements by Thursday. Please review the shared backlog doc and let me know if anyone has blockers before tomorrow standup."
+    },
+    {
+      id: "safe-2",
+      category: "safe",
+      label: "Safe: Family Weekend Dinner",
+      badge: "Safe",
+      subject: "Sunday family dinner at grandma house",
+      body: "Hi everyone, Just checking if 6:00 PM still works for Sunday dinner at grandma place. Dad mentioned he is bringing vegetable lasagna and mom is making apple pie. Let me know if you want me to pick up anything from the grocery store on the way over."
+    },
+    {
+      id: "safe-3",
+      category: "safe",
+      label: "Safe: Campus Seminar Notice",
+      badge: "Safe",
+      subject: "Guest Lecture Reminder: Applied Machine Learning in Bioinformatics",
+      body: "Good morning students, This is a reminder that Dr. Smith will be delivering a guest lecture on applied machine learning pipelines this Wednesday at 2:00 PM in Lecture Hall B. Attendance is encouraged. The preliminary reading materials are available in the department portal."
+    },
+    {
+      id: "borderline-1",
+      category: "borderline",
+      label: "Borderline: Short Ambiguous Request",
+      badge: "Borderline",
+      subject: "Urgent response needed regarding project delivery",
+      body: "Please see the urgent notes below and update your status before end of day. Need confirmation as soon as possible regarding whether we are proceeding with the delivery."
+    }
+  ];
+
+  function updateHomeCharCount() {
+    var textInput = document.getElementById('home-quick-text');
+    var countEl = document.getElementById('home-quick-char-count');
+    if (textInput && countEl) {
+      var len = textInput.value.length;
+      countEl.textContent = len.toLocaleString() + ' / 10,000';
+      if (len > 9000) {
+        countEl.classList.add('text-warning');
+      } else {
+        countEl.classList.remove('text-warning');
+      }
+    }
+  }
+
+  function renderHomeExampleChips(examplesList) {
+    var container = document.getElementById('home-examples-chips');
+    if (!container) return;
+
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+
+    examplesList.forEach(function (ex) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'example-chip chip-' + ex.category;
+      chip.setAttribute('aria-label', 'Load example: ' + ex.label);
+
+      var badge = document.createElement('span');
+      badge.className = 'example-chip-badge';
+      badge.textContent = ex.badge;
+
+      var title = document.createElement('span');
+      title.className = 'example-chip-title';
+      var titleText = ex.label.indexOf(': ') !== -1 ? ex.label.split(': ')[1] : ex.label;
+      title.textContent = titleText;
+
+      chip.appendChild(badge);
+      chip.appendChild(title);
+
+      chip.addEventListener('click', function () {
+        var allChips = container.querySelectorAll('.example-chip');
+        allChips.forEach(function (c) { c.classList.remove('active-example'); });
+        chip.classList.add('active-example');
+
+        var subInput = document.getElementById('home-quick-subject');
+        var bodyInput = document.getElementById('home-quick-text');
+        if (subInput) subInput.value = ex.subject;
+        if (bodyInput) {
+          bodyInput.value = ex.body;
+          updateHomeCharCount();
+        }
+
+        runHomeQuickAnalyze();
+      });
+
+      container.appendChild(chip);
+    });
+  }
+
+  async function loadHomeExamples() {
+    try {
+      var res = await fetch('/data/examples.json');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        renderHomeExampleChips(data);
+        return;
+      }
+    } catch (e) {
+      // Fallback cleanly to embedded constant
+    }
+    renderHomeExampleChips(FALLBACK_EXAMPLES);
+  }
+
+  function renderHomeQuickResult(data, subVal, bodyVal) {
+    var resultCard = document.getElementById('home-quick-result-card');
+    var badge = document.getElementById('home-result-badge');
+    var uncertainPill = document.getElementById('home-result-uncertain');
+    var scoreNum = document.getElementById('home-result-score');
+    var scoreBar = document.getElementById('home-result-bar');
+    var probEl = document.getElementById('home-result-prob');
+    var confEl = document.getElementById('home-result-conf');
+    var findingsList = document.getElementById('home-result-findings-list');
+    var tokensChips = document.getElementById('home-result-tokens-chips');
+
+    if (!resultCard) return;
+
+    var classification = data.classification || 'Safe';
+    var riskScore = typeof data.risk_score === 'number' ? Math.round(data.risk_score) : 0;
+    var isUncertain = data.model && data.model.uncertain;
+    var prob = data.model ? (data.model.probability * 100).toFixed(1) + '%' : '0.0%';
+    var conf = data.model ? (data.model.confidence * 100).toFixed(1) + '%' : '0.0%';
+
+    if (badge) {
+      badge.className = 'badge badge-lg';
+      if (classification === 'Spam') {
+        badge.classList.add('badge-danger');
+        badge.textContent = 'Spam';
+      } else if (classification === 'Suspicious') {
+        badge.classList.add('badge-warning');
+        badge.textContent = 'Suspicious';
+      } else {
+        badge.classList.add('badge-success');
+        badge.textContent = 'Safe';
+      }
+    }
+
+    if (uncertainPill) {
+      if (isUncertain) {
+        uncertainPill.classList.remove('hidden');
+      } else {
+        uncertainPill.classList.add('hidden');
+      }
+    }
+
+    if (scoreNum) scoreNum.textContent = String(riskScore);
+    if (scoreBar) {
+      scoreBar.style.width = Math.min(100, Math.max(0, riskScore)) + '%';
+    }
+
+    if (probEl) probEl.textContent = prob;
+    if (confEl) confEl.textContent = conf;
+
+    if (findingsList) {
+      while (findingsList.firstChild) {
+        findingsList.removeChild(findingsList.firstChild);
+      }
+      var findings = data.key_findings || [];
+      if (findings.length === 0) {
+        var emptyLi = document.createElement('li');
+        emptyLi.className = 'quick-findings-item';
+        emptyLi.textContent = 'No critical threat indicators flagged in email text.';
+        findingsList.appendChild(emptyLi);
+      } else {
+        findings.forEach(function (finding) {
+          var li = document.createElement('li');
+          li.className = 'quick-findings-item';
+          li.textContent = finding;
+          findingsList.appendChild(li);
+        });
+      }
+    }
+
+    if (tokensChips) {
+      while (tokensChips.firstChild) {
+        tokensChips.removeChild(tokensChips.firstChild);
+      }
+      var tokens = data.top_tokens || [];
+      if (tokens.length === 0) {
+        var noTokSpan = document.createElement('span');
+        noTokSpan.className = 'text-muted';
+        noTokSpan.textContent = 'Standard neutral vocabulary';
+        tokensChips.appendChild(noTokSpan);
+      } else {
+        tokens.slice(0, 8).forEach(function (tok) {
+          var chip = document.createElement('span');
+          chip.className = 'quick-token-chip ' + (tok.direction === 'spam' ? 'token-spam' : 'token-ham');
+          chip.textContent = (tok.direction === 'spam' ? '▲ ' : '▼ ') + tok.token + ' (' + (tok.weight > 0 ? '+' : '') + tok.weight.toFixed(2) + ')';
+          tokensChips.appendChild(chip);
+        });
+      }
+    }
+
+    var openAnalyzerBtn = document.getElementById('home-open-analyzer-btn');
+    if (openAnalyzerBtn) {
+      openAnalyzerBtn.onclick = function () {
+        var fullSub = document.getElementById('subject-input');
+        var fullBody = document.getElementById('body-input');
+        if (fullSub) fullSub.value = subVal;
+        if (fullBody) {
+          fullBody.value = bodyVal;
+          updateCharCount();
+        }
+        currentAnalysisData = data;
+        currentPredictionData = {
+          prediction: data.model ? data.model.label : 'ham',
+          label_display: data.classification,
+          risk_level: data.classification === 'Spam' ? 'high' : (data.classification === 'Suspicious' ? 'medium' : 'low'),
+          confidence: data.model ? data.model.confidence : 0.5,
+          spam_probability: data.model ? data.model.probability : 0.5,
+          top_tokens: data.top_tokens || [],
+          signals: data.top_tokens || []
+        };
+        renderAnalysisReport(data);
+        window.location.hash = '#/analyzer';
+      };
+    }
+
+    resultCard.classList.remove('hidden');
+  }
+
+  async function runHomeQuickAnalyze() {
+    var subInput = document.getElementById('home-quick-subject');
+    var bodyInput = document.getElementById('home-quick-text');
+    var analyzeBtn = document.getElementById('home-quick-analyze-btn');
+    var skeleton = document.getElementById('home-quick-skeleton');
+    var emptyState = document.getElementById('home-quick-empty');
+    var resultCard = document.getElementById('home-quick-result-card');
+    var homeWaking = document.getElementById('home-waking-banner');
+
+    var subVal = subInput ? subInput.value.trim() : '';
+    var bodyVal = bodyInput ? bodyInput.value.trim() : '';
+
+    if (!bodyVal) {
+      showToast('Please enter email content or select a sample above.', 'warning');
+      if (bodyInput) bodyInput.focus();
+      return;
+    }
+
+    var fullText = subVal ? (subVal + '\n\n' + bodyVal) : bodyVal;
+
+    if (skeleton) skeleton.classList.remove('hidden');
+    if (emptyState) emptyState.classList.add('hidden');
+    if (resultCard) resultCard.classList.add('hidden');
+    if (analyzeBtn) analyzeBtn.disabled = true;
+
+    var homeWakingTimer = setTimeout(function () {
+      if (homeWaking) homeWaking.classList.remove('hidden');
+    }, WAKING_BANNER_DELAY_MS);
+
+    try {
+      var storedSettings = getStoredSettings();
+      var payload = {
+        text: fullText,
+        options: {
+          scan_urls: storedSettings.scan_urls !== false,
+          analyze_headers: false,
+          sensitivity: storedSettings.sensitivity || 'medium'
+        }
+      };
+
+      var res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      clearTimeout(homeWakingTimer);
+      if (homeWaking) homeWaking.classList.add('hidden');
+      if (skeleton) skeleton.classList.add('hidden');
+      if (analyzeBtn) analyzeBtn.disabled = false;
+
+      if (!res.ok) {
+        var errData = await res.json().catch(function () { return {}; });
+        var errMsg = (errData.error && errData.error.message) || 'Analysis failed with status ' + res.status;
+        showToast(errMsg, 'error');
+        if (emptyState) emptyState.classList.remove('hidden');
+        return;
+      }
+
+      var resultData = await res.json();
+      renderHomeQuickResult(resultData, subVal, bodyVal);
+
+      // Save scan to IndexedDB (zero server storage)
+      var scanRecord = {
+        timestamp: new Date().toISOString(),
+        created_at: Date.now(),
+        subject: subVal || (bodyVal.length > 60 ? bodyVal.substring(0, 60) + '...' : bodyVal) || 'Quick Scan',
+        label: resultData.classification || 'Safe',
+        risk_score: typeof resultData.risk_score === 'number' ? resultData.risk_score : 50,
+        source_type: 'quick_scan',
+        confidence: resultData.model ? resultData.model.confidence : 0.5,
+        indicator_count: (resultData.indicators || []).length
+      };
+
+      await saveScanRecord(scanRecord);
+      await updateDashboardUI();
+
+    } catch (err) {
+      clearTimeout(homeWakingTimer);
+      if (homeWaking) homeWaking.classList.add('hidden');
+      if (skeleton) skeleton.classList.add('hidden');
+      if (analyzeBtn) analyzeBtn.disabled = false;
+      if (emptyState) emptyState.classList.remove('hidden');
+      showToast('Network error during quick scan: ' + err.message, 'error');
+    }
+  }
+
+  function initHomeQuickScanModule() {
+    var form = document.getElementById('home-quick-form');
+    var textInput = document.getElementById('home-quick-text');
+    var subInput = document.getElementById('home-quick-subject');
+    var clearBtn = document.getElementById('home-quick-clear-btn');
+    var homeWakingRetryBtn = document.getElementById('home-waking-retry-btn');
+    var analyzerWakingRetryBtn = document.getElementById('waking-retry-btn');
+
+    if (textInput) {
+      textInput.addEventListener('input', updateHomeCharCount);
+      textInput.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          runHomeQuickAnalyze();
+        }
+      });
+    }
+
+    if (subInput) {
+      subInput.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          runHomeQuickAnalyze();
+        }
+      });
+    }
+
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        runHomeQuickAnalyze();
+      });
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function () {
+        if (subInput) subInput.value = '';
+        if (textInput) {
+          textInput.value = '';
+          updateHomeCharCount();
+        }
+        var container = document.getElementById('home-examples-chips');
+        if (container) {
+          var chips = container.querySelectorAll('.example-chip');
+          chips.forEach(function (c) { c.classList.remove('active-example'); });
+        }
+        var resultCard = document.getElementById('home-quick-result-card');
+        var skeleton = document.getElementById('home-quick-skeleton');
+        var emptyState = document.getElementById('home-quick-empty');
+        if (resultCard) resultCard.classList.add('hidden');
+        if (skeleton) skeleton.classList.add('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
+      });
+    }
+
+    function onWakingRetry() {
+      checkServerHealth();
+      showToast('Pinging server health...', 'info');
+    }
+
+    if (homeWakingRetryBtn) {
+      homeWakingRetryBtn.addEventListener('click', onWakingRetry);
+    }
+    if (analyzerWakingRetryBtn) {
+      analyzerWakingRetryBtn.addEventListener('click', onWakingRetry);
+    }
+
+    loadHomeExamples();
+  }
+
+  // --------------------------------------------------------------------------
+  // App Shell & Hash-Based Routing (Phase 12A / 12H)
   // --------------------------------------------------------------------------
 
   var ROUTE_MAP = {
-    '#/dashboard': { viewId: 'view-dashboard', navId: 'nav-dashboard', topNavId: null },
-    '#/analyzer': { viewId: 'view-analyzer', navId: 'nav-analyzer', topNavId: null },
-    '#/image-analysis': { viewId: 'view-image-analysis', navId: 'nav-image-analysis', topNavId: null },
-    '#/reports': { viewId: 'view-reports', navId: 'nav-reports', topNavId: null },
-    '#/settings': { viewId: 'view-settings', navId: 'nav-settings', topNavId: null },
-    '#/home': { viewId: 'view-home', navId: null, topNavId: 'top-nav-home' },
-    '#/features': { viewId: 'view-features', navId: null, topNavId: 'top-nav-features' },
-    '#/model-card': { viewId: 'view-model-card', navId: null, topNavId: 'top-nav-model-card' },
-    '#/docs': { viewId: 'view-docs', navId: null, topNavId: 'top-nav-docs' }
+    '#/dashboard': { viewId: 'view-dashboard', navId: 'nav-dashboard', topNavId: null, title: 'MailGuard AI — Security Dashboard' },
+    '#/analyzer': { viewId: 'view-analyzer', navId: 'nav-analyzer', topNavId: null, title: 'MailGuard AI — Email Threat Analyzer' },
+    '#/image-analysis': { viewId: 'view-image-analysis', navId: 'nav-image-analysis', topNavId: null, title: 'MailGuard AI — Image Threat Analysis' },
+    '#/reports': { viewId: 'view-reports', navId: 'nav-reports', topNavId: null, title: 'MailGuard AI — Threat Reports & Export' },
+    '#/settings': { viewId: 'view-settings', navId: 'nav-settings', topNavId: null, title: 'MailGuard AI — Settings & Storage' },
+    '#/home': { viewId: 'view-home', navId: null, topNavId: 'top-nav-home', title: 'MailGuard AI — Home & Quick Email Threat Scan' },
+    '#/features': { viewId: 'view-features', navId: null, topNavId: 'top-nav-features', title: 'MailGuard AI — Platform Features & Scope' },
+    '#/model-card': { viewId: 'view-model-card', navId: null, topNavId: 'top-nav-model-card', title: 'MailGuard AI — Machine Learning Model Card' },
+    '#/docs': { viewId: 'view-docs', navId: null, topNavId: 'top-nav-docs', title: 'MailGuard AI — REST API Documentation' },
+    '#/privacy': { viewId: 'view-privacy', navId: null, topNavId: 'top-nav-privacy', title: 'MailGuard AI — Privacy & Security Architecture' },
+    '#/about': { viewId: 'view-privacy', navId: null, topNavId: 'top-nav-privacy', title: 'MailGuard AI — Privacy & Security Architecture' }
   };
 
   var appSidebar = document.getElementById('app-sidebar');
@@ -3404,12 +3818,17 @@
   }
 
   function handleRoute(hash) {
-    var rawHash = hash || window.location.hash || '#/dashboard';
+    var rawHash = hash || window.location.hash || '#/home';
     var routeConfig = ROUTE_MAP[rawHash];
 
     if (!routeConfig) {
-      rawHash = '#/dashboard';
+      rawHash = '#/home';
       routeConfig = ROUTE_MAP[rawHash];
+    }
+
+    // Update document title
+    if (routeConfig.title) {
+      document.title = routeConfig.title;
     }
 
     // 1. Hide all view panels
@@ -3478,6 +3897,9 @@
     // Initialize image threat analysis module
     initImageAnalysisModule();
 
+    // Initialize home quick scan sandbox (Phase 12H)
+    initHomeQuickScanModule();
+
     // Mobile menu toggle button
     if (mobileMenuBtn) {
       mobileMenuBtn.addEventListener('click', function (e) {
@@ -3529,6 +3951,8 @@
             window.location.hash = '#/model-card';
           } else if (query.includes('doc') || query.includes('api')) {
             window.location.hash = '#/docs';
+          } else if (query.includes('priv') || query.includes('about') || query.includes('arch')) {
+            window.location.hash = '#/privacy';
           } else {
             showToast('No match for "' + query + '". Try "analyzer", "model", or "docs".', 'warn');
           }
@@ -3717,9 +4141,9 @@
       });
     }
 
-    // Initial route invocation
+    // Initial route invocation (Phase 12H defaults to #/home for first-time visitor hero & sandbox)
     if (!window.location.hash) {
-      window.location.hash = '#/dashboard';
+      window.location.hash = '#/home';
     } else {
       handleRoute(window.location.hash);
     }

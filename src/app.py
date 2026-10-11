@@ -20,7 +20,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.exceptions import (
@@ -127,12 +127,14 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
 
     @app.errorhandler(404)
     def handle_not_found(e: Exception):
-        return jsonify({
-            "error": {
-                "code": "not_found",
-                "message": "The requested API endpoint was not found.",
-            }
-        }), 404
+        if request.path.startswith("/api/") or request.headers.get("Accept") == "application/json":
+            return jsonify({
+                "error": {
+                    "code": "not_found",
+                    "message": "The requested API endpoint was not found.",
+                }
+            }), 404
+        return render_template("404.html"), 404
 
     @app.errorhandler(405)
     @app.errorhandler(MethodNotAllowed)
@@ -182,12 +184,14 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
     @app.errorhandler(500)
     def handle_internal_error(e: Exception):
         logger.error(f"Internal server error: {e}", exc_info=True)
-        return jsonify({
-            "error": {
-                "code": "internal_server_error",
-                "message": "An unexpected error occurred while processing your request.",
-            }
-        }), 500
+        if request.path.startswith("/api/") or request.headers.get("Accept") == "application/json":
+            return jsonify({
+                "error": {
+                    "code": "internal_server_error",
+                    "message": "An unexpected error occurred while processing your request.",
+                }
+            }), 500
+        return render_template("500.html"), 500
 
     @app.errorhandler(Exception)
     def handle_generic_exception(e: Exception):
@@ -214,6 +218,16 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
     def index():
         """Serve single-page application frontend."""
         return render_template("index.html")
+
+    @app.route("/favicon.ico", methods=["GET"])
+    def favicon():
+        """Serve application favicon icon."""
+        return send_from_directory(str(config.STATIC_DIR), "favicon.ico", mimetype="image/vnd.microsoft.icon")
+
+    @app.route("/favicon.svg", methods=["GET"])
+    def favicon_svg():
+        """Serve vector SVG favicon."""
+        return send_from_directory(str(config.STATIC_DIR), "favicon.svg", mimetype="image/svg+xml")
 
     @app.route("/api/health", methods=["GET"])
     @limiter.exempt
