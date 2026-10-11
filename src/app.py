@@ -51,6 +51,26 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("MailGuard-API")
 
 
+def get_allowed_origins(app: Flask) -> set:
+    """Extract and normalize allowed CORS origins from config or environment.
+
+    Security: Wildcard '*' is strictly prohibited to ensure only explicit,
+    trusted origins receive Access-Control-Allow-Origin headers.
+    """
+    raw = app.config.get("CORS_ALLOWED_ORIGINS") or os.getenv("CORS_ALLOWED_ORIGINS", "")
+    if isinstance(raw, (list, set, tuple)):
+        items = raw
+    else:
+        items = str(raw).split(",")
+
+    allowed = set()
+    for item in items:
+        cleaned = item.strip().rstrip("/")
+        if cleaned and cleaned != "*":
+            allowed.add(cleaned)
+    return allowed
+
+
 def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
     """Create and configure Flask application instance."""
     app = Flask(
@@ -85,6 +105,21 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
     )
     app.limiter = limiter
 
+    # CORS Preflight Handler (Intercept OPTIONS on /api/*)
+    @app.before_request
+    def handle_cors_preflight():
+        if request.method == "OPTIONS" and request.path.startswith("/api"):
+            origin = request.headers.get("Origin")
+            allowed = get_allowed_origins(app)
+            res = app.make_response(("", 204))
+            if origin and origin.rstrip("/") in allowed:
+                res.headers["Access-Control-Allow-Origin"] = origin
+                res.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+                res.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+                res.headers["Access-Control-Max-Age"] = "86400"
+                res.headers["Vary"] = "Origin"
+            return res
+
     # Security Headers Hook
     @app.after_request
     def set_security_headers(response):
@@ -111,6 +146,23 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
             "font-src 'self'; "
             "frame-ancestors 'none';"
         )
+
+        # CORS Header Injection for allowed origins (Exact matches, never '*')
+        origin = request.headers.get("Origin")
+        if origin and request.path.startswith("/api"):
+            normalized_origin = origin.rstrip("/")
+            allowed = get_allowed_origins(app)
+            if normalized_origin in allowed:
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+                response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+                response.headers["Access-Control-Max-Age"] = "86400"
+                existing_vary = response.headers.get("Vary")
+                if not existing_vary:
+                    response.headers["Vary"] = "Origin"
+                elif "Origin" not in existing_vary:
+                    response.headers["Vary"] = f"{existing_vary}, Origin"
+
         return response
 
     # --- Error Handlers (Unified {"error": {"code": "...", "message": "..."}} shape) ---

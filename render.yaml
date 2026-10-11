@@ -22,3 +22,6 @@ services:
         value: models/spam_pipeline.joblib
       - key: METADATA_PATH
         value: models/metadata.json
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://mailguard-ai.vercel.app
+

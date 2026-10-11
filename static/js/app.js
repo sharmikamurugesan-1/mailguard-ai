@@ -12,6 +12,16 @@
   var REQUEST_TIMEOUT_MS = 90000; // 90 seconds
   var WAKING_BANNER_DELAY_MS = 3000; // 3 seconds per Phase 12H specification
 
+  // API URL resolution helper for split Vercel/Render architecture
+  function getApiUrl(endpoint) {
+    var base = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || window.API_BASE_URL || '';
+    base = base.replace(/\/+$/, '');
+    if (endpoint.charAt(0) !== '/') {
+      endpoint = '/' + endpoint;
+    }
+    return base ? (base + endpoint) : endpoint;
+  }
+
   // Theme Elements
   var themeToggleBtn = document.getElementById('theme-toggle-btn');
   var themeIcon = document.getElementById('theme-icon');
@@ -336,8 +346,15 @@
 
   async function checkServerHealth() {
     try {
-      var res = await fetch('/api/health');
-      if (!res.ok) throw new Error('Health check non-200');
+      var res = await fetch(getApiUrl('/api/health'));
+      if (!res.ok) {
+        if (res.status === 502 || res.status === 503 || res.status === 504) {
+          statusDot.className = 'status-indicator status-waking';
+          statusText.textContent = 'Waking up...';
+          return;
+        }
+        throw new Error('Health check non-200');
+      }
       var data = await res.json();
 
       statusDot.className = 'status-indicator';
@@ -377,7 +394,7 @@
 
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       try {
-        var res = await fetch('/api/health');
+        var res = await fetch(getApiUrl('/api/health'));
         if (res.ok) {
           var data = await res.json();
           if (data.status === 'healthy' && data.model_loaded) {
@@ -388,6 +405,9 @@
             statusDot.className = 'status-indicator status-waking';
             statusText.textContent = 'Waking up...';
           }
+        } else if (res.status === 502 || res.status === 503 || res.status === 504) {
+          statusDot.className = 'status-indicator status-waking';
+          statusText.textContent = 'Waking up...';
         } else {
           statusDot.className = 'status-indicator status-offline';
           statusText.textContent = 'Server Offline';
@@ -405,7 +425,7 @@
 
   async function loadModelInfo() {
     try {
-      var res = await fetch('/api/model-info');
+      var res = await fetch(getApiUrl('/api/model-info'));
       if (!res.ok) throw new Error('Failed to load model info');
       var data = await res.json();
 
@@ -544,7 +564,7 @@
     }, REQUEST_TIMEOUT_MS);
 
     try {
-      var response = await fetch('/api/analyze', {
+      var response = await fetch(getApiUrl('/api/analyze'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -559,6 +579,9 @@
       });
 
       if (!response.ok) {
+        if (response.status === 502 || response.status === 503 || response.status === 504) {
+          throw new Error(`Server temporarily unavailable (${response.status}). The backend may be booting up or unreachable. Please retry in a moment.`);
+        }
         var errorMsg = data && data.error && data.error.message
           ? data.error.message
           : `Server returned error (${response.status})`;
@@ -570,10 +593,16 @@
       clearTimeout(timeoutId);
 
       var isTimeout = err.name === 'AbortError';
-      var isNetwork = !navigator.onLine || (err.message && err.message.includes('Failed to fetch')) || isTimeout;
+      var isNetwork = !navigator.onLine || (err.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('Load failed'))) || isTimeout;
 
       if (!isRetry && isNetwork) {
         return await callAnalyzeApi(payload, true);
+      }
+
+      if (isTimeout) {
+        throw new Error('Request timed out. The server may still be waking up. Please click retry.');
+      } else if (isNetwork) {
+        throw new Error('Network error: Unable to reach the backend API. The server may be asleep or unreachable. Please click retry.');
       }
 
       throw err;
@@ -587,7 +616,7 @@
     }, REQUEST_TIMEOUT_MS);
 
     try {
-      var response = await fetch('/api/predict', {
+      var response = await fetch(getApiUrl('/api/predict'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -602,6 +631,9 @@
       });
 
       if (!response.ok) {
+        if (response.status === 502 || response.status === 503 || response.status === 504) {
+          throw new Error(`Server temporarily unavailable (${response.status}). The backend may be booting up or unreachable. Please retry in a moment.`);
+        }
         var errorMsg = data && data.error && data.error.message
           ? data.error.message
           : `Server returned error (${response.status})`;
@@ -613,10 +645,16 @@
       clearTimeout(timeoutId);
 
       var isTimeout = err.name === 'AbortError';
-      var isNetwork = !navigator.onLine || err.message.includes('Failed to fetch') || isTimeout;
+      var isNetwork = !navigator.onLine || (err.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('Load failed'))) || isTimeout;
 
       if (!isRetry && isNetwork) {
         return await callPredictApi(payload, true);
+      }
+
+      if (isTimeout) {
+        throw new Error('Request timed out. The server may still be waking up. Please click retry.');
+      } else if (isNetwork) {
+        throw new Error('Network error: Unable to reach the backend API. The server may be asleep or unreachable. Please click retry.');
       }
 
       throw err;
@@ -3094,7 +3132,7 @@
       } else {
         var sensSelect = document.getElementById('analyzer-sensitivity-select');
         var sens = sensSelect ? sensSelect.value : 'medium';
-        var resp = await fetch('/api/analyze', {
+        var resp = await fetch(getApiUrl('/api/analyze'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -3109,7 +3147,15 @@
 
         if (!resp.ok) {
           var errJson = await resp.json().catch(function () { return {}; });
-          throw new Error(errJson.error && errJson.error.message ? errJson.error.message : `Server returned error ${resp.status}`);
+          var msg = errJson.error && errJson.error.message;
+          if (!msg) {
+            if (resp.status === 502 || resp.status === 503 || resp.status === 504) {
+              msg = `Backend server is temporarily waking up or unavailable (${resp.status}). Please retry.`;
+            } else {
+              msg = `Server returned error ${resp.status}`;
+            }
+          }
+          throw new Error(msg);
         }
         analysisData = await resp.json();
       }
@@ -3644,7 +3690,7 @@
         }
       };
 
-      var res = await fetch('/api/analyze', {
+      var res = await fetch(getApiUrl('/api/analyze'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -3657,7 +3703,14 @@
 
       if (!res.ok) {
         var errData = await res.json().catch(function () { return {}; });
-        var errMsg = (errData.error && errData.error.message) || 'Analysis failed with status ' + res.status;
+        var errMsg = errData.error && errData.error.message;
+        if (!errMsg) {
+          if (res.status === 502 || res.status === 503 || res.status === 504) {
+            errMsg = 'Backend server is waking up or temporarily unavailable (' + res.status + '). Please retry.';
+          } else {
+            errMsg = 'Analysis failed with status ' + res.status;
+          }
+        }
         showToast(errMsg, 'error');
         if (emptyState) emptyState.classList.remove('hidden');
         return;
