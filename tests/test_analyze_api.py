@@ -194,6 +194,30 @@ def test_options_scan_urls_disabled(client):
     assert len(url_details) == 0
 
 
+def test_scan_urls_toggle_changes_analyze_output(client):
+    """Direct comparative proof that toggling scan_urls changes /api/analyze output."""
+    raw_payload = {
+        "text": "Review document at http://bit.ly/urgent-doc and http://192.168.1.1/login"
+    }
+
+    # Enabled
+    res_enabled = client.post("/api/analyze", json={
+        **raw_payload,
+        "options": {"scan_urls": True}
+    }).get_json()
+
+    # Disabled
+    res_disabled = client.post("/api/analyze", json={
+        **raw_payload,
+        "options": {"scan_urls": False}
+    }).get_json()
+
+    assert len(res_enabled["urls"]) == 2
+    assert len(res_disabled["urls"]) == 0
+    assert len(res_enabled["indicators"]) > len(res_disabled["indicators"])
+    assert res_enabled["risk_score"] > res_disabled["risk_score"]
+
+
 def test_options_analyze_headers_disabled(client):
     """When analyze_headers=False, headers object is omitted and header indicators are not added."""
     eml = (
@@ -213,6 +237,38 @@ def test_options_analyze_headers_disabled(client):
 
     assert "headers" not in data
     assert len(data["indicators"]) == 0
+
+
+def test_analyze_headers_toggle_changes_analyze_output(client):
+    """Direct comparative proof that toggling analyze_headers changes /api/analyze output."""
+    eml = (
+        "Received: from bad.relay.org; Fri, 09 Oct 2026 12:00:00 -0700\n"
+        "Authentication-Results: mx.google.com; spf=fail; dmarc=fail\n"
+        "From: security@paypal.com\n"
+        "Reply-To: scammer@evil.ru\n"
+        "Subject: Critical Account Update\n"
+        "\n"
+        "Please check your account settings."
+    )
+
+    # Enabled
+    res_enabled = client.post("/api/analyze", json={
+        "eml": eml,
+        "options": {"analyze_headers": True}
+    }).get_json()
+
+    # Disabled
+    res_disabled = client.post("/api/analyze", json={
+        "eml": eml,
+        "options": {"analyze_headers": False}
+    }).get_json()
+
+    assert "headers" in res_enabled
+    assert "headers" not in res_disabled
+    assert any("SPF" in ind["detail"] for ind in res_enabled["indicators"])
+    assert not any("SPF" in ind.get("detail", "") for ind in res_disabled["indicators"])
+    assert res_enabled["risk_score"] > res_disabled["risk_score"]
+
 
 
 def test_options_sensitivity_profiles_affect_classification(client):

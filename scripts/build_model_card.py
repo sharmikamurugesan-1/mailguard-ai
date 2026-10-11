@@ -294,8 +294,8 @@ def build_model_card_assets():
     prob_true_list = [float(round(x, 4)) for x in prob_true]
     prob_pred_list = [float(round(x, 4)) for x in prob_pred]
 
-    # 5. Bootstrap 95% Confidence Intervals (1000 resamples)
-    print("Computing 1,000 bootstrap resamples for 95% confidence intervals...")
+    # 5. Bootstrap 95% Confidence Intervals (1000 resamples) for Full Test Set
+    print("Computing 1,000 bootstrap resamples for full test set (N=6,093)...")
     rng = np.random.default_rng(42)
     n_boot = 1000
     boot_acc, boot_prec, boot_rec, boot_f1 = [], [], [], []
@@ -315,6 +315,148 @@ def build_model_card_assets():
     ci_prec = [float(round(np.percentile(boot_prec, 2.5), 4)), float(round(np.percentile(boot_prec, 97.5), 4))]
     ci_rec = [float(round(np.percentile(boot_rec, 2.5), 4)), float(round(np.percentile(boot_rec, 97.5), 4))]
     ci_f1 = [float(round(np.percentile(boot_f1, 2.5), 4)), float(round(np.percentile(boot_f1, 97.5), 4))]
+
+    # 5b. De-duplicated Test Set Metrics (Cosine similarity >= 0.95 with train removed)
+    print("Computing de-duplicated test set metrics (N=4,885)...")
+    cleaner = pipeline.named_steps["preprocess"]
+    tfidf = pipeline.named_steps["tfidf"]
+    X_train_clean = cleaner.transform(X_train)
+    X_test_clean = cleaner.transform(X_test)
+    vec_train = tfidf.transform(X_train_clean)
+    vec_test = tfidf.transform(X_test_clean)
+
+    from sklearn.metrics.pairwise import cosine_similarity
+    n_test = vec_test.shape[0]
+    batch_size = 500
+    is_near_dup = np.zeros(n_test, dtype=bool)
+    for i in range(0, n_test, batch_size):
+        batch = vec_test[i : i + batch_size]
+        sim = cosine_similarity(batch, vec_train)
+        is_near_dup[i : i + batch_size] = (sim.max(axis=1) >= 0.95)
+
+    mask_dedup = ~is_near_dup
+    y_test_dedup = y_test_arr[mask_dedup]
+    y_pred_dedup = y_pred[mask_dedup]
+    y_proba_dedup = y_proba[mask_dedup]
+    n_dedup = len(y_test_dedup)
+
+    cm_dedup = confusion_matrix(y_test_dedup, y_pred_dedup)
+    tn_d, fp_d, fn_d, tp_d = cm_dedup.ravel()
+    acc_d = float(accuracy_score(y_test_dedup, y_pred_dedup))
+    prec_d = float(precision_score(y_test_dedup, y_pred_dedup, zero_division=0))
+    rec_d = float(recall_score(y_test_dedup, y_pred_dedup, zero_division=0))
+    f1_d = float(f1_score(y_test_dedup, y_pred_dedup, zero_division=0))
+    pr_auc_d = float(average_precision_score(y_test_dedup, y_proba_dedup))
+
+    print("Computing 1,000 bootstrap resamples for de-duplicated test set (N=4,885)...")
+    boot_acc_d, boot_prec_d, boot_rec_d, boot_f1_d = [], [], [], []
+    for _ in range(n_boot):
+        idx_d = rng.choice(n_dedup, size=n_dedup, replace=True)
+        b_true_d = y_test_dedup[idx_d]
+        b_pred_d = y_pred_dedup[idx_d]
+        boot_acc_d.append(accuracy_score(b_true_d, b_pred_d))
+        boot_prec_d.append(precision_score(b_true_d, b_pred_d, zero_division=0))
+        boot_rec_d.append(recall_score(b_true_d, b_pred_d, zero_division=0))
+        boot_f1_d.append(f1_score(b_true_d, b_pred_d, zero_division=0))
+
+    ci_acc_d = [float(round(np.percentile(boot_acc_d, 2.5), 4)), float(round(np.percentile(boot_acc_d, 97.5), 4))]
+    ci_prec_d = [float(round(np.percentile(boot_prec_d, 2.5), 4)), float(round(np.percentile(boot_prec_d, 97.5), 4))]
+    ci_rec_d = [float(round(np.percentile(boot_rec_d, 2.5), 4)), float(round(np.percentile(boot_rec_d, 97.5), 4))]
+    ci_f1_d = [float(round(np.percentile(boot_f1_d, 2.5), 4)), float(round(np.percentile(boot_f1_d, 97.5), 4))]
+
+    # 5c. Sensitivity Tables (Low, Medium, High)
+    sensitivity_thresholds = [
+        ("low", 0.70, "High spam threshold (favors precision, minimizes false alarms)"),
+        ("medium", 0.50, "Standard balanced decision threshold"),
+        ("high", 0.45, "Low spam threshold (favors recall, catches evasive spam)"),
+    ]
+
+    sensitivity_table_full = []
+    sensitivity_table_dedup = []
+
+    for name, thresh, desc in sensitivity_thresholds:
+        # Full test set
+        p_pred_f = (y_proba >= thresh).astype(int)
+        cm_s_f = confusion_matrix(y_test, p_pred_f)
+        tn_sf, fp_sf, fn_sf, tp_sf = cm_s_f.ravel()
+        sensitivity_table_full.append({
+            "level": name,
+            "threshold": thresh,
+            "description": desc,
+            "precision": round(float(precision_score(y_test, p_pred_f, zero_division=0)), 4),
+            "recall": round(float(recall_score(y_test, p_pred_f, zero_division=0)), 4),
+            "f1": round(float(f1_score(y_test, p_pred_f, zero_division=0)), 4),
+            "fp": int(fp_sf),
+            "fn": int(fn_sf),
+        })
+
+        # De-duplicated test set
+        p_pred_d = (y_proba_dedup >= thresh).astype(int)
+        cm_s_d = confusion_matrix(y_test_dedup, p_pred_d)
+        tn_sd, fp_sd, fn_sd, tp_sd = cm_s_d.ravel()
+        sensitivity_table_dedup.append({
+            "level": name,
+            "threshold": thresh,
+            "description": desc,
+            "precision": round(float(precision_score(y_test_dedup, p_pred_d, zero_division=0)), 4),
+            "recall": round(float(recall_score(y_test_dedup, p_pred_d, zero_division=0)), 4),
+            "f1": round(float(f1_score(y_test_dedup, p_pred_d, zero_division=0)), 4),
+            "fp": int(fp_sd),
+            "fn": int(fn_sd),
+        })
+
+    # 5d. Real Misclassified Examples (Shortened, Names/Emails Redacted)
+    X_test_arr = np.array(X_test)
+    fp_indices = np.where((y_test_arr == 0) & (y_pred == 1))[0]
+    fn_indices = np.where((y_test_arr == 1) & (y_pred == 0))[0]
+
+    misclassified_examples = [
+        {
+            "id": "FP-01",
+            "type": "False Positive",
+            "true_label": "Legitimate (Ham)",
+            "predicted_label": "Spam",
+            "spam_probability": round(float(y_proba[fp_indices[0]]), 4),
+            "redacted_snippet": "Subject: one more . . . http : / / www . cfo . com / article ? article = [ID] ... i ' ll stop now . [Name] [domain] [email@domain.com] [Phone redacted]",
+            "root_cause": "Terse corporate email sharing an external web link with personal contact details, mimicking affiliate lure link structures.",
+        },
+        {
+            "id": "FP-02",
+            "type": "False Positive",
+            "true_label": "Legitimate (Ham)",
+            "predicted_label": "Spam",
+            "spam_probability": round(float(y_proba[fp_indices[1]]), 4),
+            "redacted_snippet": "Subject: look here ... look what i found at [job search portal] . i thought this might help you with your job searching . comments : know anyone looking for this ?",
+            "root_cause": "Forwarded career portal link using phrases ('look here', 'job searching') heavily correlated with recruitment spam.",
+        },
+        {
+            "id": "FN-01",
+            "type": "False Negative",
+            "true_label": "Spam",
+            "predicted_label": "Legitimate (Ham)",
+            "spam_probability": round(float(y_proba[fn_indices[0]]), 4),
+            "redacted_snippet": "Subject: participate now & receive a las vegas vacation for 2 ... participate in our brief survey to claim hotel accommodations ...",
+            "root_cause": "Contest giveaway phrasing with sparse non-spam formatting landed at P=0.3840 (uncertain review boundary rather than > 0.50).",
+        },
+        {
+            "id": "FN-02",
+            "type": "False Negative",
+            "true_label": "Spam",
+            "predicted_label": "Legitimate (Ham)",
+            "spam_probability": round(float(y_proba[fn_indices[1]]), 4),
+            "redacted_snippet": "Subject: nymex invitation - learn power trading ... power trading fundamentals : sept 15 - 16 nymex in nyc ... early bird discount now in effect ! delegates will learn : electricity markets overview ...",
+            "root_cause": "Commercial seminar solicitation whose vocabulary ('power trading', 'nymex', 'electricity markets') mirrors legitimate Enron corporate discourse.",
+        },
+        {
+            "id": "FN-03",
+            "type": "False Negative",
+            "true_label": "Spam",
+            "predicted_label": "Legitimate (Ham)",
+            "spam_probability": round(float(y_proba[fn_indices[2]]), 4),
+            "redacted_snippet": "Subject: newsletter service ... hi , did you have any e mail newsletter service ? ifthere is , please send me its adress . . thank you . . kind regards [Name]",
+            "root_cause": "Spam inquiry masked with courteous framing ('hi', 'please', 'thank you', 'kind regards'), lowering spam probability to P=0.4236.",
+        },
+    ]
 
     # 6. Generate SVGs
     cm_svg = generate_confusion_matrix_svg(int(tn), int(fp), int(fn), int(tp))
@@ -339,6 +481,8 @@ def build_model_card_assets():
             "cleaned_total_samples": total_cleaned,
             "train_samples": len(X_train),
             "test_samples": len(X_test),
+            "near_duplicates_in_test": int(is_near_dup.sum()),
+            "deduplicated_test_samples": n_dedup,
             "class_distribution_overall": {
                 "ham": int(np.sum(y == 0)),
                 "spam": int(np.sum(y == 1)),
@@ -347,27 +491,60 @@ def build_model_card_assets():
                 "ham": int(np.sum(y_test == 0)),
                 "spam": int(np.sum(y_test == 1)),
             },
-        },
-        "evaluation_metrics": {
-            "accuracy": round(acc, 4),
-            "precision": round(prec, 4),
-            "recall": round(rec, 4),
-            "f1": round(f1, 4),
-            "pr_auc": round(pr_auc, 4),
-            "confusion_matrix": {
-                "tn": int(tn),
-                "fp": int(fp),
-                "fn": int(fn),
-                "tp": int(tp),
+            "class_distribution_test_deduplicated": {
+                "ham": int(np.sum(y_test_dedup == 0)),
+                "spam": int(np.sum(y_test_dedup == 1)),
             },
         },
-        "bootstrap_95_ci": {
-            "accuracy": ci_acc,
-            "precision": ci_prec,
-            "recall": ci_rec,
-            "f1": ci_f1,
-            "resamples": n_boot,
+        "evaluation_metrics": {
+            "full_test_set": {
+                "samples": len(y_test),
+                "accuracy": round(acc, 4),
+                "precision": round(prec, 4),
+                "recall": round(rec, 4),
+                "f1": round(f1, 4),
+                "pr_auc": round(pr_auc, 4),
+                "confusion_matrix": {
+                    "tn": int(tn),
+                    "fp": int(fp),
+                    "fn": int(fn),
+                    "tp": int(tp),
+                },
+                "bootstrap_95_ci": {
+                    "accuracy": ci_acc,
+                    "precision": ci_prec,
+                    "recall": ci_rec,
+                    "f1": ci_f1,
+                    "resamples": n_boot,
+                },
+            },
+            "deduplicated_test_set": {
+                "samples": n_dedup,
+                "accuracy": round(acc_d, 4),
+                "precision": round(prec_d, 4),
+                "recall": round(rec_d, 4),
+                "f1": round(f1_d, 4),
+                "pr_auc": round(pr_auc_d, 4),
+                "confusion_matrix": {
+                    "tn": int(tn_d),
+                    "fp": int(fp_d),
+                    "fn": int(fn_d),
+                    "tp": int(tp_d),
+                },
+                "bootstrap_95_ci": {
+                    "accuracy": ci_acc_d,
+                    "precision": ci_prec_d,
+                    "recall": ci_rec_d,
+                    "f1": ci_f1_d,
+                    "resamples": n_boot,
+                },
+            },
         },
+        "sensitivity_performance": {
+            "full_test_set": sensitivity_table_full,
+            "deduplicated_test_set": sensitivity_table_dedup,
+        },
+        "misclassified_examples": misclassified_examples,
         "calibration": {
             "mean_predicted_probabilities": prob_pred_list,
             "observed_positive_fractions": prob_true_list,
@@ -395,10 +572,17 @@ def build_model_card_assets():
         json.dump(model_card_data, f, indent=2)
 
     print(f"Model Card data and SVGs saved to: {output_path}")
+    print(f"--- Full Test Set (N={len(y_test):,}) ---")
     print(f"  Accuracy:  {acc * 100:.2f}% (95% CI: [{ci_acc[0] * 100:.2f}%, {ci_acc[1] * 100:.2f}%])")
     print(f"  Precision: {prec * 100:.2f}% (95% CI: [{ci_prec[0] * 100:.2f}%, {ci_prec[1] * 100:.2f}%])")
     print(f"  Recall:    {rec * 100:.2f}% (95% CI: [{ci_rec[0] * 100:.2f}%, {ci_rec[1] * 100:.2f}%])")
     print(f"  F1 Score:  {f1 * 100:.2f}% (95% CI: [{ci_f1[0] * 100:.2f}%, {ci_f1[1] * 100:.2f}%])")
+    print(f"--- De-duplicated Test Set (N={n_dedup:,}) ---")
+    print(f"  Accuracy:  {acc_d * 100:.2f}% (95% CI: [{ci_acc_d[0] * 100:.2f}%, {ci_acc_d[1] * 100:.2f}%])")
+    print(f"  Precision: {prec_d * 100:.2f}% (95% CI: [{ci_prec_d[0] * 100:.2f}%, {ci_prec_d[1] * 100:.2f}%])")
+    print(f"  Recall:    {rec_d * 100:.2f}% (95% CI: [{ci_rec_d[0] * 100:.2f}%, {ci_rec_d[1] * 100:.2f}%])")
+    print(f"  F1 Score:  {f1_d * 100:.2f}% (95% CI: [{ci_f1_d[0] * 100:.2f}%, {ci_f1_d[1] * 100:.2f}%])")
+    return model_card_data
     print(f"  PR-AUC:    {pr_auc:.4f}")
     print(f"  Confusion Matrix: TN={tn}, FP={fp}, FN={fn}, TP={tp}")
     return model_card_data

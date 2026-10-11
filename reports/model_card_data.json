@@ -7,7 +7,7 @@
     "dataset_provenance": "https://github.com/MWiechmann/enron_spam_data",
     "code_license": "MIT License",
     "dataset_license": "GNU General Public License v3.0",
-    "generated_at": "2026-10-10T17:34:50.859465+00:00"
+    "generated_at": "2026-10-11T07:16:04.616824+00:00"
   },
   "dataset_deduplication": {
     "raw_total_samples": 33665,
@@ -15,6 +15,8 @@
     "cleaned_total_samples": 30462,
     "train_samples": 24369,
     "test_samples": 6093,
+    "near_duplicates_in_test": 1208,
+    "deduplicated_test_samples": 4885,
     "class_distribution_overall": {
       "ham": 15910,
       "spam": 14552
@@ -22,40 +24,193 @@
     "class_distribution_test": {
       "ham": 3182,
       "spam": 2911
+    },
+    "class_distribution_test_deduplicated": {
+      "ham": 2602,
+      "spam": 2283
     }
   },
   "evaluation_metrics": {
-    "accuracy": 0.99,
-    "precision": 0.9883,
-    "recall": 0.9907,
-    "f1": 0.9895,
-    "pr_auc": 0.9991,
-    "confusion_matrix": {
-      "tn": 3148,
-      "fp": 34,
-      "fn": 27,
-      "tp": 2884
+    "full_test_set": {
+      "samples": 6093,
+      "accuracy": 0.99,
+      "precision": 0.9883,
+      "recall": 0.9907,
+      "f1": 0.9895,
+      "pr_auc": 0.9991,
+      "confusion_matrix": {
+        "tn": 3148,
+        "fp": 34,
+        "fn": 27,
+        "tp": 2884
+      },
+      "bootstrap_95_ci": {
+        "accuracy": [
+          0.9874,
+          0.9923
+        ],
+        "precision": [
+          0.9841,
+          0.992
+        ],
+        "recall": [
+          0.9872,
+          0.9942
+        ],
+        "f1": [
+          0.9868,
+          0.992
+        ],
+        "resamples": 1000
+      }
+    },
+    "deduplicated_test_set": {
+      "samples": 4885,
+      "accuracy": 0.9875,
+      "precision": 0.9852,
+      "recall": 0.9882,
+      "f1": 0.9867,
+      "pr_auc": 0.9986,
+      "confusion_matrix": {
+        "tn": 2568,
+        "fp": 34,
+        "fn": 27,
+        "tp": 2256
+      },
+      "bootstrap_95_ci": {
+        "accuracy": [
+          0.9844,
+          0.99
+        ],
+        "precision": [
+          0.9799,
+          0.9896
+        ],
+        "recall": [
+          0.9838,
+          0.9923
+        ],
+        "f1": [
+          0.9833,
+          0.9895
+        ],
+        "resamples": 1000
+      }
     }
   },
-  "bootstrap_95_ci": {
-    "accuracy": [
-      0.9874,
-      0.9923
+  "sensitivity_performance": {
+    "full_test_set": [
+      {
+        "level": "low",
+        "threshold": 0.7,
+        "description": "High spam threshold (favors precision, minimizes false alarms)",
+        "precision": 0.9903,
+        "recall": 0.9832,
+        "f1": 0.9867,
+        "fp": 28,
+        "fn": 49
+      },
+      {
+        "level": "medium",
+        "threshold": 0.5,
+        "description": "Standard balanced decision threshold",
+        "precision": 0.9883,
+        "recall": 0.9907,
+        "f1": 0.9895,
+        "fp": 34,
+        "fn": 27
+      },
+      {
+        "level": "high",
+        "threshold": 0.45,
+        "description": "Low spam threshold (favors recall, catches evasive spam)",
+        "precision": 0.987,
+        "recall": 0.9918,
+        "f1": 0.9894,
+        "fp": 38,
+        "fn": 24
+      }
     ],
-    "precision": [
-      0.9841,
-      0.992
-    ],
-    "recall": [
-      0.9872,
-      0.9942
-    ],
-    "f1": [
-      0.9868,
-      0.992
-    ],
-    "resamples": 1000
+    "deduplicated_test_set": [
+      {
+        "level": "low",
+        "threshold": 0.7,
+        "description": "High spam threshold (favors precision, minimizes false alarms)",
+        "precision": 0.9876,
+        "recall": 0.9785,
+        "f1": 0.9831,
+        "fp": 28,
+        "fn": 49
+      },
+      {
+        "level": "medium",
+        "threshold": 0.5,
+        "description": "Standard balanced decision threshold",
+        "precision": 0.9852,
+        "recall": 0.9882,
+        "f1": 0.9867,
+        "fp": 34,
+        "fn": 27
+      },
+      {
+        "level": "high",
+        "threshold": 0.45,
+        "description": "Low spam threshold (favors recall, catches evasive spam)",
+        "precision": 0.9835,
+        "recall": 0.9895,
+        "f1": 0.9865,
+        "fp": 38,
+        "fn": 24
+      }
+    ]
   },
+  "misclassified_examples": [
+    {
+      "id": "FP-01",
+      "type": "False Positive",
+      "true_label": "Legitimate (Ham)",
+      "predicted_label": "Spam",
+      "spam_probability": 0.6349,
+      "redacted_snippet": "Subject: one more . . . http : / / www . cfo . com / article ? article = [ID] ... i ' ll stop now . [Name] [domain] [email@domain.com] [Phone redacted]",
+      "root_cause": "Terse corporate email sharing an external web link with personal contact details, mimicking affiliate lure link structures."
+    },
+    {
+      "id": "FP-02",
+      "type": "False Positive",
+      "true_label": "Legitimate (Ham)",
+      "predicted_label": "Spam",
+      "spam_probability": 0.7968,
+      "redacted_snippet": "Subject: look here ... look what i found at [job search portal] . i thought this might help you with your job searching . comments : know anyone looking for this ?",
+      "root_cause": "Forwarded career portal link using phrases ('look here', 'job searching') heavily correlated with recruitment spam."
+    },
+    {
+      "id": "FN-01",
+      "type": "False Negative",
+      "true_label": "Spam",
+      "predicted_label": "Legitimate (Ham)",
+      "spam_probability": 0.384,
+      "redacted_snippet": "Subject: participate now & receive a las vegas vacation for 2 ... participate in our brief survey to claim hotel accommodations ...",
+      "root_cause": "Contest giveaway phrasing with sparse non-spam formatting landed at P=0.3840 (uncertain review boundary rather than > 0.50)."
+    },
+    {
+      "id": "FN-02",
+      "type": "False Negative",
+      "true_label": "Spam",
+      "predicted_label": "Legitimate (Ham)",
+      "spam_probability": 0.0083,
+      "redacted_snippet": "Subject: nymex invitation - learn power trading ... power trading fundamentals : sept 15 - 16 nymex in nyc ... early bird discount now in effect ! delegates will learn : electricity markets overview ...",
+      "root_cause": "Commercial seminar solicitation whose vocabulary ('power trading', 'nymex', 'electricity markets') mirrors legitimate Enron corporate discourse."
+    },
+    {
+      "id": "FN-03",
+      "type": "False Negative",
+      "true_label": "Spam",
+      "predicted_label": "Legitimate (Ham)",
+      "spam_probability": 0.4236,
+      "redacted_snippet": "Subject: newsletter service ... hi , did you have any e mail newsletter service ? ifthere is , please send me its adress . . thank you . . kind regards [Name]",
+      "root_cause": "Spam inquiry masked with courteous framing ('hi', 'please', 'thank you', 'kind regards'), lowering spam probability to P=0.4236."
+    }
+  ],
   "calibration": {
     "mean_predicted_probabilities": [
       0.0029,

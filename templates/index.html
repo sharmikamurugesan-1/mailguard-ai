@@ -867,7 +867,7 @@
                     <span class="api-rate-icon" aria-hidden="true">⚡</span>
                     <div class="api-rate-info">
                       <strong>Public Sane Rate Limits Enforced:</strong>
-                      <span>60 requests / minute on <code>/api/analyze</code> and <code>/api/predict</code>. 120 requests / minute on <code>/api/model-info</code>. <code>/api/health</code> is exempt. Zero API key required for public guest access.</span>
+                      <span>60 requests / minute on <code>/api/analyze</code> and <code>/api/predict</code>. 120 requests / minute on <code>/api/model-info</code>. <code>/api/health</code> is exempt. Limits are tracked in-memory per server process and reset on instance restart. Zero API key required for public guest access.</span>
                     </div>
                   </div>
 
@@ -1133,61 +1133,175 @@ print(response.json())</code></pre>
 
               <!-- Holdout Test Performance with Bootstrap 95% Confidence Intervals -->
               <div class="model-metrics-section">
-                <h2 class="metrics-table-title">Holdout Test Set Performance & 95% Bootstrap Confidence Intervals</h2>
-                <p class="settings-help">Computed on 6,093 held-out test emails using 1,000 bootstrap resamples with seed 42.</p>
+                <h2 class="metrics-table-title">Holdout Test Set Performance &amp; 95% Bootstrap Confidence Intervals</h2>
+                <p class="settings-help">Side-by-side comparison of the full held-out test set (6,093 emails) and the de-duplicated test set (4,885 emails, near-duplicates &ge; 0.95 removed). All metrics computed with 1,000 bootstrap resamples (seed 42).</p>
 
                 <div class="table-responsive">
-                  <table class="metrics-table" aria-label="Holdout Test Performance and Confidence Intervals">
+                  <table class="metrics-table" aria-label="Holdout Test Performance and Confidence Intervals Comparison">
                     <thead>
                       <tr>
-                        <th scope="col">Metric</th>
-                        <th scope="col">Point Estimate</th>
-                        <th scope="col">95% Confidence Interval</th>
-                        <th scope="col">Operational Meaning</th>
+                        <th scope="col">Evaluation Metric</th>
+                        <th scope="col">Full Test Set (N=6,093) [95% CI]</th>
+                        <th scope="col">De-duplicated Test Set (N=4,885) [95% CI]</th>
+                        <th scope="col">Operational Meaning &amp; Context</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr>
                         <td><strong>Accuracy</strong></td>
-                        <td id="meta-acc">99.00%</td>
-                        <td>[98.74%, 99.23%]</td>
-                        <td>Overall correct classification across all test emails</td>
+                        <td><span id="meta-acc">99.00%</span> <code>[98.74%, 99.23%]</code></td>
+                        <td><span>98.75%</span> <code>[98.44%, 99.00%]</code></td>
+                        <td>Overall proportion of correct classifications across holdout emails.</td>
                       </tr>
                       <tr>
                         <td><strong>Precision (Spam)</strong></td>
-                        <td id="meta-prec">98.83%</td>
-                        <td>[98.41%, 99.20%]</td>
-                        <td>Reliability of spam flags; minimises costly false alarms</td>
+                        <td><span id="meta-prec">98.83%</span> <code>[98.41%, 99.20%]</code></td>
+                        <td><span>98.52%</span> <code>[97.99%, 98.96%]</code></td>
+                        <td>Reliability of positive spam flags; prevents business-critical legitimate emails from being lost.</td>
                       </tr>
                       <tr>
                         <td><strong>Recall (Spam)</strong></td>
-                        <td id="meta-rec">99.07%</td>
-                        <td>[98.72%, 99.42%]</td>
-                        <td>Coverage; catches 99+ out of 100 incoming spam messages</td>
+                        <td><span id="meta-rec">99.07%</span> <code>[98.72%, 99.42%]</code></td>
+                        <td><span>98.82%</span> <code>[98.38%, 99.23%]</code></td>
+                        <td>Threat coverage; catches 98.8%+ of unsolicited spam and fraudulent lures.</td>
                       </tr>
                       <tr>
                         <td><strong>F1-Score (Spam)</strong></td>
-                        <td id="meta-f1">98.95%</td>
-                        <td>[98.68%, 99.20%]</td>
-                        <td>Harmonic balance between precision and recall</td>
+                        <td><span id="meta-f1">98.95%</span> <code>[98.68%, 99.20%]</code></td>
+                        <td><span>98.67%</span> <code>[98.33%, 98.95%]</code></td>
+                        <td>Harmonic mean between precision and recall; balanced accuracy.</td>
                       </tr>
                       <tr>
                         <td><strong>PR-AUC</strong></td>
-                        <td id="meta-pr-auc">0.9991</td>
-                        <td>Baseline: 0.4778</td>
-                        <td>Area under Precision-Recall curve across all decision thresholds</td>
+                        <td><span id="meta-pr-auc">0.9991</span> (Baseline: 47.78%)</td>
+                        <td><span>0.9986</span> (Baseline: 46.73%)</td>
+                        <td>Area under Precision-Recall curve across all decision thresholds.</td>
                       </tr>
                       <tr>
-                        <td><strong>False Positives (Ham → Spam)</strong></td>
-                        <td id="meta-fp">34 / 3,182</td>
-                        <td>1.07% False Alarm Rate</td>
-                        <td>Important business communications mistakenly marked spam</td>
+                        <td><strong>False Positives (Ham &rarr; Spam)</strong></td>
+                        <td><span id="meta-fp">34 / 3,182</span> (1.07% False Alarm Rate)</td>
+                        <td><span>34 / 2,602</span> (1.31% False Alarm Rate)</td>
+                        <td>Innocent emails mistakenly classified as spam (all 34 are in unique clean set).</td>
                       </tr>
                       <tr>
-                        <td><strong>False Negatives (Spam → Ham)</strong></td>
-                        <td id="meta-fn">27 / 2,911</td>
-                        <td>0.93% Miss Rate</td>
-                        <td>Spam or fraudulent emails that leaked past the classifier</td>
+                        <td><strong>False Negatives (Spam &rarr; Ham)</strong></td>
+                        <td><span id="meta-fn">27 / 2,911</span> (0.93% Miss Rate)</td>
+                        <td><span>27 / 2,283</span> (1.18% Miss Rate)</td>
+                        <td>Spam emails that slipped past the classifier (all 27 are in unique clean set).</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Decision Boundary Sensitivity Performance Table -->
+              <div class="model-metrics-section">
+                <h2 class="metrics-table-title">Performance by Decision Sensitivity Profile</h2>
+                <p class="settings-help">Empirical precision, recall, and false alarm trade-offs across user sensitivity levels on both holdout sets.</p>
+
+                <div class="table-responsive">
+                  <table class="metrics-table" aria-label="Performance by Decision Sensitivity Profile">
+                    <thead>
+                      <tr>
+                        <th scope="col">Sensitivity Profile</th>
+                        <th scope="col">Decision Cutoff</th>
+                        <th scope="col">Full Set (Prec / Rec / F1)</th>
+                        <th scope="col">De-duplicated Set (Prec / Rec / F1)</th>
+                        <th scope="col">False Positives</th>
+                        <th scope="col">False Negatives</th>
+                        <th scope="col">Operational Trade-off</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Low (Conservative)</strong></td>
+                        <td><code>P &ge; 0.70</code></td>
+                        <td>99.03% / 98.32% (F1: 98.67%)</td>
+                        <td>98.76% / 97.85% (F1: 98.31%)</td>
+                        <td>28 (-6 false alarms)</td>
+                        <td>49 (+22 misses)</td>
+                        <td>Minimizes false alarms; ideal for executive or legal communication channels.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Medium (Balanced Standard)</strong></td>
+                        <td><code>P &ge; 0.50</code></td>
+                        <td>98.83% / 99.07% (F1: 98.95%)</td>
+                        <td>98.52% / 98.82% (F1: 98.67%)</td>
+                        <td>34 (baseline)</td>
+                        <td>27 (baseline)</td>
+                        <td>Standard calibrated 50% probability boundary; optimal harmonic F1 balance.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>High (Aggressive Catch)</strong></td>
+                        <td><code>P &ge; 0.45</code></td>
+                        <td>98.70% / 99.18% (F1: 98.94%)</td>
+                        <td>98.35% / 98.95% (F1: 98.65%)</td>
+                        <td>38 (+4 false alarms)</td>
+                        <td>24 (-3 misses)</td>
+                        <td>Captures subtle borderline spam at the expense of a modest increase in review flags.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Real Misclassified Case Studies (Names & Emails Redacted) -->
+              <div class="model-metrics-section">
+                <h2 class="metrics-table-title">Misclassified Case Studies (Held-Out Error Analysis)</h2>
+                <p class="settings-help">Authentic test set false positives and false negatives, with names, emails, and identifiers redacted, detailing root causes.</p>
+
+                <div class="table-responsive">
+                  <table class="metrics-table" aria-label="Misclassified Examples and Root Cause Analysis">
+                    <thead>
+                      <tr>
+                        <th scope="col">Case ID</th>
+                        <th scope="col">Error Type</th>
+                        <th scope="col">True / Pred</th>
+                        <th scope="col">Spam Prob</th>
+                        <th scope="col">Redacted Email Content Snippet</th>
+                        <th scope="col">Root Cause Analysis</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><code>FP-01</code></td>
+                        <td><span class="badge badge-warn">False Positive</span></td>
+                        <td>Ham &rarr; Spam</td>
+                        <td>63.49%</td>
+                        <td><code>Subject: one more . . . http : / / www . cfo . com / article ? article = [ID] ... i ' ll stop now . [Name] [domain] [email@domain.com] [Phone redacted]</code></td>
+                        <td>Terse legitimate note sharing an external news link with personal contact tokens resembles affiliate lead-generation spam templates.</td>
+                      </tr>
+                      <tr>
+                        <td><code>FP-02</code></td>
+                        <td><span class="badge badge-warn">False Positive</span></td>
+                        <td>Ham &rarr; Spam</td>
+                        <td>79.68%</td>
+                        <td><code>Subject: look here ... look what i found at [job search portal] . i thought this might help you with your job searching . comments : know anyone looking for this ?</code></td>
+                        <td>Forwarded job portal alert phrasing (&ldquo;look here&rdquo;, &ldquo;job searching&rdquo;) strongly overlaps bulk recruitment marketing patterns.</td>
+                      </tr>
+                      <tr>
+                        <td><code>FN-01</code></td>
+                        <td><span class="badge badge-fail">False Negative</span></td>
+                        <td>Spam &rarr; Ham</td>
+                        <td>38.40%</td>
+                        <td><code>Subject: participate now &amp; receive a las vegas vacation for 2 ... participate in our brief survey to claim hotel accommodations ...</code></td>
+                        <td>Contest vacation lure with sparse formatting landed in the borderline review zone (P=0.3840) rather than exceeding the 0.50 cutoff.</td>
+                      </tr>
+                      <tr>
+                        <td><code>FN-02</code></td>
+                        <td><span class="badge badge-fail">False Negative</span></td>
+                        <td>Spam &rarr; Ham</td>
+                        <td>0.83%</td>
+                        <td><code>Subject: nymex invitation - learn power trading ... power trading fundamentals : sept 15 - 16 nymex in nyc ... early bird discount now in effect ! delegates will learn : electricity markets overview ...</code></td>
+                        <td>Commercial seminar spam whose vocabulary (&ldquo;power trading&rdquo;, &ldquo;nymex&rdquo;, &ldquo;electricity markets&rdquo;) heavily mirrors authentic Enron corporate discourse.</td>
+                      </tr>
+                      <tr>
+                        <td><code>FN-03</code></td>
+                        <td><span class="badge badge-fail">False Negative</span></td>
+                        <td>Spam &rarr; Ham</td>
+                        <td>42.36%</td>
+                        <td><code>Subject: newsletter service ... hi , did you have any e mail newsletter service ? ifthere is , please send me its adress . . thank you . . kind regards [Name]</code></td>
+                        <td>Spam solicitation framed with polite conversational cues (&ldquo;hi&rdquo;, &ldquo;please&rdquo;, &ldquo;kind regards&rdquo;) counterbalancing spam weights into the uncertain band.</td>
                       </tr>
                     </tbody>
                   </table>
@@ -1373,7 +1487,7 @@ print(response.json())</code></pre>
                   <span class="api-rate-icon" aria-hidden="true">⚡</span>
                   <div class="api-rate-info">
                     <strong>Rate Limiting (Flask-Limiter):</strong>
-                    <span>All client requests are subject to sane sliding-window rate limits: <strong>60 requests / minute</strong> on <code>/api/analyze</code> and <code>/api/predict</code>; <strong>120 requests / minute</strong> on <code>/api/model-info</code>; <code>/api/health</code> is exempt. Exceeding limits returns a standard HTTP 429 JSON response.</span>
+                    <span>All client requests are subject to sane sliding-window rate limits: <strong>60 requests / minute</strong> on <code>/api/analyze</code> and <code>/api/predict</code>; <strong>120 requests / minute</strong> on <code>/api/model-info</code>; <code>/api/health</code> is exempt. Limits are tracked in-memory per server process and reset on instance restart. Exceeding limits returns a standard HTTP 429 JSON response.</span>
                   </div>
                 </div>
 

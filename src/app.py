@@ -31,6 +31,7 @@ from werkzeug.exceptions import (
     RequestEntityTooLarge,
     UnsupportedMediaType,
 )
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from src import config
 from src.signals import (
@@ -66,7 +67,13 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
     if test_config:
         app.config.update(test_config)
 
+    # Apply Werkzeug ProxyFix to extract genuine client IP behind reverse proxies (Render)
+    # x_for=1 trusts one hop of X-Forwarded-For to populate request.remote_addr.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
+
     # Rate Limiting (Flask-Limiter)
+    # Note: In-memory storage ("memory://") tracks limits per Gunicorn worker process;
+    # counters are worker-local and reset on server process restart or dyno cycling.
     is_testing = app.config.get("TESTING", False)
     ratelimit_enabled = app.config.get("RATELIMIT_ENABLED", not is_testing)
     limiter = Limiter(

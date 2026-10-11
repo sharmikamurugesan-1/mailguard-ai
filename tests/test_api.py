@@ -487,4 +487,45 @@ def test_rate_limiting_enforced():
     assert hit_429, "Expected 429 RateLimitExceeded after 60 requests"
 
 
+def test_rate_limiting_ip_forwarded_for_separation():
+    """Verify that Werkzeug ProxyFix allows Flask-Limiter to track separate IPs via X-Forwarded-For."""
+    rate_app = create_app({
+        "TESTING": True,
+        "RATELIMIT_ENABLED": True,
+    })
+    rate_client = rate_app.test_client()
+
+    ip_a = "203.0.113.195"
+    ip_b = "198.51.100.42"
+
+    # Exhaust limit for IP A (60 per minute on /api/predict)
+    hit_429 = False
+    for i in range(70):
+        res = rate_client.post(
+            "/api/predict",
+            json={"body": f"IP A body {i}"},
+            headers={"X-Forwarded-For": ip_a},
+        )
+        if res.status_code == 429:
+            hit_429 = True
+            break
+    assert hit_429, "Expected IP A to hit 429 rate limit"
+
+    # Verify IP A is indeed rate-limited
+    res_a_again = rate_client.post(
+        "/api/predict",
+        json={"body": "IP A follow-up"},
+        headers={"X-Forwarded-For": ip_a},
+    )
+    assert res_a_again.status_code == 429
+
+    # Verify IP B with distinct X-Forwarded-For is NOT rate-limited (gets 200 OK)
+    res_b = rate_client.post(
+        "/api/predict",
+        json={"body": "IP B fresh request"},
+        headers={"X-Forwarded-For": ip_b},
+    )
+    assert res_b.status_code == 200, f"Expected IP B to succeed (200), got {res_b.status_code}"
+
+
 
