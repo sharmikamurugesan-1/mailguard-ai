@@ -13,3 +13,4 @@ qrcode==8.2
 axe-core-python==0.1.0
 bandit==1.9.4
 pip-audit==2.10.1
+hypothesis==6.168.5
