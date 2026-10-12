@@ -106,6 +106,17 @@
   var optAnalyzeHeaders = document.getElementById('opt-analyze-headers');
   var optSuspiciousLinks = document.getElementById('opt-suspicious-links');
   var analyzerSensitivitySelect = document.getElementById('analyzer-sensitivity-select');
+  var analyzerModelSelect = document.getElementById('analyzer-model-select');
+  var optCompareModels = document.getElementById('opt-compare-models');
+
+  // THREAT_RADAR Vector & Multi-Model Elements
+  var threatRadarVectorSection = document.getElementById('threat-radar-vector-section');
+  var threatRadarComparisonSection = document.getElementById('threat-radar-comparison-section');
+  var radarValuePolygon = document.getElementById('radar-value-polygon');
+  var radarCompositeBadge = document.getElementById('radar-composite-badge');
+  var modelsConsensusBadge = document.getElementById('models-consensus-badge');
+  var modelsDisagreementAlert = document.getElementById('models-disagreement-alert');
+  var modelsDisagreementText = document.getElementById('models-disagreement-text');
 
   // Phase 12E Settings & Options Elements
   var prefSensitivity = document.getElementById('pref-sensitivity');
@@ -1145,6 +1156,222 @@
   }
 
   // --------------------------------------------------------------------------
+  // THREAT_RADAR: 5-Axis Threat Vector Analytics & SVG Radar Renderer
+  // --------------------------------------------------------------------------
+
+  function computeRadarVectors(data) {
+    var model = data.model || {};
+    var pSpam = typeof model.probability === 'number' ? model.probability : 0.50;
+
+    // 1. NLP Model Score (0 - 100)
+    var vModel = Math.round(Math.max(0, Math.min(100, pSpam * 100)));
+
+    // 2. Header Authenticity Risk (0 = clean, 100 = failed / spoofed)
+    var vHeader = 0;
+    var headers = data.headers;
+    if (headers) {
+      var spfFail = headers.spf && headers.spf.toLowerCase().indexOf('fail') !== -1;
+      var dkimFail = headers.dkim && headers.dkim.toLowerCase().indexOf('fail') !== -1;
+      var dmarcFail = headers.dmarc && headers.dmarc.toLowerCase().indexOf('fail') !== -1;
+      if (spfFail || dkimFail || dmarcFail) {
+        vHeader = 85;
+      } else if (headers.is_spoofed) {
+        vHeader = 95;
+      } else if (headers.spf === 'pass' && headers.dkim === 'pass') {
+        vHeader = 5;
+      } else {
+        vHeader = 20;
+      }
+    } else {
+      var hasHeaderAnomaly = (data.indicators || []).some(function (i) {
+        return (i.type && i.type.toLowerCase().indexOf('header') !== -1) ||
+               (i.detail && i.detail.toLowerCase().indexOf('spoof') !== -1);
+      });
+      vHeader = hasHeaderAnomaly ? 80 : 10;
+    }
+
+    // 3. URL & Link Risk (0 - 100)
+    var vUrl = 0;
+    var urlIndicators = (data.indicators || []).filter(function (i) {
+      return (i.type && (i.type.toLowerCase().indexOf('url') !== -1 || i.type.toLowerCase().indexOf('link') !== -1)) ||
+             (i.detail && (i.detail.toLowerCase().indexOf('http') !== -1 || i.detail.toLowerCase().indexOf('domain') !== -1));
+    });
+    if (urlIndicators.length > 0) {
+      var maxSev = urlIndicators.some(function (i) { return (i.severity || '').toLowerCase() === 'critical'; });
+      vUrl = maxSev ? 95 : 70;
+    } else {
+      vUrl = 0;
+    }
+
+    // 4. Attachment Forensics (0 - 100)
+    var vAttachment = 0;
+    var atts = data.attachments || [];
+    if (atts.length > 0) {
+      var hasDangerous = atts.some(function (a) { return a.is_dangerous; });
+      vAttachment = hasDangerous ? 100 : 20;
+    } else {
+      vAttachment = 0;
+    }
+
+    // 5. Urgency / Social Engineering Heuristics (0 - 100)
+    var vUrgency = 0;
+    var urgencyIndicators = (data.indicators || []).filter(function (i) {
+      var d = (i.detail || '').toLowerCase();
+      var t = (i.type || '').toLowerCase();
+      return d.indexOf('urgency') !== -1 || d.indexOf('deadline') !== -1 ||
+             d.indexOf('threat') !== -1 || d.indexOf('immediate') !== -1 ||
+             t.indexOf('urgency') !== -1 || d.indexOf('financial') !== -1 ||
+             d.indexOf('credential') !== -1;
+    });
+    if (urgencyIndicators.length > 0) {
+      vUrgency = urgencyIndicators.length >= 2 ? 90 : 65;
+    } else if (pSpam >= 0.70) {
+      vUrgency = 35;
+    } else {
+      vUrgency = 5;
+    }
+
+    return {
+      model: vModel,
+      header: vHeader,
+      url: vUrl,
+      attachment: vAttachment,
+      urgency: vUrgency
+    };
+  }
+
+  function renderThreatRadarVectors(data) {
+    if (!threatRadarVectorSection) return;
+    var vectors = computeRadarVectors(data);
+
+    // Compute coordinates on 220x220 canvas: center = (110, 110), max radius = 80
+    var cx = 110, cy = 110, R = 80;
+    // Axis 1: Model (-90 deg)
+    var p1 = { x: cx, y: cy - (R * (vectors.model / 100)) };
+    // Axis 2: Header (-18 deg)
+    var rad2 = -18 * Math.PI / 180;
+    var p2 = { x: cx + R * (vectors.header / 100) * Math.cos(rad2), y: cy + R * (vectors.header / 100) * Math.sin(rad2) };
+    // Axis 3: URL (54 deg)
+    var rad3 = 54 * Math.PI / 180;
+    var p3 = { x: cx + R * (vectors.url / 100) * Math.cos(rad3), y: cy + R * (vectors.url / 100) * Math.sin(rad3) };
+    // Axis 4: Attachment (126 deg)
+    var rad4 = 126 * Math.PI / 180;
+    var p4 = { x: cx + R * (vectors.attachment / 100) * Math.cos(rad4), y: cy + R * (vectors.attachment / 100) * Math.sin(rad4) };
+    // Axis 5: Urgency (198 deg)
+    var rad5 = 198 * Math.PI / 180;
+    var p5 = { x: cx + R * (vectors.urgency / 100) * Math.cos(rad5), y: cy + R * (vectors.urgency / 100) * Math.sin(rad5) };
+
+    if (radarValuePolygon) {
+      var pts = `${p1.x.toFixed(1)},${p1.y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)} ${p3.x.toFixed(1)},${p3.y.toFixed(1)} ${p4.x.toFixed(1)},${p4.y.toFixed(1)} ${p5.x.toFixed(1)},${p5.y.toFixed(1)}`;
+      radarValuePolygon.setAttribute('points', pts);
+    }
+
+    var dotModel = document.getElementById('radar-dot-model');
+    if (dotModel) { dotModel.setAttribute('cx', p1.x.toFixed(1)); dotModel.setAttribute('cy', p1.y.toFixed(1)); }
+    var dotHeader = document.getElementById('radar-dot-header');
+    if (dotHeader) { dotHeader.setAttribute('cx', p2.x.toFixed(1)); dotHeader.setAttribute('cy', p2.y.toFixed(1)); }
+    var dotUrl = document.getElementById('radar-dot-url');
+    if (dotUrl) { dotUrl.setAttribute('cx', p3.x.toFixed(1)); dotUrl.setAttribute('cy', p3.y.toFixed(1)); }
+    var dotAttachment = document.getElementById('radar-dot-attachment');
+    if (dotAttachment) { dotAttachment.setAttribute('cx', p4.x.toFixed(1)); dotAttachment.setAttribute('cy', p4.y.toFixed(1)); }
+    var dotUrgency = document.getElementById('radar-dot-urgency');
+    if (dotUrgency) { dotUrgency.setAttribute('cx', p5.x.toFixed(1)); dotUrgency.setAttribute('cy', p5.y.toFixed(1)); }
+
+    // Update vector text readouts and bar widths
+    var vModelVal = document.getElementById('vector-model-val');
+    var vModelBar = document.getElementById('vector-model-bar');
+    if (vModelVal) vModelVal.textContent = vectors.model + '%';
+    if (vModelBar) vModelBar.style.width = vectors.model + '%';
+
+    var vHeaderVal = document.getElementById('vector-header-val');
+    var vHeaderBar = document.getElementById('vector-header-bar');
+    if (vHeaderVal) vHeaderVal.textContent = vectors.header > 40 ? 'Risk (' + vectors.header + '%)' : (vectors.header === 0 ? 'Clean' : 'Low (' + vectors.header + '%)');
+    if (vHeaderBar) vHeaderBar.style.width = vectors.header + '%';
+
+    var vUrlVal = document.getElementById('vector-url-val');
+    var vUrlBar = document.getElementById('vector-url-bar');
+    if (vUrlVal) vUrlVal.textContent = vectors.url > 40 ? 'Suspicious (' + vectors.url + '%)' : (vectors.url === 0 ? 'Clean' : 'Low (' + vectors.url + '%)');
+    if (vUrlBar) vUrlBar.style.width = vectors.url + '%';
+
+    var vAttVal = document.getElementById('vector-attachment-val');
+    var vAttBar = document.getElementById('vector-attachment-bar');
+    if (vAttVal) vAttVal.textContent = vectors.attachment > 40 ? 'Dangerous (' + vectors.attachment + '%)' : (vectors.attachment === 0 ? 'Clean' : 'Low (' + vectors.attachment + '%)');
+    if (vAttBar) vAttBar.style.width = vectors.attachment + '%';
+
+    var vUrgVal = document.getElementById('vector-urgency-val');
+    var vUrgBar = document.getElementById('vector-urgency-bar');
+    if (vUrgVal) vUrgVal.textContent = vectors.urgency > 40 ? 'Detected (' + vectors.urgency + '%)' : (vectors.urgency === 0 ? 'Clean' : 'Low (' + vectors.urgency + '%)');
+    if (vUrgBar) vUrgBar.style.width = vectors.urgency + '%';
+  }
+
+  function renderMultiModelComparison(comparison, selectedModelKey) {
+    if (!comparison || !threatRadarComparisonSection) return;
+
+    // Consensus badge
+    if (modelsConsensusBadge) {
+      var consensusText = (comparison.consensus_strength || '3/3') + ' Agree (' + (comparison.consensus_verdict || 'spam').toUpperCase() + ')';
+      modelsConsensusBadge.textContent = consensusText;
+      modelsConsensusBadge.className = 'consensus-badge ' + (comparison.all_agree ? 'badge-safe' : 'badge-suspicious');
+    }
+
+    // Disagreement alert
+    if (modelsDisagreementAlert) {
+      if (!comparison.all_agree && comparison.disagreement_notes) {
+        modelsDisagreementAlert.classList.remove('hidden');
+        if (modelsDisagreementText) modelsDisagreementText.textContent = comparison.disagreement_notes;
+      } else {
+        modelsDisagreementAlert.classList.add('hidden');
+      }
+    }
+
+    var algos = comparison.algorithms || {};
+
+    // SVM
+    var svm = algos.svm || {};
+    var svmProb = typeof svm.spam_probability === 'number' ? svm.spam_probability : 0.5;
+    var elSvmProb = document.getElementById('algo-svm-prob');
+    var elSvmBar = document.getElementById('algo-svm-bar');
+    var elSvmVerdict = document.getElementById('algo-svm-verdict');
+    var cardSvm = document.getElementById('algo-card-svm');
+    if (elSvmProb) elSvmProb.textContent = (svmProb * 100).toFixed(1) + '%';
+    if (elSvmBar) elSvmBar.style.width = Math.round(svmProb * 100) + '%';
+    if (elSvmVerdict) {
+      elSvmVerdict.textContent = (svm.prediction || 'ham').toUpperCase();
+      elSvmVerdict.className = 'algo-verdict-badge ' + (svm.prediction === 'spam' ? 'badge-spam' : 'badge-safe');
+    }
+    if (cardSvm) cardSvm.classList.toggle('algo-active-selection', selectedModelKey === 'svm');
+
+    // LR
+    var lr = algos.lr || {};
+    var lrProb = typeof lr.spam_probability === 'number' ? lr.spam_probability : 0.5;
+    var elLrProb = document.getElementById('algo-lr-prob');
+    var elLrBar = document.getElementById('algo-lr-bar');
+    var elLrVerdict = document.getElementById('algo-lr-verdict');
+    var cardLr = document.getElementById('algo-card-lr');
+    if (elLrProb) elLrProb.textContent = (lrProb * 100).toFixed(1) + '%';
+    if (elLrBar) elLrBar.style.width = Math.round(lrProb * 100) + '%';
+    if (elLrVerdict) {
+      elLrVerdict.textContent = (lr.prediction || 'ham').toUpperCase();
+      elLrVerdict.className = 'algo-verdict-badge ' + (lr.prediction === 'spam' ? 'badge-spam' : 'badge-safe');
+    }
+    if (cardLr) cardLr.classList.toggle('algo-active-selection', selectedModelKey === 'lr');
+
+    // NB
+    var nb = algos.nb || {};
+    var nbProb = typeof nb.spam_probability === 'number' ? nb.spam_probability : 0.5;
+    var elNbProb = document.getElementById('algo-nb-prob');
+    var elNbBar = document.getElementById('algo-nb-bar');
+    var elNbVerdict = document.getElementById('algo-nb-verdict');
+    var cardNb = document.getElementById('algo-card-nb');
+    if (elNbProb) elNbProb.textContent = (nbProb * 100).toFixed(1) + '%';
+    if (elNbBar) elNbBar.style.width = Math.round(nbProb * 100) + '%';
+    if (elNbVerdict) {
+      elNbVerdict.textContent = (nb.prediction || 'ham').toUpperCase();
+      elNbVerdict.className = 'algo-verdict-badge ' + (nb.prediction === 'spam' ? 'badge-spam' : 'badge-safe');
+    }
+    if (cardNb) cardNb.classList.toggle('algo-active-selection', selectedModelKey === 'nb');
+  }
+
   // --------------------------------------------------------------------------
   // Phase 12C: Render Analysis Report Card (SVG Ring, Indicators, Findings)
   // --------------------------------------------------------------------------
@@ -1224,6 +1451,17 @@
       } else {
         reportUncertainBanner.classList.add('hidden');
       }
+    }
+
+    // 3b. THREAT_RADAR 5-Axis Threat Vector Summary Widget
+    renderThreatRadarVectors(data);
+
+    // 3c. THREAT_RADAR Multi-Model Comparison Card
+    if (optCompareModels && !optCompareModels.checked) {
+      if (threatRadarComparisonSection) threatRadarComparisonSection.classList.add('hidden');
+    } else {
+      if (threatRadarComparisonSection) threatRadarComparisonSection.classList.remove('hidden');
+      renderMultiModelComparison(data.models_comparison, (data.model && data.model.key) || (analyzerModelSelect ? analyzerModelSelect.value : 'svm'));
     }
 
     // 4. Detected Indicators Chips
@@ -1344,6 +1582,52 @@
       }
       if (rawHeadersPre && data.headers.raw_headers) {
         rawHeadersPre.textContent = data.headers.raw_headers;
+      }
+    }
+
+    // 7b. Cryptographic Evidence SHA-256 Digest
+    var reportShaVal = document.getElementById('report-sha256-val');
+    if (reportShaVal) {
+      reportShaVal.textContent = data.evidence_sha256 || 'N/A';
+    }
+
+    // 7c. Attachment Forensics Table
+    var reportAttachmentsSec = document.getElementById('report-attachments-section');
+    var attachmentsTableBody = document.getElementById('attachments-table-body');
+    var attachmentsCountBadge = document.getElementById('attachments-count-badge');
+    if (reportAttachmentsSec && attachmentsTableBody) {
+      var attachments = data.attachments || [];
+      if (attachments.length > 0) {
+        reportAttachmentsSec.classList.remove('hidden');
+        if (attachmentsCountBadge) attachmentsCountBadge.textContent = String(attachments.length);
+        while (attachmentsTableBody.firstChild) {
+          attachmentsTableBody.removeChild(attachmentsTableBody.firstChild);
+        }
+        attachments.forEach(function (att) {
+          var tr = document.createElement('tr');
+          var tdName = document.createElement('td');
+          tdName.textContent = att.filename || 'unknown';
+          tr.appendChild(tdName);
+
+          var tdType = document.createElement('td');
+          tdType.textContent = att.content_type || 'application/octet-stream';
+          tr.appendChild(tdType);
+
+          var tdSize = document.createElement('td');
+          tdSize.textContent = att.size_bytes ? (att.size_bytes < 1024 ? att.size_bytes + ' B' : (att.size_bytes / 1024).toFixed(1) + ' KB') : '0 B';
+          tr.appendChild(tdSize);
+
+          var tdStatus = document.createElement('td');
+          var badge = document.createElement('span');
+          badge.className = att.is_dangerous ? 'badge badge-spam' : 'badge badge-safe';
+          badge.textContent = att.is_dangerous ? (att.danger_reason || 'Dangerous Executable') : 'Safe';
+          tdStatus.appendChild(badge);
+          tr.appendChild(tdStatus);
+
+          attachmentsTableBody.appendChild(tr);
+        });
+      } else {
+        reportAttachmentsSec.classList.add('hidden');
       }
     }
 
@@ -1546,7 +1830,7 @@
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url;
-      a.download = `mailguard-analysis-${Date.now()}.json`;
+      a.download = `mailguard-investigation-report-${Date.now()}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -1673,16 +1957,19 @@
     var effScanUrls = optExtractUrls ? optExtractUrls.checked : (currentSettings.scan_urls !== false);
     var effAnalyzeHeaders = optAnalyzeHeaders ? optAnalyzeHeaders.checked : (currentSettings.analyze_headers !== false);
     var effDetectSuspicious = optSuspiciousLinks ? optSuspiciousLinks.checked : true;
+    var effModel = analyzerModelSelect ? analyzerModelSelect.value : 'svm';
 
     var analyzePayload = {
       subject: subVal,
       text: subVal ? (`Subject: ${subVal}\n\n${bodyVal}`) : bodyVal,
       eml: currentRawEml || null,
+      model: effModel,
       options: {
         scan_urls: effScanUrls,
         analyze_headers: effAnalyzeHeaders,
         detect_suspicious_links: effDetectSuspicious,
-        sensitivity: effSensitivity
+        sensitivity: effSensitivity,
+        model: effModel
       }
     };
 
@@ -1766,6 +2053,23 @@
   // --------------------------------------------------------------------------
 
   emailForm.addEventListener('submit', handleFormSubmit);
+
+  if (optCompareModels) {
+    optCompareModels.addEventListener('change', function () {
+      if (!threatRadarComparisonSection) return;
+      if (optCompareModels.checked) {
+        threatRadarComparisonSection.classList.remove('hidden');
+        if (currentAnalysisData && currentAnalysisData.models_comparison) {
+          renderMultiModelComparison(
+            currentAnalysisData.models_comparison,
+            (currentAnalysisData.model && currentAnalysisData.model.key) || (analyzerModelSelect ? analyzerModelSelect.value : 'svm')
+          );
+        }
+      } else {
+        threatRadarComparisonSection.classList.add('hidden');
+      }
+    });
+  }
 
   // Keyboard shortcut Ctrl+Enter / Cmd+Enter
   function handleFormKeydown(e) {

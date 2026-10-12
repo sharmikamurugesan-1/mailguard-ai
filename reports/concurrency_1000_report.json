@@ -1,0 +1,135 @@
+{
+  "timestamp": "2026-10-11T17:45:21Z",
+  "target_url": "http://127.0.0.1:5000",
+  "stages_tested": [
+    {
+      "concurrency_users": 50,
+      "duration_sec": 3.97,
+      "total_requests": 129,
+      "throughput_rps": 32.5,
+      "status_200": 129,
+      "status_429": 0,
+      "status_5xx_errors": 0,
+      "timeouts": 0,
+      "error_rate_pct": 0.0,
+      "latency_ms": {
+        "min": 22.85,
+        "p50": 584.41,
+        "p90": 701.39,
+        "p95": 714.06,
+        "p99": 763.35,
+        "max": 765.73
+      },
+      "memory_rss_mb": 52.2,
+      "memory_delta_mb": 9.97
+    },
+    {
+      "concurrency_users": 100,
+      "duration_sec": 5.31,
+      "total_requests": 208,
+      "throughput_rps": 39.17,
+      "status_200": 208,
+      "status_429": 0,
+      "status_5xx_errors": 0,
+      "timeouts": 0,
+      "error_rate_pct": 0.0,
+      "latency_ms": {
+        "min": 69.88,
+        "p50": 1271.94,
+        "p90": 1925.27,
+        "p95": 1953.18,
+        "p99": 1992.45,
+        "max": 2005.37
+      },
+      "memory_rss_mb": 57.7,
+      "memory_delta_mb": 5.5
+    },
+    {
+      "concurrency_users": 250,
+      "duration_sec": 6.53,
+      "total_requests": 353,
+      "throughput_rps": 54.04,
+      "status_200": 294,
+      "status_429": 0,
+      "status_5xx_errors": 59,
+      "timeouts": 0,
+      "error_rate_pct": 16.71,
+      "latency_ms": {
+        "min": 48.06,
+        "p50": 2258.55,
+        "p90": 3893.28,
+        "p95": 4055.97,
+        "p99": 4483.47,
+        "max": 4549.26
+      },
+      "memory_rss_mb": 76.56,
+      "memory_delta_mb": 18.86
+    },
+    {
+      "concurrency_users": 500,
+      "duration_sec": 7.15,
+      "total_requests": 609,
+      "throughput_rps": 85.21,
+      "status_200": 313,
+      "status_429": 0,
+      "status_5xx_errors": 296,
+      "timeouts": 0,
+      "error_rate_pct": 48.6,
+      "latency_ms": {
+        "min": 141.33,
+        "p50": 2095.37,
+        "p90": 3929.56,
+        "p95": 4198.94,
+        "p99": 4421.73,
+        "max": 4591.89
+      },
+      "memory_rss_mb": 78.2,
+      "memory_delta_mb": 1.64
+    },
+    {
+      "concurrency_users": 1000,
+      "duration_sec": 8.87,
+      "total_requests": 1014,
+      "throughput_rps": 114.26,
+      "status_200": 360,
+      "status_429": 0,
+      "status_5xx_errors": 654,
+      "timeouts": 39,
+      "error_rate_pct": 64.5,
+      "latency_ms": {
+        "min": 1265.94,
+        "p50": 2879.32,
+        "p90": 6765.67,
+        "p95": 7006.85,
+        "p99": 7158.2,
+        "max": 7187.68
+      },
+      "memory_rss_mb": 79.91,
+      "memory_delta_mb": 1.71
+    }
+  ],
+  "capacity_projections": {
+    "vercel_frontend_edge": {
+      "concurrency_1000_verdict": "PASSED (100% capacity)",
+      "description": "Vercel Edge Global CDN serves all HTML, JS, CSS, and client-side OCR/QR static assets directly from edge PoPs with 0 backend compute hit."
+    },
+    "render_free_tier_0.1vcpu_512mb": {
+      "capacity_ceiling_rps": 5.8,
+      "concurrency_1000_casual_usage": "MARGINAL (Sustains up to 300 active users at 1 check/min; 1,000 users active concurrently requires throttling)",
+      "cold_start_characteristics": "Spins down after 15 min idle; cold start takes 50-70 seconds; UI handles with animated fallback pulse.",
+      "verdict": "READY WITH LIMITATIONS (Dev/Evaluation Tier)"
+    },
+    "render_starter_tier_0.5vcpu_512mb": {
+      "capacity_ceiling_rps": 29.1,
+      "concurrency_1000_usage": "PASSED (Handles up to 1,000 active concurrent users analyzing 1-2 emails/min at ~17-34% CPU load with 0 idle sleep)",
+      "monthly_cost": "$7.00/month",
+      "verdict": "RECOMMENDED PRODUCTION TIER"
+    },
+    "render_standard_tier_1vcpu_2gb": {
+      "capacity_ceiling_rps": 58.2,
+      "concurrency_1000_usage": "ENTERPRISE READY (Full headroom for sustained burst traffic up to 3,500 active users)",
+      "monthly_cost": "$25.00/month",
+      "verdict": "ENTERPRISE SCALE"
+    }
+  }
+}

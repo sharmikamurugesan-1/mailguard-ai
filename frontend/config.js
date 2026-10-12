@@ -39,14 +39,14 @@
   );
 
   var apiUrl;
-  if (isLocalhost && window.location.port !== '5000' && window.location.port !== '') {
-    // Local static server on another port (e.g. http://localhost:3000) talking to local Flask
+  if (isLocalhost && (window.location.port === '3000' || window.location.port === '8080')) {
+    // Local static server on port 3000/8080 talking to local Flask
     apiUrl = DEV_API_URL;
   } else if (!isLocalhost && (hostname.endsWith('.vercel.app') || hostname.includes('vercel'))) {
     // Vercel deployment talking to Render backend
     apiUrl = PROD_API_URL;
   } else if (window.location.origin && window.location.origin !== 'null') {
-    // Same-origin monolith fallback (Render or local Flask port 5000)
+    // Same-origin monolith fallback (Render or local Flask port 5000, 5005, etc.)
     apiUrl = window.location.origin;
   } else {
     apiUrl = DEV_API_URL;

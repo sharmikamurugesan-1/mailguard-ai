@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MailGuard AI - AI-Powered Email Spam Detection</title>
+  <title>MailGuard AI — THREAT_RADAR | AI-Powered Email Spam Detection</title>
   <meta name="description" content="Portfolio-grade explainable email threat and spam classification platform using NLP and calibrated machine learning models.">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="alternate icon" href="/favicon.ico">
@@ -44,8 +44,8 @@
             </svg>
           </div>
           <div class="brand-text">
-            <span class="brand-title">MailGuard AI</span>
-            <span class="brand-subtitle">Smarter Email Security</span>
+            <span class="brand-title">MailGuard<span class="brand-accent-dot" aria-hidden="true"></span></span>
+            <span class="brand-subtitle">THREAT_RADAR Workspace</span>
           </div>
         </a>
       </div>
@@ -136,6 +136,12 @@
             <span id="theme-icon" aria-hidden="true">🌙</span>
             <span class="theme-text" id="theme-text">Dark</span>
           </button>
+
+          <!-- Top Navigation Open Scanner Button -->
+          <a href="#/analyzer" class="btn btn-nav-scanner" id="nav-open-scanner-btn" title="Open Email Threat Scanner">
+            <span aria-hidden="true">🛡️</span>
+            <span>Open Scanner</span>
+          </a>
 
           <!-- User Chip -->
           <div class="user-chip" id="user-chip" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="User profile: Guest">
@@ -384,6 +390,19 @@
                           <option value="high">High</option>
                         </select>
                       </div>
+                      <div class="analyzer-model-control">
+                        <label for="analyzer-model-select" class="analyzer-model-label">Model:</label>
+                        <select id="analyzer-model-select" class="select-model-sm" aria-label="Machine Learning Model Selection">
+                          <option value="svm" selected>Calibrated Linear SVM (Primary Winner)</option>
+                          <option value="lr">Logistic Regression (Candidate)</option>
+                          <option value="nb">Multinomial Naive Bayes (Baseline)</option>
+                        </select>
+                      </div>
+                      <label class="toggle-control" id="compare-models-toggle-wrapper">
+                        <input type="checkbox" id="opt-compare-models" checked>
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                        <span class="toggle-text">Compare 3 Models</span>
+                      </label>
                     </div>
 
                     <!-- General Alert Box -->
@@ -553,6 +572,154 @@
                     </div>
                   </div>
 
+                  <!-- THREAT_RADAR 5-Axis Threat Vector Summary Widget -->
+                  <div class="report-section" id="threat-radar-vector-section">
+                    <div class="section-title-row">
+                      <h3 class="report-section-title">Threat Radar Vectors (5-Axis Multi-Layer Assessment)</h3>
+                      <span class="indicator-count-badge" id="radar-composite-badge">Active</span>
+                    </div>
+                    <div class="radar-widget-container">
+                      <div class="radar-chart-box">
+                        <svg class="radar-chart-svg" width="220" height="220" viewBox="0 0 220 220" role="img" aria-label="5-Axis Threat Radar Chart">
+                          <!-- Concentric Pentagon Background Grids -->
+                          <polygon class="radar-grid-polygon radar-grid-20" points="110,92 127,104 120,125 100,125 93,104"></polygon>
+                          <polygon class="radar-grid-polygon radar-grid-40" points="110,74 144,99 131,139 89,139 76,99"></polygon>
+                          <polygon class="radar-grid-polygon radar-grid-60" points="110,56 161,93 141,154 79,154 59,93"></polygon>
+                          <polygon class="radar-grid-polygon radar-grid-80" points="110,38 178,87 152,168 68,168 42,87"></polygon>
+                          <polygon class="radar-grid-polygon radar-grid-100" points="110,20 195,82 163,182 57,182 25,82"></polygon>
+                          <!-- 5 Spoke Axis Lines -->
+                          <line class="radar-spoke" x1="110" y1="110" x2="110" y2="20"></line>
+                          <line class="radar-spoke" x1="110" y1="110" x2="195" y2="82"></line>
+                          <line class="radar-spoke" x1="110" y1="110" x2="163" y2="182"></line>
+                          <line class="radar-spoke" x1="110" y1="110" x2="57" y2="182"></line>
+                          <line class="radar-spoke" x1="110" y1="110" x2="25" y2="82"></line>
+                          <!-- Dynamic Radar Value Polygon -->
+                          <polygon class="radar-value-polygon" id="radar-value-polygon" points="110,110 110,110 110,110 110,110 110,110"></polygon>
+                          <!-- Dynamic Vertex Points -->
+                          <circle class="radar-vertex-dot" id="radar-dot-model" cx="110" cy="110" r="4"></circle>
+                          <circle class="radar-vertex-dot" id="radar-dot-header" cx="110" cy="110" r="4"></circle>
+                          <circle class="radar-vertex-dot" id="radar-dot-url" cx="110" cy="110" r="4"></circle>
+                          <circle class="radar-vertex-dot" id="radar-dot-attachment" cx="110" cy="110" r="4"></circle>
+                          <circle class="radar-vertex-dot" id="radar-dot-urgency" cx="110" cy="110" r="4"></circle>
+                        </svg>
+                      </div>
+                      <div class="radar-vectors-breakdown" role="list" aria-label="Threat Vector Breakdown">
+                        <div class="radar-vector-item" role="listitem">
+                          <div class="vector-header">
+                            <span class="vector-name">1. NLP Model Score</span>
+                            <span class="vector-val" id="vector-model-val">--%</span>
+                          </div>
+                          <div class="vector-track"><div class="vector-fill" id="vector-model-bar"></div></div>
+                        </div>
+                        <div class="radar-vector-item" role="listitem">
+                          <div class="vector-header">
+                            <span class="vector-name">2. Header Authenticity</span>
+                            <span class="vector-val" id="vector-header-val">Clean</span>
+                          </div>
+                          <div class="vector-track"><div class="vector-fill" id="vector-header-bar"></div></div>
+                        </div>
+                        <div class="radar-vector-item" role="listitem">
+                          <div class="vector-header">
+                            <span class="vector-name">3. URL &amp; Link Risk</span>
+                            <span class="vector-val" id="vector-url-val">Clean</span>
+                          </div>
+                          <div class="vector-track"><div class="vector-fill" id="vector-url-bar"></div></div>
+                        </div>
+                        <div class="radar-vector-item" role="listitem">
+                          <div class="vector-header">
+                            <span class="vector-name">4. Attachment Forensics</span>
+                            <span class="vector-val" id="vector-attachment-val">Clean</span>
+                          </div>
+                          <div class="vector-track"><div class="vector-fill" id="vector-attachment-bar"></div></div>
+                        </div>
+                        <div class="radar-vector-item" role="listitem">
+                          <div class="vector-header">
+                            <span class="vector-name">5. Urgency / Heuristics</span>
+                            <span class="vector-val" id="vector-urgency-val">Clean</span>
+                          </div>
+                          <div class="vector-track"><div class="vector-fill" id="vector-urgency-bar"></div></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- THREAT_RADAR Multi-Model Comparison Card -->
+                  <div class="report-section" id="threat-radar-comparison-section">
+                    <div class="section-title-row">
+                      <h3 class="report-section-title">Multi-Model Consensus &amp; Algorithm Comparison</h3>
+                      <span class="consensus-badge" id="models-consensus-badge">3/3 Models Agree</span>
+                    </div>
+                    <div class="disagreement-banner hidden" id="models-disagreement-alert" role="alert">
+                      <span class="disagreement-icon" aria-hidden="true">⚠️</span>
+                      <span class="disagreement-text" id="models-disagreement-text">Model Disagreement detected.</span>
+                    </div>
+                    <div class="models-comparison-grid" id="models-comparison-grid" role="region" aria-label="Candidate Model Comparison Grid">
+                      <!-- Model Card 1: Calibrated Linear SVM -->
+                      <div class="algo-card algo-winner" id="algo-card-svm">
+                        <div class="algo-card-header">
+                          <div class="algo-title-group">
+                            <h4 class="algo-name">Calibrated Linear SVM</h4>
+                            <span class="algo-tag badge-winner">Winner (Production)</span>
+                          </div>
+                          <span class="algo-verdict-badge" id="algo-svm-verdict">--</span>
+                        </div>
+                        <div class="algo-body">
+                          <div class="algo-prob-row">
+                            <span class="algo-label">Spam Prob:</span>
+                            <strong class="algo-prob-num" id="algo-svm-prob">--%</strong>
+                          </div>
+                          <div class="algo-prob-track"><div class="algo-prob-fill" id="algo-svm-bar"></div></div>
+                          <div class="algo-metrics-pill">
+                            <span>Accuracy: <strong>99.00%</strong></span>
+                            <span>F1: <strong>0.9895</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Model Card 2: Logistic Regression -->
+                      <div class="algo-card" id="algo-card-lr">
+                        <div class="algo-card-header">
+                          <div class="algo-title-group">
+                            <h4 class="algo-name">Logistic Regression</h4>
+                            <span class="algo-tag badge-candidate">Candidate (High Recall)</span>
+                          </div>
+                          <span class="algo-verdict-badge" id="algo-lr-verdict">--</span>
+                        </div>
+                        <div class="algo-body">
+                          <div class="algo-prob-row">
+                            <span class="algo-label">Spam Prob:</span>
+                            <strong class="algo-prob-num" id="algo-lr-prob">--%</strong>
+                          </div>
+                          <div class="algo-prob-track"><div class="algo-prob-fill" id="algo-lr-bar"></div></div>
+                          <div class="algo-metrics-pill">
+                            <span>Accuracy: <strong>98.69%</strong></span>
+                            <span>F1: <strong>0.9864</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Model Card 3: Multinomial Naive Bayes -->
+                      <div class="algo-card" id="algo-card-nb">
+                        <div class="algo-card-header">
+                          <div class="algo-title-group">
+                            <h4 class="algo-name">Multinomial Naive Bayes</h4>
+                            <span class="algo-tag badge-candidate">Candidate (Fast Baseline)</span>
+                          </div>
+                          <span class="algo-verdict-badge" id="algo-nb-verdict">--</span>
+                        </div>
+                        <div class="algo-body">
+                          <div class="algo-prob-row">
+                            <span class="algo-label">Spam Prob:</span>
+                            <strong class="algo-prob-num" id="algo-nb-prob">--%</strong>
+                          </div>
+                          <div class="algo-prob-track"><div class="algo-prob-fill" id="algo-nb-bar"></div></div>
+                          <div class="algo-metrics-pill">
+                            <span>Accuracy: <strong>98.49%</strong></span>
+                            <span>F1: <strong>0.9842</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <!-- Detected Indicators Section -->
                   <div class="report-section" id="report-indicators-section">
                     <div class="section-title-row">
@@ -570,6 +737,41 @@
                     <ul class="findings-list" id="findings-list">
                       <!-- Populated dynamically -->
                     </ul>
+                  </div>
+
+                  <!-- Attachment Forensics Section (Visible when attachments detected) -->
+                  <div class="report-section hidden" id="report-attachments-section">
+                    <div class="section-title-row">
+                      <h3 class="report-section-title">Attachment Forensics</h3>
+                      <span class="indicator-count-badge" id="attachments-count-badge">0</span>
+                    </div>
+                    <div class="attachments-table-container">
+                      <table class="attachments-table" id="attachments-table">
+                        <thead>
+                          <tr>
+                            <th scope="col">Filename</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Size</th>
+                            <th scope="col">Security Verdict</th>
+                          </tr>
+                        </thead>
+                        <tbody id="attachments-table-body">
+                          <!-- Populated dynamically via DOM textContent -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Cryptographic Evidence SHA-256 Section -->
+                  <div class="report-section" id="report-evidence-section">
+                    <div class="evidence-sha-card">
+                      <div class="evidence-sha-header">
+                        <span class="evidence-icon" aria-hidden="true">🔒</span>
+                        <span>Cryptographic Evidence Digest (SHA-256)</span>
+                      </div>
+                      <code class="evidence-sha-code" id="report-sha256-val">--</code>
+                      <span class="evidence-sha-note">Tamper-proof payload hash. Zero email text stored on server.</span>
+                    </div>
                   </div>
 
                   <!-- Email Preview with Original / Extracted Switch -->
@@ -1141,37 +1343,113 @@ print(response.json())</code></pre>
         <!-- VIEW 6: HOME (#/home)                                             -->
         <!-- ================================================================ -->
         <section class="view-panel hidden" id="view-home" role="tabpanel" aria-labelledby="top-nav-home">
-          <!-- Hero Section -->
+          <!-- Render-Inspired Technical Split Hero Section -->
           <div class="card home-hero-card">
-            <div class="hero-content">
-              <span class="badge badge-accent hero-badge">Next-Gen Email Protection</span>
-              <h1 class="hero-headline">Smarter Email Security with <span class="text-coral-gradient">AI-Powered</span> Threat Detection</h1>
-              <p class="hero-subtext">MailGuard AI analyzes your emails, detects spam, phishing, and suspicious vocabulary using calibrated machine learning and explainable feature contributions.</p>
-              <div class="hero-actions">
-                <a href="#/analyzer" class="btn btn-primary btn-crimson">Open Full Analyzer →</a>
-                <a href="#/model-card" class="btn btn-outline">Explore Model Card</a>
+            <div class="hero-split-container">
+              <!-- Left: Lightweight Oversized Typography & CTAs -->
+              <div class="hero-content-left">
+                <span class="hero-eyebrow">
+                  <span class="hero-eyebrow-dot" aria-hidden="true"></span>
+                  THREAT_RADAR v2.0 • Active Threat Intelligence
+                </span>
+                <h1 class="hero-headline">
+                  Your first line of defence against <span class="text-maroon-accent">email threats</span>.
+                </h1>
+                <p class="hero-subtext">
+                  A multi-model cybersecurity threat-investigation workspace combining calibrated Linear SVM, Logistic Regression, Naive Bayes consensus, deep header forensics, and client-side privacy. Zero email text stored.
+                </p>
+                <div class="hero-actions">
+                  <a href="#/analyzer" class="btn btn-primary btn-maroon-cta" id="hero-scan-cta">
+                    Start Threat Scan →
+                  </a>
+                  <a href="#/model-card" class="btn btn-outline-render" id="hero-model-cta">
+                    Explore Forensics
+                  </a>
+                </div>
+
+                <div class="hero-pills-row">
+                  <div class="hero-pill">
+                    <span class="pill-icon" aria-hidden="true">🧠</span>
+                    <div>
+                      <span class="pill-title">Calibrated SVM</span>
+                      <span class="pill-sub">LinearSVC · Platt Scaling</span>
+                    </div>
+                  </div>
+                  <div class="hero-pill">
+                    <span class="pill-icon" aria-hidden="true">🛡️</span>
+                    <div>
+                      <span class="pill-title">Strict Forensics</span>
+                      <span class="pill-sub">SPF · DKIM · Hop Relays</span>
+                    </div>
+                  </div>
+                  <div class="hero-pill">
+                    <span class="pill-icon" aria-hidden="true">🔒</span>
+                    <div>
+                      <span class="pill-title">Client Privacy</span>
+                      <span class="pill-sub">Zero Server Retention</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div class="hero-pills-row">
-                <div class="hero-pill">
-                  <span class="pill-icon" aria-hidden="true">🧠</span>
-                  <div>
-                    <span class="pill-title">Calibrated SVM</span>
-                    <span class="pill-sub">LinearSVC + Platt scaling</span>
+              <!-- Right: Technical Infrastructure & Architecture Diagram -->
+              <div class="hero-visual-right" aria-label="MailGuard AI Architecture Network">
+                <div class="infra-diagram-canvas">
+                  <!-- Central Core Hub -->
+                  <div class="infra-hub-node">
+                    <div class="hub-pulse-ring" aria-hidden="true"></div>
+                    <div class="hub-icon-shield" aria-hidden="true">🛡️</div>
+                    <div class="hub-label-box">
+                      <span class="hub-title">MailGuard Core</span>
+                      <span class="hub-badge">Active Engine</span>
+                    </div>
                   </div>
-                </div>
-                <div class="hero-pill">
-                  <span class="pill-icon" aria-hidden="true">🔍</span>
-                  <div>
-                    <span class="pill-title">Token Cues</span>
-                    <span class="pill-sub">Directional ▲/▼ highlights</span>
+
+                  <!-- Connector Lines SVG -->
+                  <svg class="infra-connectors-svg" viewBox="0 0 440 360" fill="none" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="infraLineGrad" x1="220" y1="180" x2="60" y2="40" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#C5284B" stop-opacity="0.8"/>
+                        <stop offset="1" stop-color="#292A30" stop-opacity="0.3"/>
+                      </linearGradient>
+                    </defs>
+                    <line x1="220" y1="180" x2="80" y2="40" stroke="url(#infraLineGrad)" stroke-width="1.5" stroke-dasharray="4 3"/>
+                    <line x1="220" y1="180" x2="360" y2="35" stroke="url(#infraLineGrad)" stroke-width="1.5" stroke-dasharray="4 3"/>
+                    <line x1="220" y1="180" x2="80" y2="320" stroke="url(#infraLineGrad)" stroke-width="1.5" stroke-dasharray="4 3"/>
+                    <line x1="220" y1="180" x2="360" y2="320" stroke="url(#infraLineGrad)" stroke-width="1.5" stroke-dasharray="4 3"/>
+                  </svg>
+
+                  <!-- Satellite Floating Nodes -->
+                  <div class="infra-node node-pos-1 floating-tile-1">
+                    <span class="node-icon" aria-hidden="true">🧠</span>
+                    <div class="node-info">
+                      <span class="node-title">Linear SVM</span>
+                      <span class="node-status text-accent">Platt Scaled</span>
+                    </div>
                   </div>
-                </div>
-                <div class="hero-pill">
-                  <span class="pill-icon" aria-hidden="true">🔒</span>
-                  <div>
-                    <span class="pill-title">Client Privacy</span>
-                    <span class="pill-sub">Zero server text stored</span>
+
+                  <div class="infra-node node-pos-2 floating-tile-2">
+                    <span class="node-icon" aria-hidden="true">🌐</span>
+                    <div class="node-info">
+                      <span class="node-title">URL Intelligence</span>
+                      <span class="node-status text-accent">Typosquatting</span>
+                    </div>
+                  </div>
+
+                  <div class="infra-node node-pos-3 floating-tile-3">
+                    <span class="node-icon" aria-hidden="true">🛡️</span>
+                    <div class="node-info">
+                      <span class="node-title">SPF / DKIM / DMARC</span>
+                      <span class="node-status">Hop Tracing</span>
+                    </div>
+                  </div>
+
+                  <div class="infra-node node-pos-4 floating-tile-4">
+                    <span class="node-icon" aria-hidden="true">🔒</span>
+                    <div class="node-info">
+                      <span class="node-title">SHA-256 Digest</span>
+                      <span class="node-status text-accent">Integrity Seal</span>
+                    </div>
                   </div>
                 </div>
               </div>

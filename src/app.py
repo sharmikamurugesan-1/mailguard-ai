@@ -15,6 +15,7 @@ Phase 6: Prediction API & Reliability
   - POST /api/predict
 """
 
+import hashlib
 import json
 import logging
 import os
@@ -518,6 +519,8 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
         predict_kwargs = {}
         if "filter_stopwords" in data:
             predict_kwargs["filter_stopwords"] = bool(data["filter_stopwords"])
+        if "model" in data:
+            predict_kwargs["model_key"] = str(data["model"])
 
         try:
             predictor = get_predictor()
@@ -643,6 +646,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
         eml_subject = ""
         eml_headers = None
         eml_indicators = []
+        eml_attachments = []
 
         if eml_input and eml_input.strip():
             eml_parsed = parse_eml_message(eml_input)
@@ -651,6 +655,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
             eml_subject = eml_parsed.get("subject", "") or ""
             eml_headers = eml_parsed.get("headers")
             eml_indicators = eml_parsed.get("indicators", [])
+            eml_attachments = eml_parsed.get("attachments", [])
 
         # 7. Determine effective content to analyze
         if text_input and text_input.strip():
@@ -708,6 +713,9 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
         uncertain = True
         top_tokens = []
         vocab_coverage = 100.0
+        selected_model_key = opts.get("model") or data.get("model") or "svm"
+        model_display_name = "Calibrated Linear SVM"
+        models_comparison_data = None
 
         if get_predictor is not None:
             try:
@@ -715,6 +723,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
                 pred_result = predictor.predict(
                     subject=effective_subject,
                     body=effective_body,
+                    model_key=selected_model_key,
                 )
                 p_spam = float(pred_result.get("spam_probability", 0.50))
                 confidence = float(pred_result.get("confidence", 0.50))
@@ -722,6 +731,14 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
                 top_tokens = pred_result.get("top_tokens", [])
                 raw_cov = pred_result.get("reliability", {}).get("vocab_coverage", 1.0)
                 vocab_coverage = round(float(raw_cov) * 100.0, 2)
+                model_display_name = pred_result.get("selected_model", "Calibrated Linear SVM")
+
+                # Synthesize 3-model comparison
+                models_comparison_data = predictor.compare_models(
+                    subject=effective_subject,
+                    body=effective_body,
+                    primary_result=pred_result,
+                )
             except Exception as e:
                 logger.warning(f"Predictor model execution in /api/analyze failed: {type(e).__name__}")
 
@@ -741,14 +758,21 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
             urls=urls_list,
         )
 
+        # Compute cryptographic tamper-evident digest of analysed payload
+        digest_input = ((effective_subject or "") + "\n" + (effective_body or "")).encode("utf-8", errors="replace")
+        evidence_sha256 = hashlib.sha256(digest_input).hexdigest()
+
         # 13. Construct response
         response_payload = {
             "model": {
+                "key": selected_model_key,
+                "name": model_display_name,
                 "label": "spam" if p_spam >= 0.50 else "ham",
                 "probability": round(p_spam, 4),
                 "confidence": round(confidence, 4),
                 "uncertain": uncertain,
             },
+            "models_comparison": models_comparison_data,
             "risk_score": risk_score,
             "classification": classification,
             "indicators": all_indicators,
@@ -756,6 +780,8 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
             "top_tokens": top_tokens,
             "vocab_coverage": vocab_coverage,
             "urls": urls_list,
+            "attachments": eml_attachments,
+            "evidence_sha256": evidence_sha256,
             "sensitivity": sensitivity,
         }
 
@@ -764,6 +790,85 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
             response_payload["headers"] = header_data
 
         return jsonify(response_payload), 200
+
+    @app.route("/api/models", methods=["GET"])
+    @limiter.exempt
+    def get_models_catalog():
+        """Retrieve catalog of available ML models with test metrics."""
+        return jsonify({
+            "default_model": "svm",
+            "models": [
+                {
+                    "key": "svm",
+                    "name": "Calibrated Linear SVM",
+                    "type": "Support Vector Machine",
+                    "status": "production_primary",
+                    "accuracy": 0.9900,
+                    "precision": 0.9883,
+                    "recall": 0.9907,
+                    "f1": 0.9895,
+                    "description": "Selected production winner with Platt sigmoid probability calibration.",
+                },
+                {
+                    "key": "lr",
+                    "name": "Logistic Regression",
+                    "type": "Linear Classifier",
+                    "status": "candidate",
+                    "accuracy": 0.9869,
+                    "precision": 0.9797,
+                    "recall": 0.9931,
+                    "f1": 0.9864,
+                    "description": "High-recall linear model capturing stealth patterns.",
+                },
+                {
+                    "key": "nb",
+                    "name": "Multinomial Naive Bayes",
+                    "type": "Probabilistic",
+                    "status": "candidate",
+                    "accuracy": 0.9849,
+                    "precision": 0.9832,
+                    "recall": 0.9852,
+                    "f1": 0.9842,
+                    "description": "Fast probabilistic baseline classifier.",
+                },
+            ],
+        }), 200
+
+    @app.route("/api/compare", methods=["POST"])
+    @limiter.limit(get_rate_limit_analyze)
+    def compare_models_endpoint():
+        """Compare all 3 ML models on submitted email text."""
+        if not request.is_json:
+            return jsonify({
+                "error": {
+                    "code": "unsupported_media_type",
+                    "message": "Content-Type must be application/json.",
+                }
+            }), 415
+
+        data = request.get_json(silent=True) or {}
+        subject = data.get("subject", "")
+        body = data.get("body", "") or data.get("text", "")
+        if not str(body).strip():
+            return jsonify({
+                "error": {
+                    "code": "empty_input",
+                    "message": "Email text or body cannot be empty.",
+                }
+            }), 400
+
+        try:
+            predictor = get_predictor()
+            res = predictor.compare_models(subject=subject, body=body)
+            return jsonify(res), 200
+        except Exception as e:
+            logger.error(f"Compare models failure: {e}", exc_info=True)
+            return jsonify({
+                "error": {
+                    "code": "comparison_error",
+                    "message": "Failed to execute multi-model comparison.",
+                }
+            }), 500
 
     return app
 

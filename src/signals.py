@@ -246,6 +246,30 @@ def _extract_domain(url_or_text: str) -> Optional[str]:
     return None
 
 
+COMMON_TARGET_BRANDS: Dict[str, Tuple[str, ...]] = {
+    "paypal": ("paypa1", "paypa-l", "pay-pal", "paypall"),
+    "microsoft": ("rnicrosoft", "microsof-t", "micros0ft"),
+    "apple": ("app1e", "appleid-", "appled"),
+    "google": ("g00gle", "goog1e", "googel"),
+    "amazon": ("amaz0n", "amazn", "arnazon"),
+    "netflix": ("netf1ix", "netf-lix"),
+    "chase": ("chase-bank", "chase-online", "chase-secure"),
+}
+
+
+def _check_lookalike_brand(hostname: str) -> Optional[str]:
+    """Check if hostname appears to be a typosquatting or lookalike domain targeting a major brand."""
+    clean = _normalize_hostname(hostname)
+    for brand, patterns in COMMON_TARGET_BRANDS.items():
+        official_domain = f"{brand}.com"
+        if clean == official_domain or clean.endswith("." + official_domain):
+            continue
+        for pat in patterns:
+            if pat in clean:
+                return brand
+    return None
+
+
 def extract_and_check_urls(
     text: str,
     html_text: Optional[str] = None,
@@ -258,6 +282,8 @@ def extract_and_check_urls(
     - Link text vs href destination mismatch (phishing camouflage)
     - Punycode (IDN homograph indicators)
     - Suspicious TLDs (.xyz, .top, .loan, etc.)
+    - Lookalike domains (brand typosquatting)
+    - Dangerous URL schemes (javascript:, data:, vbscript:)
     """
     if not text and not html_text:
         return [], []
@@ -269,7 +295,7 @@ def extract_and_check_urls(
     for m in URL_REGEX.finditer(combined_body):
         matched = m.group(1).strip()
         # Ensure scheme
-        if not matched.startswith(("http://", "https://", "ftp://")):
+        if not matched.startswith(("http://", "https://", "ftp://", "javascript:", "data:", "vbscript:")):
             matched = "https://" + matched
         raw_candidates.add(matched)
 
@@ -285,7 +311,7 @@ def extract_and_check_urls(
     # Add HTML hrefs to candidates
     for href, text_label in html_links:
         clean_href = href.strip()
-        if not clean_href.startswith(("http://", "https://", "ftp://", "mailto:")):
+        if not clean_href.startswith(("http://", "https://", "ftp://", "mailto:", "javascript:", "data:", "vbscript:")):
             clean_href = "https://" + clean_href
         if not clean_href.startswith("mailto:"):
             url_flags_map.setdefault(clean_href, set())
@@ -306,8 +332,13 @@ def extract_and_check_urls(
         try:
             parsed = urllib.parse.urlparse(raw_url)
             host = parsed.netloc or ""
+            scheme = parsed.scheme.lower() if parsed.scheme else ""
         except Exception:
             host = ""
+            scheme = ""
+
+        if scheme in ("javascript", "data", "vbscript"):
+            flags.add("suspicious_scheme")
 
         if host:
             if _is_shortener(host):
@@ -318,6 +349,9 @@ def extract_and_check_urls(
                 flags.add("punycode")
             if _has_suspicious_tld(host):
                 flags.add("suspicious_tld")
+            target_brand = _check_lookalike_brand(host)
+            if target_brand:
+                flags.add("lookalike_domain")
 
         sorted_flags = sorted(list(flags))
         urls_result.append({
@@ -332,6 +366,12 @@ def extract_and_check_urls(
                 "severity": "critical",
                 "detail": f"Phishing camouflage: visible text points to one domain but links to '{host}'.",
             })
+        if "suspicious_scheme" in flags:
+            indicators.append({
+                "type": "heuristic",
+                "severity": "critical",
+                "detail": f"Dangerous URI scheme detected: '{raw_url[:30]}...'.",
+            })
         if "ip_host" in flags:
             indicators.append({
                 "type": "heuristic",
@@ -343,6 +383,12 @@ def extract_and_check_urls(
                 "type": "heuristic",
                 "severity": "high",
                 "detail": f"Punycode / IDN homograph domain detected ('{host}').",
+            })
+        if "lookalike_domain" in flags:
+            indicators.append({
+                "type": "heuristic",
+                "severity": "high",
+                "detail": f"Lookalike domain mimicking brand infrastructure ('{host}').",
             })
         if "shortener" in flags:
             indicators.append({
@@ -418,12 +464,48 @@ def parse_eml_message(
     text_body = ""
     html_body = ""
 
+    attachments: List[Dict[str, Any]] = []
+
     if msg.is_multipart():
         for part in msg.walk():
             ctype = part.get_content_type()
-            cdispo = str(part.get_content_disposition() or "")
-            if "attachment" in cdispo:
+            cdispo = str(part.get_content_disposition() or "").lower()
+            fname = part.get_filename() or ""
+            is_att = "attachment" in cdispo or bool(fname)
+            if is_att:
+                payload = None
+                try:
+                    payload = part.get_payload(decode=True)
+                except Exception:
+                    payload = None
+                size_bytes = len(payload) if payload else 0
+                ext = ("." + fname.rsplit(".", 1)[-1].lower()) if "." in fname else ""
+
+                # Dangerous and deceptive file extensions
+                DANGEROUS_EXTS = {
+                    ".exe", ".scr", ".bat", ".cmd", ".vbs", ".js", ".jse",
+                    ".wsf", ".ps1", ".hta", ".cpl", ".jar", ".iso", ".img",
+                    ".dmg", ".docm", ".xlsm", ".pptm"
+                }
+                is_suspicious = False
+                threat_reason = None
+                if ext in DANGEROUS_EXTS:
+                    is_suspicious = True
+                    threat_reason = f"Executable or script extension ({ext})"
+                elif re.search(r"\.(pdf|docx?|xlsx?|txt|jpg|png|csv)\.(exe|scr|bat|cmd|vbs|js|ps1|hta)$", fname, re.IGNORECASE):
+                    is_suspicious = True
+                    threat_reason = "Deceptive double extension camouflage"
+
+                attachments.append({
+                    "filename": fname or f"unnamed{ext}",
+                    "extension": ext,
+                    "content_type": ctype,
+                    "size_bytes": size_bytes,
+                    "is_suspicious": is_suspicious,
+                    "threat_reason": threat_reason,
+                })
                 continue
+
             if ctype == "text/plain" and not text_body:
                 try:
                     text_body = part.get_content()
@@ -458,8 +540,11 @@ def parse_eml_message(
     auth_results = str(msg.get("Authentication-Results", "") or "")
     rec_spf = str(msg.get("Received-SPF", "") or "")
     reply_to = str(msg.get("Reply-To", "") or "")
+    sender_header = str(msg.get("Sender", "") or "")
+    return_path = str(msg.get("Return-Path", "") or "")
+    message_id = str(msg.get("Message-ID", "") or "")
 
-    has_headers = bool(raw_from or received_headers or auth_results or rec_spf)
+    has_headers = bool(raw_from or received_headers or auth_results or rec_spf or return_path or sender_header)
 
     if not has_headers:
         return {
@@ -467,22 +552,44 @@ def parse_eml_message(
             "body": effective_body,
             "html_body": html_body,
             "headers": None,
+            "attachments": attachments,
             "indicators": [],
         }
 
-    # 1. Hops count
+    # 1. Hops count and routing chain extraction
     hops = len(received_headers)
+    routing_chain: List[Dict[str, Any]] = []
+    for idx, rec in enumerate(received_headers, 1):
+        rec_str = str(rec).strip()
+        ip_match = re.search(r"\[(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\]", rec_str)
+        hop_ip = ip_match.group(1) if ip_match else ""
+        by_match = re.search(r"(?i)\bby\s+([^\s;]+)", rec_str)
+        hop_by = by_match.group(1) if by_match else ""
+        from_match = re.search(r"(?i)\bfrom\s+([^\s;]+)", rec_str)
+        hop_from = from_match.group(1) if from_match else ""
+        routing_chain.append({
+            "hop": idx,
+            "from": hop_from,
+            "by": hop_by,
+            "ip": hop_ip,
+        })
 
     # 2. From / Reply-To Mismatch
     from_name, from_addr = email.utils.parseaddr(raw_from)
     reply_name, reply_addr = email.utils.parseaddr(reply_to)
+    ret_name, ret_addr = email.utils.parseaddr(return_path)
 
     from_domain = from_addr.split("@")[-1].lower().strip() if "@" in from_addr else ""
     reply_domain = reply_addr.split("@")[-1].lower().strip() if "@" in reply_addr else ""
+    ret_domain = ret_addr.split("@")[-1].lower().strip() if "@" in ret_addr else ""
 
     from_reply_mismatch = False
     if from_domain and reply_domain and from_domain != reply_domain:
         from_reply_mismatch = True
+
+    return_path_mismatch = False
+    if from_domain and ret_domain and from_domain != ret_domain:
+        return_path_mismatch = True
 
     # 3. SPF Analysis
     combined_auth = (auth_results + " " + rec_spf).lower()
@@ -524,24 +631,48 @@ def parse_eml_message(
     header_dict = {
         "from": from_addr,
         "reply_to": reply_addr,
+        "sender": sender_header,
+        "return_path": return_path,
+        "message_id": message_id,
         "subject": subject,
         "spf": spf_status,
         "dkim": dkim_status,
         "dmarc": dmarc_status,
         "sender_match": not from_reply_mismatch,
         "from_reply_mismatch": from_reply_mismatch,
+        "return_path_mismatch": return_path_mismatch,
         "hop_count": hops,
         "hops": hops,
+        "routing_chain": routing_chain,
+        "attachments": attachments,
         "raw_headers": raw_headers_str,
     }
 
     # Generate Header Indicators
     header_indicators: List[Dict[str, Any]] = []
+
+    # Display-name spoofing check (e.g., From: "support@paypal.com" <evil@attacker.com>)
+    display_email_match = re.search(r"[\w\.-]+@[\w\.-]+", from_name)
+    if display_email_match and from_addr:
+        display_embedded = display_email_match.group(0).lower()
+        if display_embedded != from_addr.lower() and not from_addr.lower().endswith(display_embedded.split("@")[-1]):
+            header_indicators.append({
+                "type": "heuristic",
+                "severity": "critical",
+                "detail": f"Display-name spoofing: display name contains '{display_embedded}' but actual sender address is '{from_addr}'.",
+            })
+
     if from_reply_mismatch:
         header_indicators.append({
             "type": "heuristic",
             "severity": "medium",
             "detail": f"From ({from_domain}) and Reply-To ({reply_domain}) domains mismatch (potential sender spoofing).",
+        })
+    if return_path_mismatch:
+        header_indicators.append({
+            "type": "heuristic",
+            "severity": "medium",
+            "detail": f"Return-Path domain ({ret_domain}) differs from From domain ({from_domain}).",
         })
     if spf_status == "fail":
         header_indicators.append({
@@ -562,12 +693,22 @@ def parse_eml_message(
             "detail": f"Unusually high routing relay count ({hops} hops).",
         })
 
+    # Attachment threat indicators
+    for att in attachments:
+        if att.get("is_suspicious"):
+            header_indicators.append({
+                "type": "heuristic",
+                "severity": "critical",
+                "detail": f"Suspicious attachment detected: '{att['filename']}' ({att['threat_reason']}).",
+            })
+
     return {
         "subject": subject,
         "from": from_addr,
         "body": effective_body,
         "html_body": html_body,
         "headers": header_dict,
+        "attachments": attachments,
         "indicators": header_indicators,
     }
 

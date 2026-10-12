@@ -23,5 +23,5 @@ services:
       - key: METADATA_PATH
         value: models/metadata.json
       - key: CORS_ALLOWED_ORIGINS
-        value: https://mailguard-ai.vercel.app
+        value: https://mailguard-ai.vercel.app,https://mailguard-aafw79uqj-sharmikamurugesan-1.vercel.app
 
