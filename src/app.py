@@ -777,6 +777,11 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
             "models_comparison": models_comparison_data,
             "risk_score": risk_score,
             "classification": classification,
+            "verdict": classification,
+            "probabilities": {
+                "spam": round(p_spam, 4),
+                "ham": round(1.0 - p_spam, 4),
+            },
             "indicators": all_indicators,
             "key_findings": findings,
             "top_tokens": top_tokens,
