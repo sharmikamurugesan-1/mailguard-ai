@@ -21,9 +21,9 @@
 
 | Component | Target URL | Status | Architecture Notes |
 |:---|:---|:---:|:---|
-| **Production API (Render)** | [https://mailguard-ai-6ljt.onrender.com](https://mailguard-ai-6ljt.onrender.com) | **Live** | Gunicorn + Flask 3.1.3 backend, 3 serialized ML pipelines, fail-closed SHA-256 validation, CORS origin-restricted *(Free tier wakes in ~30s on cold start)* |
-| **Frontend Preview (Vercel)** | [https://mailguard-aafw79uqj-sharmikamurugesan-1.vercel.app](https://mailguard-aafw79uqj-sharmikamurugesan-1.vercel.app) | **Live Preview** | Zero-runtime static export (`frontend/`), client-side Web Worker OCR/QR, CSP Level 3, localStorage + IndexedDB audit log |
-| **Custom Production Domain** | [https://mailguard-ai.vercel.app](https://mailguard-ai.vercel.app) | Target | Intended production custom domain endpoint |
+| **Full Live Application (Render)** | [https://mailguard-ai-6ljt.onrender.com](https://mailguard-ai-6ljt.onrender.com) | **Live (Unified)** | **Complete Full-Stack Platform**: Unified UI + Flask 3.1.3 backend with all 3 ML pipelines running on the same origin (Zero CORS, instant combined inference). *(Free tier wakes in ~30s on cold start)* |
+| **Static Edge Preview (Vercel)** | [https://mailguard-aafw79uqj-sharmikamurugesan-1.vercel.app](https://mailguard-aafw79uqj-sharmikamurugesan-1.vercel.app) | **Live Preview** | Standalone static frontend export (`frontend/`) with client-side Web Worker OCR/QR, automatically connected to the Render backend API. |
+| **Custom Domain** | [https://mailguard-ai.vercel.app](https://mailguard-ai.vercel.app) | Target | Intended production custom domain endpoint. |
 
 ---
 
