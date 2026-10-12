@@ -151,8 +151,12 @@ def run_smoke_tests(base_url: str) -> bool:
     def test_analyze():
         url = f"{base_url}/api/analyze"
         payload = {
-            "subject": "Quick smoke check",
-            "body": "This is a legitimate test message for smoke testing.",
+            "text": "Subject: Quick smoke check\n\nThis is a legitimate test message for smoke testing.",
+            "options": {
+                "scan_urls": True,
+                "scan_headers": True,
+                "sensitivity": "medium",
+            },
         }
         status, data, _ = make_request(url, method="POST", data=payload)
         passed = (

@@ -587,6 +587,8 @@ def create_app(test_config: Optional[Dict[str, Any]] = None) -> Flask:
 
         # 3. Validate input field types
         text_input = data.get("text")
+        if text_input is None and data.get("body") and isinstance(data.get("body"), str):
+            text_input = ((data.get("subject") or "") + "\n\n" + data["body"]).strip()
         if text_input is not None and not isinstance(text_input, str):
             return jsonify({
                 "error": {
