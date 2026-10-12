@@ -136,82 +136,83 @@
 }
 
 [data-theme="dark"] {
-  /* Surfaces & Canvas (Render-Inspired Near-Black & Maroon Palette) */
-  --color-bg: #08090B;
-  --color-bg-subtle: #101114;
-  --color-surface: #101114;
-  --color-card: #101114;
-  --color-surface-2: #15161B;
-  --color-border: #292A30;
-  --color-border-hover: #3a3b45;
-  --color-border-focus: #C5284B;
+  /* Surfaces & Canvas (Deep Burgundy & Layered Dark Maroon Palette) */
+  --color-bg: #1c070f;
+  --color-bg-subtle: #250b14;
+  --color-surface: #2b0d18;
+  --color-card: #2b0d18;
+  --color-surface-2: #361120;
+  --color-border: #4d192c;
+  --color-border-hover: #6b243e;
+  --color-border-focus: #f06b88;
 
   /* Deep Maroon & Burgundy Accents */
-  --color-maroon-dark: #1f040b;
-  --color-maroon-deep: #3A0714;
-  --color-maroon: #7A1027;
-  --color-maroon-surface: #15161B;
-  --color-maroon-text: #F5F5F7;
-  --color-maroon-accent: #C5284B;
-  --color-maroon-rose: #F06B88;
+  --color-maroon-dark: #19050d;
+  --color-maroon-deep: #250b14;
+  --color-maroon: #7a1027;
+  --color-maroon-surface: #2b0d18;
+  --color-maroon-text: #fcf4ec;
+  --color-maroon-accent: #e25875;
+  --color-maroon-rose: #f06b88;
+  --color-maroon-gold: #f5c056;
 
-  /* Typography & Text */
-  --color-text-main: #F5F5F7;
-  --color-text-muted: #A6A7B0;
-  --color-text-subtle: #73747f;
-  --color-text-inverse: #08090B;
+  /* Typography & Text (Accessible Off-White & Dusty Rose) */
+  --color-text-main: #fcf4ec;
+  --color-text-muted: #e0bec8;
+  --color-text-subtle: #b38896;
+  --color-text-inverse: #1c070f;
 
-  /* Primary Interactive / Maroon Crimson Action */
-  --color-primary: #F06B88;
-  --color-primary-hover: #f4829c;
-  --color-primary-active: #C5284B;
-  --color-primary-text: #08090B;
-  --color-primary-gradient: linear-gradient(135deg, #7A1027 0%, #C5284B 100%);
-  --color-focus-ring: rgba(197, 40, 75, 0.4);
+  /* Primary Interactive / Dusty Pink & Muted Rose Action */
+  --color-primary: #f06b88;
+  --color-primary-hover: #f88ba3;
+  --color-primary-active: #d94f6e;
+  --color-primary-text: #1c070f;
+  --color-primary-gradient: linear-gradient(135deg, #7a1027 0%, #c5284b 50%, #f06b88 100%);
+  --color-focus-ring: rgba(240, 107, 136, 0.4);
 
   /* Secondary / Neutral Actions */
-  --color-secondary: #15161B;
-  --color-secondary-hover: #1e1f26;
-  --color-secondary-text: #F5F5F7;
-  --color-secondary-border: #292A30;
+  --color-secondary: #361120;
+  --color-secondary-hover: #451629;
+  --color-secondary-text: #fcf4ec;
+  --color-secondary-border: #4d192c;
 
   /* Peach & Coral Accents */
-  --color-coral: #C5284B;
-  --color-coral-light: #200810;
-  --color-coral-gradient: linear-gradient(135deg, #C5284B 0%, #F06B88 100%);
-  --color-peach-subtle: #15161B;
+  --color-coral: #f06b88;
+  --color-coral-light: #380c16;
+  --color-coral-gradient: linear-gradient(135deg, #c5284b 0%, #f06b88 100%);
+  --color-peach-subtle: #2b0d18;
 
   /* Verdict Colors in Dark (WCAG AA >= 4.5:1) */
-  --color-spam: #f87171;
-  --color-spam-bg: #22080d;
-  --color-spam-border: #7f1d1d;
+  --color-spam: #fca5a5;
+  --color-spam-bg: #380c16;
+  --color-spam-border: #8b1e3f;
 
-  --color-ham: #4ade80;
-  --color-ham-bg: #071f11;
-  --color-ham-border: #14532d;
+  --color-ham: #86efac;
+  --color-ham-bg: #0a2615;
+  --color-ham-border: #15803d;
 
-  --color-uncertain: #fbbf24;
-  --color-uncertain-bg: #1f1807;
-  --color-uncertain-border: #78350f;
+  --color-uncertain: #fde047;
+  --color-uncertain-bg: #362106;
+  --color-uncertain-border: #b45309;
 
   /* Risk levels */
-  --color-risk-low: #4ade80;
-  --color-risk-med: #fbbf24;
-  --color-risk-high: #f87171;
+  --color-risk-low: #86efac;
+  --color-risk-med: #fde047;
+  --color-risk-high: #fca5a5;
 
   /* Token Highlights (Dark - WCAG AA >= 4.5:1) */
-  --color-token-spam-bg: #350b14;
+  --color-token-spam-bg: #400f1a;
   --color-token-spam-text: #fca5a5;
-  --color-token-spam-border: #C5284B;
+  --color-token-spam-border: #c5284b;
 
-  --color-token-ham-bg: #092615;
+  --color-token-ham-bg: #0c2e19;
   --color-token-ham-text: #86efac;
   --color-token-ham-border: #4ade80;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 6px 20px -2px rgba(0, 0, 0, 0.6), 0 2px 6px -1px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 14px 36px -4px rgba(0, 0, 0, 0.75), 0 4px 12px -2px rgba(0, 0, 0, 0.45);
+  /* Shadows (Tinted with deep burgundy) */
+  --shadow-sm: 0 1px 3px rgba(28, 7, 15, 0.45);
+  --shadow-md: 0 6px 20px -2px rgba(28, 7, 15, 0.55), 0 2px 6px -1px rgba(28, 7, 15, 0.35);
+  --shadow-lg: 0 14px 36px -4px rgba(28, 7, 15, 0.65), 0 4px 12px -2px rgba(28, 7, 15, 0.4);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -4742,8 +4743,8 @@ body {
 }
 
 [data-theme="dark"] .radar-value-polygon {
-  fill: rgba(45, 212, 191, 0.2);
-  stroke: #2DD4BF;
+  fill: rgba(240, 107, 136, 0.25);
+  stroke: var(--color-primary);
 }
 
 .radar-vertex-dot {
@@ -4754,8 +4755,8 @@ body {
 }
 
 [data-theme="dark"] .radar-vertex-dot {
-  fill: #2DD4BF;
-  stroke: #08090B;
+  fill: var(--color-primary);
+  stroke: var(--color-surface);
 }
 
 .radar-vectors-breakdown {
@@ -4893,8 +4894,8 @@ body {
 }
 
 [data-theme="dark"] .badge-winner {
-  background-color: rgba(45, 212, 191, 0.2);
-  color: #5eead4;
+  background-color: rgba(245, 192, 86, 0.2);
+  color: #fde047;
 }
 
 .badge-candidate {
@@ -4903,8 +4904,8 @@ body {
 }
 
 [data-theme="dark"] .badge-candidate {
-  background-color: rgba(148, 163, 184, 0.2);
-  color: #cbd5e1;
+  background-color: rgba(240, 107, 136, 0.18);
+  color: #f9a8b8;
 }
 
 .algo-verdict-badge {
