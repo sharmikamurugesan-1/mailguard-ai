@@ -147,6 +147,28 @@ def run_smoke_tests(base_url: str) -> bool:
 
     tests.append(test_validation_error)
 
+    # 7. Analyze endpoint (v2 full analysis pipeline)
+    def test_analyze():
+        url = f"{base_url}/api/analyze"
+        payload = {
+            "text": "Subject: Quick smoke check\n\nThis is a legitimate test message for smoke testing.",
+            "options": {
+                "scan_urls": True,
+                "scan_headers": True,
+                "sensitivity": "medium",
+            },
+        }
+        status, data, _ = make_request(url, method="POST", data=payload)
+        passed = (
+            status == 200
+            and "verdict" in data
+            and "risk_score" in data
+            and "probabilities" in data
+        )
+        return "POST /api/analyze (v2 Analyze)", status, passed, f"verdict={data.get('verdict')}, risk={data.get('risk_score')}"
+
+    tests.append(test_analyze)
+
     # Execute all tests
     for test_fn in tests:
         t0 = time.time()

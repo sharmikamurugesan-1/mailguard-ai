@@ -313,7 +313,8 @@ def run_training_pipeline() -> Tuple[Pipeline, Dict[str, Any]]:
     train_texts = set(X_train)
     test_overlap = sum(1 for t in X_test if t in train_texts)
     logger.info(f"Cross-split duplicate check: {test_overlap} overlapping texts found.")
-    assert test_overlap == 0, f"Data leakage detected! {test_overlap} texts appear in both train and test splits."
+    if test_overlap != 0:
+        raise RuntimeError(f"Data leakage detected! {test_overlap} texts appear in both train and test splits.")
 
     # 4. Train and compare 3 models
     candidates = build_candidate_pipelines()

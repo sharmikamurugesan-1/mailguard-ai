@@ -8,3 +8,9 @@ Pygments==2.21.0
 pytest==9.1.1
 pytest-cov==7.1.0
 PyYAML==6.0.3
+pillow==12.3.0
+qrcode==8.2
+axe-core-python==0.1.0
+bandit==1.9.4
+pip-audit==2.10.1
+hypothesis==6.168.5

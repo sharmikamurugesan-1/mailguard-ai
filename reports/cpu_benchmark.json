@@ -1,0 +1,71 @@
+{
+  "Short (50B)": {
+    "name": "Short (50B)",
+    "payload_bytes": 115,
+    "n": 200,
+    "cpu_seconds": {
+      "p50": 0.015625,
+      "p95": 0.03125,
+      "p99": 0.03125
+    },
+    "wall_seconds": {
+      "p50": 0.016891,
+      "p95": 0.01862,
+      "p99": 0.028217
+    },
+    "theoretical_rps": {
+      "0.1_cpu": 6.4,
+      "0.5_cpu": 32.0,
+      "1.0_cpu": 64.0
+    }
+  },
+  "Typical (500B)": {
+    "name": "Typical (500B)",
+    "payload_bytes": 517,
+    "n": 200,
+    "cpu_seconds": {
+      "p50": 0.015625,
+      "p95": 0.015625,
+      "p99": 0.03125
+    },
+    "wall_seconds": {
+      "p50": 0.01389,
+      "p95": 0.01878,
+      "p99": 0.02571
+    },
+    "theoretical_rps": {
+      "0.1_cpu": 6.4,
+      "0.5_cpu": 32.0,
+      "1.0_cpu": 64.0
+    }
+  },
+  "Large (18KB)": {
+    "name": "Large (18KB)",
+    "payload_bytes": 17536,
+    "n": 200,
+    "cpu_seconds": {
+      "p50": 0.03125,
+      "p95": 0.03125,
+      "p99": 0.046875
+    },
+    "wall_seconds": {
+      "p50": 0.028902,
+      "p95": 0.035107,
+      "p99": 0.051909
+    },
+    "theoretical_rps": {
+      "0.1_cpu": 3.2,
+      "0.5_cpu": 16.0,
+      "1.0_cpu": 32.0
+    }
+  },
+  "Blended (70/20/10)": {
+    "cpu_seconds_p50": 0.017187,
+    "cpu_seconds_p95": 0.020313,
+    "theoretical_rps": {
+      "0.1_cpu": 5.8,
+      "0.5_cpu": 29.1,
+      "1.0_cpu": 58.2
+    }
+  }
+}

@@ -2,9 +2,9 @@ name: MailGuard AI CI
 
 'on':
   push:
-    branches: [ master, main ]
+    branches: [ master, main, v2/redesign ]
   pull_request:
-    branches: [ master, main ]
+    branches: [ master, main, v2/redesign ]
 
 jobs:
   test:
@@ -25,6 +25,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
+
+      - name: Security code analysis (Bandit)
+        run: |
+          bandit -r src/
+
+      - name: Dependency vulnerability audit (pip-audit)
+        run: |
+          pip-audit -r requirements.txt
 
       - name: Check Python compilation and syntax
         run: |

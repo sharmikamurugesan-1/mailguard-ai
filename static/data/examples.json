@@ -1,0 +1,58 @@
+[
+  {
+    "id": "spam-1",
+    "category": "spam",
+    "label": "Spam: Credential Phish",
+    "badge": "Spam",
+    "subject": "Urgent: Unauthorized login attempt detected on account",
+    "body": "We noticed an unauthorized sign-in attempt to your workspace from an unrecognized IP address. Please verify your identity immediately to prevent permanent service suspension: http://account-verify.example.test/login. Your access will be restricted within 24 hours if not confirmed."
+  },
+  {
+    "id": "spam-2",
+    "category": "spam",
+    "label": "Spam: Grant / Lottery Prize",
+    "badge": "Spam",
+    "subject": "Congratulations! International Grant Selection Notification",
+    "body": "Dear beneficiary, You have been awarded $850,000.00 USD in the international fiscal grant program. To claim your funds immediately, remit the nominal courier fee of $250 via wire transfer and reply with your bank details to payout@lottery-claims.example.test."
+  },
+  {
+    "id": "spam-3",
+    "category": "spam",
+    "label": "Spam: Overdue Invoice Demand",
+    "badge": "Spam",
+    "subject": "FINAL NOTICE: Overdue Invoice #INV-92812 Immediate Settlement Required",
+    "body": "Your account has an outstanding balance of $3,420.50 due immediately. Failure to settle this amount within 12 hours will result in referral to external legal collection and additional penalty charges. Remit payment to: http://billing-settle.example.test/pay."
+  },
+  {
+    "id": "safe-1",
+    "category": "safe",
+    "label": "Safe: Engineering Sprint Sync",
+    "badge": "Safe",
+    "subject": "Sprint 42 planning notes and retrospective action items",
+    "body": "Hi team, Here are the notes from our morning sprint retrospective. We agreed to prioritize technical debt reduction on the parser module and roll out the unit test coverage improvements by Thursday. Please review the shared backlog doc and let me know if anyone has blockers before tomorrow standup."
+  },
+  {
+    "id": "safe-2",
+    "category": "safe",
+    "label": "Safe: Family Weekend Dinner",
+    "badge": "Safe",
+    "subject": "Sunday family dinner at grandma house",
+    "body": "Hi everyone, Just checking if 6:00 PM still works for Sunday dinner at grandma place. Dad mentioned he is bringing vegetable lasagna and mom is making apple pie. Let me know if you want me to pick up anything from the grocery store on the way over."
+  },
+  {
+    "id": "safe-3",
+    "category": "safe",
+    "label": "Safe: Campus Seminar Notice",
+    "badge": "Safe",
+    "subject": "Guest Lecture Reminder: Applied Machine Learning in Bioinformatics",
+    "body": "Good morning students, This is a reminder that Dr. Smith will be delivering a guest lecture on applied machine learning pipelines this Wednesday at 2:00 PM in Lecture Hall B. Attendance is encouraged. The preliminary reading materials are available in the department portal."
+  },
+  {
+    "id": "borderline-1",
+    "category": "borderline",
+    "label": "Borderline: Short Ambiguous Request",
+    "badge": "Borderline",
+    "subject": "Urgent response needed regarding project delivery",
+    "body": "Please see the urgent notes below and update your status before end of day. Need confirmation as soon as possible regarding whether we are proceeding with the delivery."
+  }
+]

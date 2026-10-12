@@ -1,0 +1,2421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MailGuard AI — THREAT_RADAR | AI-Powered Email Spam Detection</title>
+  <meta name="description" content="Portfolio-grade explainable email threat and spam classification platform using NLP and calibrated machine learning models.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="alternate icon" href="/favicon.ico">
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="MailGuard AI — Explainable Email Threat &amp; Spam Detection">
+  <meta property="og:description" content="AI-powered email security analysis with calibrated linear SVM classification, client-side vision OCR, and local-only telemetry.">
+  <meta property="og:image" content="/img/og-preview.png">
+  <meta property="og:url" content="https://mailguard.example.test">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MailGuard AI — Explainable Email Threat &amp; Spam Detection">
+  <meta name="twitter:description" content="AI-powered email security analysis with calibrated linear SVM classification, client-side vision OCR, and local-only telemetry.">
+  <meta name="twitter:image" content="/img/og-preview.png">
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/theme-init.js"></script>
+</head>
+<body>
+  <a href="#app-main" class="skip-link">Skip to main content</a>
+
+  <div class="app-layout" id="app-layout">
+    <!-- Left Sidebar (Desktop fixed, Mobile collapsible drawer) -->
+    <aside class="app-sidebar" id="app-sidebar" aria-label="Main Navigation">
+      <div class="sidebar-header">
+        <a href="#/dashboard" class="brand-link" aria-label="MailGuard AI Dashboard">
+          <div class="brand-logo-mark" aria-hidden="true">
+            <svg class="brand-icon-svg" viewBox="0 0 36 36" width="36" height="36" fill="none">
+              <rect width="36" height="36" rx="10" fill="url(#brand-grad)" />
+              <path d="M9 13.5L18 20L27 13.5M9 13.5V23.5C9 24.3284 9.67157 25 10.5 25H25.5C26.3284 25 27 24.3284 27 23.5V13.5M9 13.5C9 12.6716 9.67157 12 10.5 12H25.5C26.3284 12 27 12.6716 27 13.5" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M18 10L22 13M18 10L14 13" stroke="#fbcfe8" stroke-width="1.5" stroke-linecap="round"/>
+              <defs>
+                <linearGradient id="brand-grad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#8b1e3f"/>
+                  <stop offset="0.6" stop-color="#6c1a32"/>
+                  <stop offset="1" stop-color="#3a121e"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">MailGuard<span class="brand-accent-dot" aria-hidden="true"></span></span>
+            <span class="brand-subtitle">THREAT_RADAR Workspace</span>
+          </div>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Sidebar Sections">
+        <ul class="sidebar-nav-list" role="list">
+          <li>
+            <a href="#/dashboard" class="sidebar-nav-item active" id="nav-dashboard" aria-current="page">
+              <span class="nav-icon" aria-hidden="true">📊</span>
+              <span class="nav-label">Dashboard</span>
+            </a>
+          </li>
+          <li>
+            <a href="#/analyzer" class="sidebar-nav-item" id="nav-analyzer">
+              <span class="nav-icon" aria-hidden="true">🛡️</span>
+              <span class="nav-label">Email Analyzer</span>
+            </a>
+          </li>
+          <li>
+            <a href="#/image-analysis" class="sidebar-nav-item" id="nav-image-analysis">
+              <span class="nav-icon" aria-hidden="true">🖼️</span>
+              <span class="nav-label">Image Analysis</span>
+            </a>
+          </li>
+          <li>
+            <a href="#/reports" class="sidebar-nav-item" id="nav-reports">
+              <span class="nav-icon" aria-hidden="true">📋</span>
+              <span class="nav-label">Reports</span>
+            </a>
+          </li>
+          <li>
+            <a href="#/settings" class="sidebar-nav-item" id="nav-settings">
+              <span class="nav-icon" aria-hidden="true">⚙️</span>
+              <span class="nav-label">Settings</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-status-card" role="status">
+          <div class="status-shield-icon" aria-hidden="true">🛡️</div>
+          <div class="status-info">
+            <span class="status-card-title">AI Threat Protection</span>
+            <span class="status-card-subtitle">Always On</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile Drawer Backdrop -->
+    <div class="sidebar-backdrop hidden" id="sidebar-backdrop" aria-hidden="true"></div>
+
+    <!-- Main Content Shell -->
+    <div class="app-body">
+      <!-- Top Navigation Bar -->
+      <header class="app-header" id="app-header">
+        <div class="header-left">
+          <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle navigation drawer" aria-expanded="false" aria-controls="app-sidebar">
+            <span class="hamburger-icon" aria-hidden="true">☰</span>
+          </button>
+          <nav class="top-nav" aria-label="Top Menu">
+            <ul class="top-nav-list" role="list">
+              <li><a href="#/home" class="top-nav-item" id="top-nav-home">Home</a></li>
+              <li><a href="#/features" class="top-nav-item" id="top-nav-features">Features</a></li>
+              <li><a href="#/model-card" class="top-nav-item" id="top-nav-model-card">Model Card</a></li>
+              <li><a href="#/docs" class="top-nav-item" id="top-nav-docs">Docs</a></li>
+              <li><a href="#/privacy" class="top-nav-item" id="top-nav-privacy">Privacy</a></li>
+            </ul>
+          </nav>
+        </div>
+
+        <div class="header-right">
+          <!-- Global Search Box -->
+          <div class="search-box">
+            <span class="search-icon" aria-hidden="true">🔍</span>
+            <input type="search" id="global-search" class="search-input" placeholder="Search anything..." aria-label="Search email security features">
+          </div>
+
+          <!-- Server Health Status -->
+          <div class="server-status" id="server-status" title="Server Connection Health">
+            <span class="status-indicator status-checking" id="status-dot" aria-hidden="true"></span>
+            <span class="status-text" id="status-text">Checking server...</span>
+          </div>
+
+          <!-- Color Theme Toggle Button -->
+          <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Toggle color theme" aria-pressed="false">
+            <span id="theme-icon" aria-hidden="true">🌙</span>
+            <span class="theme-text" id="theme-text">Dark</span>
+          </button>
+
+          <!-- Top Navigation Open Scanner Button -->
+          <a href="#/analyzer" class="btn btn-nav-scanner" id="nav-open-scanner-btn" title="Open Email Threat Scanner">
+            <span aria-hidden="true">🛡️</span>
+            <span>Open Scanner</span>
+          </a>
+
+          <!-- User Chip -->
+          <div class="user-chip" id="user-chip" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="User profile: Guest">
+            <div class="user-avatar" aria-hidden="true">G</div>
+            <span class="user-name">Hi, Guest</span>
+            <span class="user-chevron" aria-hidden="true">▾</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Routed View Container -->
+      <main id="app-main" class="app-main" tabindex="-1">
+
+        <!-- ================================================================ -->
+        <!-- VIEW 1: DASHBOARD (#/dashboard)                                  -->
+        <!-- ================================================================ -->
+        <section class="view-panel" id="view-dashboard" role="tabpanel" aria-labelledby="nav-dashboard">
+          <div class="card dashboard-hero-card">
+            <div class="card-maroon-header">
+              <div class="card-header-icon" aria-hidden="true">📊</div>
+              <div>
+                <h1 class="card-maroon-title">Dashboard</h1>
+                <p class="card-maroon-sub">Overview of your email security activity and local analytics.</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <!-- Privacy Local Storage Notice -->
+              <div class="privacy-note-banner" role="note">
+                <span class="privacy-note-icon" aria-hidden="true">🔒</span>
+                <div class="privacy-note-content">
+                  <strong>History stays on this device.</strong>
+                  <span>Your email scan history is stored locally in IndexedDB and is never sent to the server.</span>
+                </div>
+              </div>
+
+              <!-- Telemetry Stats Row -->
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <div class="stat-icon-wrapper icon-blue" aria-hidden="true">✉️</div>
+                  <div class="stat-info">
+                    <span class="stat-label">Total Emails</span>
+                    <span class="stat-value" id="dash-stat-total">0</span>
+                    <span class="stat-sub" id="dash-stat-total-sub">-- vs last week</span>
+                  </div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon-wrapper icon-red" aria-hidden="true">🚨</div>
+                  <div class="stat-info">
+                    <span class="stat-label">Spam Detected</span>
+                    <span class="stat-value" id="dash-stat-spam">0</span>
+                    <span class="stat-sub" id="dash-stat-spam-sub">0% of total scans</span>
+                  </div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon-wrapper icon-amber" aria-hidden="true">⚖️</div>
+                  <div class="stat-info">
+                    <span class="stat-label">Suspicious / Review</span>
+                    <span class="stat-value" id="dash-stat-uncertain">0</span>
+                    <span class="stat-sub" id="dash-stat-uncertain-sub">0% of total scans</span>
+                  </div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon-wrapper icon-green" aria-hidden="true">✓</div>
+                  <div class="stat-info">
+                    <span class="stat-label">Safe Emails</span>
+                    <span class="stat-value" id="dash-stat-safe">0</span>
+                    <span class="stat-sub" id="dash-stat-safe-sub">0% of total scans</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Telemetry and Recent Scans -->
+              <div class="dashboard-split-grid">
+                <div class="panel-box">
+                  <h2 class="panel-box-title">Threat Distribution</h2>
+                  <div class="threat-donut-container" role="region" aria-label="Threat Distribution Donut Chart">
+                    <div class="donut-chart-wrapper">
+                      <svg class="donut-svg" width="130" height="130" viewBox="0 0 140 140" role="img" aria-label="Threat Distribution Donut Chart">
+                        <circle class="donut-track" cx="70" cy="70" r="48" fill="none" stroke-width="14"></circle>
+                        <circle class="donut-seg seg-ham" id="donut-seg-ham" cx="70" cy="70" r="48" fill="none" stroke-width="14"></circle>
+                        <circle class="donut-seg seg-uncertain" id="donut-seg-unc" cx="70" cy="70" r="48" fill="none" stroke-width="14"></circle>
+                        <circle class="donut-seg seg-spam" id="donut-seg-spam" cx="70" cy="70" r="48" fill="none" stroke-width="14"></circle>
+                      </svg>
+                      <div class="donut-center">
+                        <span class="donut-num" id="donut-num">0</span>
+                        <span class="donut-caption" id="donut-caption">Total Scans</span>
+                      </div>
+                    </div>
+                    <ul class="donut-legend" role="list">
+                      <li><span class="legend-dot dot-spam" aria-hidden="true"></span> Spam: <strong id="donut-legend-spam">0 (0%)</strong></li>
+                      <li><span class="legend-dot dot-uncertain" aria-hidden="true"></span> Suspicious: <strong id="donut-legend-unc">0 (0%)</strong></li>
+                      <li><span class="legend-dot dot-ham" aria-hidden="true"></span> Safe: <strong id="donut-legend-ham">0 (0%)</strong></li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="panel-box">
+                  <div class="panel-box-header">
+                    <h2 class="panel-box-title">Recent Scans</h2>
+                    <a href="#/reports" class="btn btn-sm btn-outline">View All History →</a>
+                  </div>
+                  <div id="dash-recent-empty" class="empty-state-box">
+                    <span class="empty-state-icon" aria-hidden="true">📬</span>
+                    <h3 class="empty-state-title">No emails scanned yet</h3>
+                    <p class="empty-state-desc">Paste an email or drop a .txt/.eml file in the Email Analyzer to start scanning.</p>
+                    <a href="#/analyzer" class="btn btn-primary btn-sm">Go to Email Analyzer</a>
+                  </div>
+                  <div id="dash-recent-active" class="recent-scans-table-wrapper hidden">
+                    <table class="table-compact" id="dash-recent-table" aria-label="Recent Scans Table">
+                      <thead>
+                        <tr>
+                          <th scope="col">Date/Time</th>
+                          <th scope="col">Subject</th>
+                          <th scope="col">Source</th>
+                          <th scope="col">Risk</th>
+                          <th scope="col">Verdict</th>
+                        </tr>
+                      </thead>
+                      <tbody id="dash-recent-tbody">
+                        <!-- Populated dynamically via textContent & createElement -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <!-- VIEW 2: EMAIL ANALYZER (#/analyzer)                              -->
+        <!-- ================================================================ -->
+
+        <section class="view-panel hidden" id="view-analyzer" role="tabpanel" aria-labelledby="nav-analyzer">
+          <div class="analyzer-grid">
+            <!-- ============================================================== -->
+            <!-- CARD 1: EMAIL ANALYZER (INPUT & FORENSICS)                     -->
+            <!-- ============================================================== -->
+            <div class="card analyzer-card" id="analyzer-input-card">
+              <div class="card-maroon-header analyzer-card-header">
+                <div class="card-header-left">
+                  <div class="card-header-icon" aria-hidden="true">🛡️</div>
+                  <div>
+                    <h1 class="card-maroon-title">Email Analyzer</h1>
+                    <p class="card-maroon-sub">Analyze emails, attachments and examine threats with AI.</p>
+                  </div>
+                </div>
+                <!-- Analyzer Section Navigation Pills -->
+                <nav class="analyzer-tabs-nav" role="tablist" aria-label="Analyzer sections">
+                  <button type="button" class="tab-pill active" id="tab-btn-content" role="tab" aria-selected="true" aria-controls="tab-panel-content">Email Content</button>
+                  <button type="button" class="tab-pill" id="tab-btn-headers" role="tab" aria-selected="false" aria-controls="tab-panel-headers">Header Analysis</button>
+                  <a href="#/image-analysis" class="tab-pill tab-pill-link" id="tab-btn-images" title="Switch to Image Analysis">Image Analysis</a>
+                </nav>
+              </div>
+
+              <div class="card-body">
+                <!-- TAB PANEL 1: EMAIL CONTENT -->
+                <div class="analyzer-tab-panel" id="tab-panel-content" role="tabpanel" aria-labelledby="tab-btn-content">
+                  <!-- Quick Samples -->
+                  <div class="samples-wrapper">
+                    <span class="samples-label">Quick sample:</span>
+                    <div class="samples-buttons" role="group" aria-label="Load sample email templates">
+                      <button type="button" class="btn btn-sm btn-outline" id="sample-spam-btn">Spam Sample</button>
+                      <button type="button" class="btn btn-sm btn-outline" id="sample-ham-btn">Legitimate Sample</button>
+                      <button type="button" class="btn btn-sm btn-outline" id="sample-borderline-btn">Borderline Sample</button>
+                    </div>
+                  </div>
+
+                  <!-- Drag-and-Drop Upload Zone -->
+                  <div class="upload-drop-zone" id="drop-zone" tabindex="0" role="region" aria-label="Email file drag and drop zone">
+                    <div class="upload-icon-wrapper" aria-hidden="true">
+                      <svg class="upload-svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                      </svg>
+                    </div>
+                    <p class="upload-title">Drag and drop your email file here</p>
+                    <span class="upload-or">or</span>
+                    <input type="file" id="file-picker-input" class="file-input-hidden" accept=".eml,.txt,.msg" aria-label="Upload email file">
+                    <button type="button" class="btn btn-crimson btn-sm file-picker-trigger" id="file-picker-btn">Choose File</button>
+                    <p class="upload-hint">Supports .eml, .txt (max 1 MB)</p>
+                    <div class="drop-overlay hidden" id="drop-overlay" aria-hidden="true">
+                      <span class="drop-overlay-text">Drop .eml or .txt file here to load</span>
+                    </div>
+                  </div>
+
+                  <!-- Submission Form -->
+                  <form id="email-form" novalidate>
+                    <div class="form-group subject-group">
+                      <label for="subject-input" class="form-label">Subject Line <span class="text-muted">(Optional)</span></label>
+                      <input
+                        type="text"
+                        id="subject-input"
+                        class="form-control"
+                        placeholder="e.g., Action Required: Security Alert on Your Account"
+                        maxlength="2000"
+                        autocomplete="off"
+                      >
+                    </div>
+
+                    <div class="form-group body-group">
+                      <div class="label-row">
+                        <label for="body-input" class="form-label">Email Content / Body <span class="required-indicator">*</span></label>
+                        <span class="char-counter" id="body-char-counter">0 / 20,000</span>
+                      </div>
+                      <div class="textarea-wrapper">
+                        <textarea
+                          id="body-input"
+                          class="form-control textarea-body"
+                          rows="6"
+                          placeholder="Paste your email content here..."
+                          required
+                        ></textarea>
+                      </div>
+                      <div class="field-error hidden" id="body-error" role="alert" aria-live="polite"></div>
+                    </div>
+
+                    <!-- Option Toggles -->
+                    <div class="analyzer-options-row" role="group" aria-label="Analysis scan options">
+                      <label class="toggle-control">
+                        <input type="checkbox" id="opt-extract-urls" checked>
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                        <span class="toggle-text">Extract URLs</span>
+                      </label>
+                      <label class="toggle-control">
+                        <input type="checkbox" id="opt-analyze-headers" checked>
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                        <span class="toggle-text">Analyze Headers</span>
+                      </label>
+                      <label class="toggle-control">
+                        <input type="checkbox" id="opt-suspicious-links" checked>
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                        <span class="toggle-text">Detect Suspicious Links</span>
+                      </label>
+                      <label class="toggle-control" id="ocr-toggle-wrapper">
+                        <input type="checkbox" id="opt-image-ocr">
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                        <span class="toggle-text">Image OCR &amp; QR</span>
+                      </label>
+                      <div class="analyzer-sensitivity-control">
+                        <label for="analyzer-sensitivity-select" class="analyzer-sensitivity-label">Sensitivity:</label>
+                        <select id="analyzer-sensitivity-select" class="select-sensitivity-sm" aria-label="Analysis Risk Sensitivity">
+                          <option value="low">Low</option>
+                          <option value="medium" selected>Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                      </div>
+                      <div class="analyzer-model-control">
+                        <label for="analyzer-model-select" class="analyzer-model-label">Model:</label>
+                        <select id="analyzer-model-select" class="select-model-sm" aria-label="Machine Learning Model Selection">
+                          <option value="svm" selected>Calibrated Linear SVM (Primary Winner)</option>
+                          <option value="lr">Logistic Regression (Candidate)</option>
+                          <option value="nb">Multinomial Naive Bayes (Baseline)</option>
+                        </select>
+                      </div>
+                      <label class="toggle-control" id="compare-models-toggle-wrapper">
+                        <input type="checkbox" id="opt-compare-models" checked>
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                        <span class="toggle-text">Compare 3 Models</span>
+                      </label>
+                    </div>
+
+                    <!-- General Alert Box -->
+                    <div class="alert alert-danger hidden" id="general-error" role="alert" aria-live="polite">
+                      <span class="alert-message" id="general-error-message"></span>
+                      <button type="button" class="btn btn-sm btn-outline hidden" id="retry-btn">Try again</button>
+                    </div>
+
+                    <!-- Cold Start Slow Request Banner -->
+                    <div class="alert alert-info hidden" id="waking-banner" role="status" aria-live="polite">
+                      <div class="waking-banner-inner">
+                        <span class="spinner-small" aria-hidden="true"></span>
+                        <span class="waking-banner-text">Waking up the server, this can take up to a minute on the free host</span>
+                      </div>
+                      <button type="button" class="btn btn-outline btn-xs" id="waking-retry-btn">Retry Connection</button>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions">
+                      <button type="button" id="clear-btn" class="btn btn-secondary">Clear</button>
+                      <div class="form-actions-right">
+                        <span class="total-counter" id="total-char-counter">Total: 0 / 20,000</span>
+                        <button type="submit" id="analyze-btn" class="btn btn-primary btn-crimson" title="Analyze Email (Ctrl+Enter)">
+                          <span class="btn-text" id="analyze-btn-text">Analyze Email →</span>
+                          <span class="spinner-sm hidden" id="analyze-btn-spinner" aria-hidden="true"></span>
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+
+                <!-- TAB PANEL 2: HEADER ANALYSIS -->
+                <div class="analyzer-tab-panel hidden" id="tab-panel-headers" role="tabpanel" aria-labelledby="tab-btn-headers">
+                  <div class="headers-panel-header">
+                    <h3 class="panel-subtitle">Email Routing & Authentication Telemetry</h3>
+                    <p class="panel-desc">Authentication-Results, SPF, DKIM, DMARC validation, sender spoofing, and relay hops.</p>
+                  </div>
+
+                  <!-- Empty state when no headers available -->
+                  <div id="headers-telemetry-empty" class="headers-empty-box">
+                    <span class="headers-empty-icon" aria-hidden="true">✉️</span>
+                    <h4 class="headers-empty-title">No Header Telemetry Yet</h4>
+                    <p class="headers-empty-desc">Import an RFC 5322 .eml file in the Email Content tab to view SPF, DKIM, DMARC, and routing telemetry here.</p>
+                    <button type="button" class="btn btn-sm btn-outline" id="load-eml-sample-btn">Load Sample .eml</button>
+                  </div>
+
+                  <!-- Active state when headers present -->
+                  <div id="headers-telemetry-active" class="headers-active-content hidden">
+                    <div class="headers-grid">
+                      <div class="header-stat-box">
+                        <span class="h-label">SPF Check</span>
+                        <span class="h-val badge-neutral" id="h-spf-val">none</span>
+                      </div>
+                      <div class="header-stat-box">
+                        <span class="h-label">DKIM Check</span>
+                        <span class="h-val badge-neutral" id="h-dkim-val">none</span>
+                      </div>
+                      <div class="header-stat-box">
+                        <span class="h-label">DMARC Check</span>
+                        <span class="h-val badge-neutral" id="h-dmarc-val">none</span>
+                      </div>
+                      <div class="header-stat-box">
+                        <span class="h-label">Sender Match</span>
+                        <span class="h-val badge-neutral" id="h-sender-match-val">Match</span>
+                      </div>
+                      <div class="header-stat-box">
+                        <span class="h-label">Relay Hops</span>
+                        <span class="h-val badge-neutral" id="h-hops-val">0 hops</span>
+                      </div>
+                    </div>
+
+                    <div class="raw-headers-block">
+                      <div class="raw-headers-bar">
+                        <span class="raw-headers-title">Extracted Headers</span>
+                        <button type="button" class="btn btn-xs btn-outline" id="copy-raw-headers-btn">Copy Headers</button>
+                      </div>
+                      <pre class="raw-headers-pre" id="raw-headers-pre" tabindex="0"></pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- CARD 2: ANALYSIS REPORT (MATCHES MOCKUP RIGHT CARD)           -->
+            <!-- ============================================================== -->
+            <div class="card report-card" id="analyzer-report-card">
+              <div class="card-maroon-header report-card-header">
+                <div class="card-header-left">
+                  <div class="card-header-icon" aria-hidden="true">📋</div>
+                  <div>
+                    <h2 class="card-maroon-title">Analysis Report</h2>
+                    <p class="card-maroon-sub">Detailed analysis of your email scan.</p>
+                  </div>
+                </div>
+                <div class="card-header-actions">
+                  <button type="button" class="btn btn-sm btn-outline new-scan-btn hidden" id="new-scan-btn">← New Scan</button>
+                </div>
+              </div>
+
+              <div class="card-body">
+                <!-- STATE 1: EMPTY STATE -->
+                <div class="report-empty-state" id="report-empty-state">
+                  <div class="report-empty-icon" aria-hidden="true">🛡️</div>
+                  <h3 class="report-empty-title">Ready for Analysis</h3>
+                  <p class="report-empty-desc">Paste an email message or drag and drop a .eml/.txt file in the Email Analyzer to generate risk scores, indicator chips, key findings, and highlighted tokens.</p>
+                  <div class="empty-features-list">
+                    <span class="empty-feature-item">✓ Real-time calibrated NLP inference</span>
+                    <span class="empty-feature-item">✓ SPF / DKIM header verification</span>
+                    <span class="empty-feature-item">✓ URL & Phishing camouflage checks</span>
+                  </div>
+                </div>
+
+                <!-- STATE 2: LOADING SKELETON -->
+                <div class="report-skeleton hidden" id="report-skeleton" aria-hidden="true">
+                  <div class="skeleton-ring-row">
+                    <div class="skeleton-shimmer skeleton-ring-circle"></div>
+                    <div class="skeleton-meta-box">
+                      <div class="skeleton-shimmer skeleton-line-lg"></div>
+                      <div class="skeleton-shimmer skeleton-line-md"></div>
+                      <div class="skeleton-shimmer skeleton-line-sm"></div>
+                    </div>
+                  </div>
+                  <div class="skeleton-shimmer skeleton-bar-box"></div>
+                  <div class="skeleton-shimmer skeleton-chips-box"></div>
+                  <div class="skeleton-shimmer skeleton-text-box"></div>
+                </div>
+
+                <!-- STATE 3: ACTIVE REPORT VIEW -->
+                <div class="report-active-view hidden" id="report-active-view" tabindex="-1" aria-live="polite">
+                  <!-- Top Row: SVG Risk Ring Gauge & Core Metadata -->
+                  <div class="report-top-row">
+                    <div class="risk-ring-container">
+                      <svg class="risk-ring-svg" width="130" height="130" viewBox="0 0 140 140" role="img" aria-label="Risk Score Gauge">
+                        <circle class="risk-ring-track" cx="70" cy="70" r="54" fill="none" stroke-width="12"></circle>
+                        <circle class="risk-ring-fill" id="risk-ring-fill" cx="70" cy="70" r="54" fill="none" stroke-width="12" stroke-linecap="round"></circle>
+                      </svg>
+                      <div class="risk-ring-center">
+                        <span class="risk-ring-num" id="risk-ring-num">0</span>
+                        <span class="risk-ring-caption">Risk Score</span>
+                        <span class="risk-ring-badge" id="risk-ring-badge">Safe</span>
+                      </div>
+                    </div>
+
+                    <div class="report-meta-grid">
+                      <div class="meta-card">
+                        <span class="meta-label">Classification</span>
+                        <span class="meta-value-verdict" id="report-classification-val">--</span>
+                      </div>
+                      <div class="meta-card">
+                        <span class="meta-label">Confidence</span>
+                        <span class="meta-value" id="report-confidence-val">--%</span>
+                      </div>
+                      <div class="meta-card">
+                        <span class="meta-label">Analyzed At</span>
+                        <span class="meta-value-sm" id="report-timestamp-val">Just now</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Uncertain Zone Callout Banner -->
+                  <div class="uncertain-banner hidden" id="report-uncertain-banner" role="status">
+                    <span class="uncertain-banner-icon" aria-hidden="true">⚖</span>
+                    <div class="uncertain-banner-content">
+                      <h3 class="uncertain-banner-title">Borderline Uncertainty Zone (Needs Review)</h3>
+                      <p class="uncertain-banner-text" id="report-uncertain-text">Calibrated spam probability falls within the borderline zone [0.40, 0.60]. Automated decision withheld; human review recommended.</p>
+                    </div>
+                  </div>
+
+                  <!-- THREAT_RADAR 5-Axis Threat Vector Summary Widget -->
+                  <div class="report-section" id="threat-radar-vector-section">
+                    <div class="section-title-row">
+                      <h3 class="report-section-title">Threat Radar Vectors (5-Axis Multi-Layer Assessment)</h3>
+                      <span class="indicator-count-badge" id="radar-composite-badge">Active</span>
+                    </div>
+                    <div class="radar-widget-container">
+                      <div class="radar-chart-box">
+                        <svg class="radar-chart-svg" width="220" height="220" viewBox="0 0 220 220" role="img" aria-label="5-Axis Threat Radar Chart">
+                          <!-- Concentric Pentagon Background Grids -->
+                          <polygon class="radar-grid-polygon radar-grid-20" points="110,92 127,104 120,125 100,125 93,104"></polygon>
+                          <polygon class="radar-grid-polygon radar-grid-40" points="110,74 144,99 131,139 89,139 76,99"></polygon>
+                          <polygon class="radar-grid-polygon radar-grid-60" points="110,56 161,93 141,154 79,154 59,93"></polygon>
+                          <polygon class="radar-grid-polygon radar-grid-80" points="110,38 178,87 152,168 68,168 42,87"></polygon>
+                          <polygon class="radar-grid-polygon radar-grid-100" points="110,20 195,82 163,182 57,182 25,82"></polygon>
+                          <!-- 5 Spoke Axis Lines -->
+                          <line class="radar-spoke" x1="110" y1="110" x2="110" y2="20"></line>
+                          <line class="radar-spoke" x1="110" y1="110" x2="195" y2="82"></line>
+                          <line class="radar-spoke" x1="110" y1="110" x2="163" y2="182"></line>
+                          <line class="radar-spoke" x1="110" y1="110" x2="57" y2="182"></line>
+                          <line class="radar-spoke" x1="110" y1="110" x2="25" y2="82"></line>
+                          <!-- Dynamic Radar Value Polygon -->
+                          <polygon class="radar-value-polygon" id="radar-value-polygon" points="110,110 110,110 110,110 110,110 110,110"></polygon>
+                          <!-- Dynamic Vertex Points -->
+                          <circle class="radar-vertex-dot" id="radar-dot-model" cx="110" cy="110" r="4"></circle>
+                          <circle class="radar-vertex-dot" id="radar-dot-header" cx="110" cy="110" r="4"></circle>
+                          <circle class="radar-vertex-dot" id="radar-dot-url" cx="110" cy="110" r="4"></circle>
+                          <circle class="radar-vertex-dot" id="radar-dot-attachment" cx="110" cy="110" r="4"></circle>
+                          <circle class="radar-vertex-dot" id="radar-dot-urgency" cx="110" cy="110" r="4"></circle>
+                        </svg>
+                      </div>
+                      <div class="radar-vectors-breakdown" role="list" aria-label="Threat Vector Breakdown">
+                        <div class="radar-vector-item" role="listitem">
+                          <div class="vector-header">
+                            <span class="vector-name">1. NLP Model Score</span>
+                            <span class="vector-val" id="vector-model-val">--%</span>
+                          </div>
+                          <div class="vector-track"><div class="vector-fill" id="vector-model-bar"></div></div>
+                        </div>
+                        <div class="radar-vector-item" role="listitem">
+                          <div class="vector-header">
+                            <span class="vector-name">2. Header Authenticity</span>
+                            <span class="vector-val" id="vector-header-val">Clean</span>
+                          </div>
+                          <div class="vector-track"><div class="vector-fill" id="vector-header-bar"></div></div>
+                        </div>
+                        <div class="radar-vector-item" role="listitem">
+                          <div class="vector-header">
+                            <span class="vector-name">3. URL &amp; Link Risk</span>
+                            <span class="vector-val" id="vector-url-val">Clean</span>
+                          </div>
+                          <div class="vector-track"><div class="vector-fill" id="vector-url-bar"></div></div>
+                        </div>
+                        <div class="radar-vector-item" role="listitem">
+                          <div class="vector-header">
+                            <span class="vector-name">4. Attachment Forensics</span>
+                            <span class="vector-val" id="vector-attachment-val">Clean</span>
+                          </div>
+                          <div class="vector-track"><div class="vector-fill" id="vector-attachment-bar"></div></div>
+                        </div>
+                        <div class="radar-vector-item" role="listitem">
+                          <div class="vector-header">
+                            <span class="vector-name">5. Urgency / Heuristics</span>
+                            <span class="vector-val" id="vector-urgency-val">Clean</span>
+                          </div>
+                          <div class="vector-track"><div class="vector-fill" id="vector-urgency-bar"></div></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- THREAT_RADAR Multi-Model Comparison Card -->
+                  <div class="report-section" id="threat-radar-comparison-section">
+                    <div class="section-title-row">
+                      <h3 class="report-section-title">Multi-Model Consensus &amp; Algorithm Comparison</h3>
+                      <span class="consensus-badge" id="models-consensus-badge">3/3 Models Agree</span>
+                    </div>
+                    <div class="disagreement-banner hidden" id="models-disagreement-alert" role="alert">
+                      <span class="disagreement-icon" aria-hidden="true">⚠️</span>
+                      <span class="disagreement-text" id="models-disagreement-text">Model Disagreement detected.</span>
+                    </div>
+                    <div class="models-comparison-grid" id="models-comparison-grid" role="region" aria-label="Candidate Model Comparison Grid">
+                      <!-- Model Card 1: Calibrated Linear SVM -->
+                      <div class="algo-card algo-winner" id="algo-card-svm">
+                        <div class="algo-card-header">
+                          <div class="algo-title-group">
+                            <h4 class="algo-name">Calibrated Linear SVM</h4>
+                            <span class="algo-tag badge-winner">Winner (Production)</span>
+                          </div>
+                          <span class="algo-verdict-badge" id="algo-svm-verdict">--</span>
+                        </div>
+                        <div class="algo-body">
+                          <div class="algo-prob-row">
+                            <span class="algo-label">Spam Prob:</span>
+                            <strong class="algo-prob-num" id="algo-svm-prob">--%</strong>
+                          </div>
+                          <div class="algo-prob-track"><div class="algo-prob-fill" id="algo-svm-bar"></div></div>
+                          <div class="algo-metrics-pill">
+                            <span>Accuracy: <strong>99.00%</strong></span>
+                            <span>F1: <strong>0.9895</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Model Card 2: Logistic Regression -->
+                      <div class="algo-card" id="algo-card-lr">
+                        <div class="algo-card-header">
+                          <div class="algo-title-group">
+                            <h4 class="algo-name">Logistic Regression</h4>
+                            <span class="algo-tag badge-candidate">Candidate (High Recall)</span>
+                          </div>
+                          <span class="algo-verdict-badge" id="algo-lr-verdict">--</span>
+                        </div>
+                        <div class="algo-body">
+                          <div class="algo-prob-row">
+                            <span class="algo-label">Spam Prob:</span>
+                            <strong class="algo-prob-num" id="algo-lr-prob">--%</strong>
+                          </div>
+                          <div class="algo-prob-track"><div class="algo-prob-fill" id="algo-lr-bar"></div></div>
+                          <div class="algo-metrics-pill">
+                            <span>Accuracy: <strong>98.69%</strong></span>
+                            <span>F1: <strong>0.9864</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Model Card 3: Multinomial Naive Bayes -->
+                      <div class="algo-card" id="algo-card-nb">
+                        <div class="algo-card-header">
+                          <div class="algo-title-group">
+                            <h4 class="algo-name">Multinomial Naive Bayes</h4>
+                            <span class="algo-tag badge-candidate">Candidate (Fast Baseline)</span>
+                          </div>
+                          <span class="algo-verdict-badge" id="algo-nb-verdict">--</span>
+                        </div>
+                        <div class="algo-body">
+                          <div class="algo-prob-row">
+                            <span class="algo-label">Spam Prob:</span>
+                            <strong class="algo-prob-num" id="algo-nb-prob">--%</strong>
+                          </div>
+                          <div class="algo-prob-track"><div class="algo-prob-fill" id="algo-nb-bar"></div></div>
+                          <div class="algo-metrics-pill">
+                            <span>Accuracy: <strong>98.49%</strong></span>
+                            <span>F1: <strong>0.9842</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Detected Indicators Section -->
+                  <div class="report-section" id="report-indicators-section">
+                    <div class="section-title-row">
+                      <h3 class="report-section-title">Detected Indicators</h3>
+                      <span class="indicator-count-badge" id="indicator-count-badge">0</span>
+                    </div>
+                    <div class="indicators-chips-container" id="indicators-chips-container">
+                      <!-- Populated dynamically via textContent & createElement -->
+                    </div>
+                  </div>
+
+                  <!-- Key Findings Section -->
+                  <div class="report-section" id="report-findings-section">
+                    <h3 class="report-section-title">Key Findings</h3>
+                    <ul class="findings-list" id="findings-list">
+                      <!-- Populated dynamically -->
+                    </ul>
+                  </div>
+
+                  <!-- Attachment Forensics Section (Visible when attachments detected) -->
+                  <div class="report-section hidden" id="report-attachments-section">
+                    <div class="section-title-row">
+                      <h3 class="report-section-title">Attachment Forensics</h3>
+                      <span class="indicator-count-badge" id="attachments-count-badge">0</span>
+                    </div>
+                    <div class="attachments-table-container">
+                      <table class="attachments-table" id="attachments-table">
+                        <thead>
+                          <tr>
+                            <th scope="col">Filename</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Size</th>
+                            <th scope="col">Security Verdict</th>
+                          </tr>
+                        </thead>
+                        <tbody id="attachments-table-body">
+                          <!-- Populated dynamically via DOM textContent -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Cryptographic Evidence SHA-256 Section -->
+                  <div class="report-section" id="report-evidence-section">
+                    <div class="evidence-sha-card">
+                      <div class="evidence-sha-header">
+                        <span class="evidence-icon" aria-hidden="true">🔒</span>
+                        <span>Cryptographic Evidence Digest (SHA-256)</span>
+                      </div>
+                      <code class="evidence-sha-code" id="report-sha256-val">--</code>
+                      <span class="evidence-sha-note">Tamper-proof payload hash. Zero email text stored on server.</span>
+                    </div>
+                  </div>
+
+                  <!-- Email Preview with Original / Extracted Switch -->
+                  <div class="report-section" id="report-preview-section">
+                    <div class="section-title-row">
+                      <h3 class="report-section-title">Email Preview & Token Highlights</h3>
+                      <div class="preview-switch-group" role="group" aria-label="Toggle email preview mode">
+                        <button type="button" class="preview-switch-btn active" id="btn-preview-original">Original</button>
+                        <button type="button" class="preview-switch-btn" id="btn-preview-extracted">Extracted</button>
+                      </div>
+                    </div>
+
+                    <div class="preview-meta-bar">
+                      <div class="meta-line"><strong>From:</strong> <span id="preview-from-val">user@example.com</span></div>
+                      <div class="meta-line"><strong>Subject:</strong> <span id="preview-subject-val">No Subject</span></div>
+                    </div>
+
+                    <!-- Highlighter Legend with Non-Color Visual Cues -->
+                    <div class="highlight-legend" role="region" aria-label="Highlight Legend">
+                      <span class="legend-item legend-spam">
+                        <mark class="token-highlight token-spam"><span class="token-cue" aria-hidden="true">▲</span> Spam token</mark>
+                      </span>
+                      <span class="legend-item legend-ham">
+                        <mark class="token-highlight token-ham"><span class="token-cue" aria-hidden="true">▼</span> Legitimate token</mark>
+                      </span>
+                      <span class="legend-item legend-neutral">
+                        <span class="token-neutral-sample">Regular text</span>
+                      </span>
+                      <button type="button" class="btn btn-xs btn-outline stopword-toggle-btn" id="stopword-toggle-btn" aria-pressed="true" title="Toggle common words filtering">
+                        <span id="stopword-toggle-text">Filter Common Words (ON)</span>
+                      </button>
+                      <span class="legend-status" id="stopword-count-badge"></span>
+                    </div>
+
+                    <div class="highlight-preview-box" id="highlight-preview-box" tabindex="0" aria-label="Highlighted Email Content Preview">
+                      <!-- Dynamic token highlights -->
+                    </div>
+                  </div>
+
+                  <!-- Report Action Buttons (Mockup buttons 'Block Sender' & 'Report Phishing' removed) -->
+                  <div class="report-actions-bar">
+                    <button type="button" class="btn btn-outline btn-sm" id="copy-report-btn">
+                      <span id="copy-report-icon" aria-hidden="true">📋</span>
+                      <span id="copy-report-text">Copy Report</span>
+                    </button>
+                    <button type="button" class="btn btn-primary btn-crimson btn-sm" id="export-json-btn">
+                      <span aria-hidden="true">📥</span>
+                      <span>Export (JSON)</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <!-- VIEW 3: IMAGE ANALYSIS (#/image-analysis)                         -->
+        <!-- ================================================================ -->
+        <section class="view-panel hidden" id="view-image-analysis" role="tabpanel" aria-labelledby="nav-image-analysis">
+          <div class="card image-analysis-card">
+            <div class="card-maroon-header">
+              <div class="card-header-icon" aria-hidden="true">🖼️</div>
+              <div>
+                <h1 class="card-maroon-title">Image Threat Analyzer</h1>
+                <p class="card-maroon-sub">Client-side optical character recognition (OCR) and QR code security scanning.</p>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <!-- Privacy Guarantee Banner -->
+              <div class="privacy-note-banner" role="note">
+                <span class="privacy-note-icon" aria-hidden="true">🔒</span>
+                <div class="privacy-note-content">
+                  <strong>Zero-Upload Privacy Guarantee:</strong>
+                  <span>Images are processed entirely on your device using client-side Web Workers and WebAssembly. Your images and extracted text are NEVER uploaded to or stored on any server.</span>
+                </div>
+              </div>
+
+              <!-- Drag-and-Drop Image Dropzone -->
+              <div class="upload-drop-zone" id="img-drop-zone" tabindex="0" role="region" aria-label="Image drag and drop upload zone">
+                <div class="upload-icon-wrapper" aria-hidden="true">
+                  <svg class="upload-svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                </div>
+                <p class="upload-title">Drag and drop an email screenshot or QR image</p>
+                <span class="upload-or">or</span>
+                <input type="file" id="img-file-input" class="file-input-hidden" accept=".png,.jpg,.jpeg,image/png,image/jpeg" aria-label="Select image file">
+                <button type="button" class="btn btn-crimson btn-sm file-picker-trigger" id="img-browse-btn">Choose Image</button>
+                <p class="upload-hint">Supports PNG, JPG, JPEG (Max 5 MB). File type validated by content magic bytes.</p>
+                <div class="drop-overlay hidden" id="img-drop-overlay" aria-hidden="true">
+                  <span class="drop-overlay-text">Drop image here to load</span>
+                </div>
+              </div>
+
+              <!-- Image Alert Box (Validation, Errors, Warnings) -->
+              <div class="alert alert-danger hidden" id="img-alert-box" role="alert" aria-live="assertive"></div>
+
+              <!-- Selected Image Preview & Action Controls -->
+              <div class="image-preview-card hidden" id="img-preview-box">
+                <div class="image-thumb-wrapper">
+                  <img id="img-thumb" class="image-thumb" src="" alt="Selected email screenshot preview">
+                </div>
+                <div class="image-file-meta" id="img-meta-text">
+                  <!-- e.g. screenshot.png (14.4 KB) - 800x350 px -->
+                </div>
+                <div class="image-action-buttons">
+                  <button type="button" class="btn btn-primary btn-crimson" id="img-start-scan-btn">
+                    <span>⚡ Analyze Image Threats</span>
+                  </button>
+                  <button type="button" class="btn btn-outline" id="img-clear-selection-btn">
+                    <span>Clear Image</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- OCR & QR Progress Tracker -->
+              <div class="image-progress-box hidden" id="img-progress-box" role="region" aria-label="Analysis Progress">
+                <div class="image-progress-header">
+                  <span id="img-progress-status-text">Initializing OCR engine...</span>
+                  <span id="img-progress-percent">0%</span>
+                </div>
+                <div class="image-progress-track">
+                  <div class="image-progress-fill" id="img-progress-fill"></div>
+                </div>
+                <div class="image-progress-footer">
+                  <span id="img-progress-timer-text">Timeout limit: 30s</span>
+                  <button type="button" class="btn btn-sm btn-outline btn-danger-outline" id="img-cancel-scan-btn">Cancel Analysis</button>
+                </div>
+              </div>
+
+              <!-- Analysis Report Card -->
+              <div class="image-report-container hidden" id="img-report-container" role="region" aria-label="Image Threat Analysis Report">
+                <!-- Accuracy / Scope Disclaimer Notice -->
+                <div class="disclaimer-banner alert-warning" role="note">
+                  <span class="disclaimer-icon" aria-hidden="true">⚠️</span>
+                  <div>
+                    <strong>Accuracy Notice:</strong>
+                    <span>OCR text extraction can be inaccurate or imperfect on complex typography or low-contrast backgrounds. Always verify critical sender domains and URLs.</span>
+                  </div>
+                </div>
+
+                <!-- Overall Verdict Banner -->
+                <div class="report-verdict-banner" id="img-verdict-banner">
+                  <div class="verdict-summary">
+                    <span class="verdict-label">Overall Image Threat Assessment:</span>
+                    <span class="badge verdict-badge" id="img-verdict-badge">Safe</span>
+                  </div>
+                  <div class="verdict-metrics-row">
+                    <div class="verdict-metric">
+                      <span class="metric-title">Risk Score</span>
+                      <span class="metric-val" id="img-risk-score-val">0 / 100</span>
+                    </div>
+                    <div class="verdict-metric">
+                      <span class="metric-title">OCR Confidence</span>
+                      <span class="metric-val" id="img-ocr-conf-val">0%</span>
+                    </div>
+                    <div class="verdict-metric">
+                      <span class="metric-title">Model Confidence</span>
+                      <span class="metric-val" id="img-model-conf-val">0%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Section: Decoded QR Codes -->
+                <div class="image-report-section" id="img-qr-section">
+                  <div class="panel-box-header">
+                    <h3 class="panel-box-title">Decoded QR Code Content</h3>
+                    <button type="button" class="btn btn-sm btn-outline hidden" id="img-copy-qr-btn">Copy QR Content</button>
+                  </div>
+                  <div id="img-qr-empty" class="text-muted">No QR codes detected in this image.</div>
+                  <div id="img-qr-content-box" class="qr-result-box hidden">
+                    <span id="img-qr-text-val"></span>
+                  </div>
+                </div>
+
+                <!-- Section: Extracted OCR Text -->
+                <div class="image-report-section">
+                  <div class="panel-box-header">
+                    <h3 class="panel-box-title">Extracted Text (OCR)</h3>
+                    <div class="report-header-actions">
+                      <button type="button" class="btn btn-sm btn-outline" id="img-copy-text-btn">Copy Text</button>
+                      <button type="button" class="btn btn-sm btn-primary" id="img-send-to-analyzer-btn">Send to Email Analyzer &rarr;</button>
+                    </div>
+                  </div>
+                  <div id="img-ocr-empty" class="text-muted hidden">No text detected in this image.</div>
+                  <div class="image-ocr-textbox" id="img-ocr-text-display" tabindex="0"></div>
+                </div>
+
+                <!-- Section: Extracted URLs & Threat Flags -->
+                <div class="image-report-section" id="img-urls-section">
+                  <h3 class="panel-box-title">Extracted URLs &amp; Threat Indicators</h3>
+                  <div id="img-urls-empty" class="text-muted">No URLs found in image content.</div>
+                  <div id="img-urls-table-wrapper" class="table-responsive hidden">
+                    <table class="table-compact" aria-label="Extracted Image URLs">
+                      <thead>
+                        <tr>
+                          <th scope="col">URL</th>
+                          <th scope="col">Security Flags</th>
+                        </tr>
+                      </thead>
+                      <tbody id="img-urls-tbody"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Section: Key Findings & Heuristic Indicators -->
+                <div class="image-report-section">
+                  <h3 class="panel-box-title">Key Findings &amp; Heuristics</h3>
+                  <ul class="findings-list" id="img-findings-list"></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <!-- VIEW 4: REPORTS (#/reports)                                       -->
+        <!-- ================================================================ -->
+        <section class="view-panel hidden" id="view-reports" role="tabpanel" aria-labelledby="nav-reports">
+          <div class="card reports-hero-card">
+            <div class="card-maroon-header">
+              <div class="card-header-left">
+                <div class="card-header-icon" aria-hidden="true">📋</div>
+                <div>
+                  <h1 class="card-maroon-title">Scan History & Reports</h1>
+                  <p class="card-maroon-sub">Audit trail of emails analyzed on this device.</p>
+                </div>
+              </div>
+              <div class="card-header-actions">
+                <button type="button" class="btn btn-sm btn-outline btn-danger-outline" id="clear-history-btn">Clear All History</button>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <!-- Privacy Local Storage Notice -->
+              <div class="privacy-note-banner" role="note">
+                <span class="privacy-note-icon" aria-hidden="true">🔒</span>
+                <div class="privacy-note-content">
+                  <strong>History stays on this device.</strong>
+                  <span>Your email scan history is stored locally in IndexedDB and is never sent to the server.</span>
+                </div>
+              </div>
+
+              <!-- Storage Fallback Banner (only visible in private browsing if IndexedDB fails) -->
+              <div class="alert alert-info hidden" id="storage-fallback-banner" role="status">
+                <span aria-hidden="true">ℹ️</span>
+                <span>Private browsing mode detected: Scan history is held in memory for this session only.</span>
+              </div>
+
+              <!-- Filter & Search Toolbar -->
+              <div class="reports-toolbar" role="region" aria-label="Scan history filters">
+                <div class="toolbar-search">
+                  <label for="history-search-input" class="sr-only">Search scans</label>
+                  <input type="search" id="history-search-input" class="form-control form-control-sm" placeholder="Search by subject or snippet...">
+                </div>
+
+                <div class="toolbar-filters">
+                  <div class="filter-group">
+                    <label for="history-filter-verdict" class="filter-label">Verdict:</label>
+                    <select id="history-filter-verdict" class="form-control form-control-sm">
+                      <option value="all">All Verdicts</option>
+                      <option value="Spam">Spam</option>
+                      <option value="Suspicious">Suspicious</option>
+                      <option value="Safe">Safe</option>
+                    </select>
+                  </div>
+
+                  <div class="filter-group">
+                    <label for="history-filter-source" class="filter-label">Source:</label>
+                    <select id="history-filter-source" class="form-control form-control-sm">
+                      <option value="all">All Sources</option>
+                      <option value="paste">Direct Paste</option>
+                      <option value="eml">.EML File</option>
+                      <option value="txt">.TXT File</option>
+                    </select>
+                  </div>
+
+                  <div class="filter-group">
+                    <label for="history-sort-by" class="filter-label">Sort:</label>
+                    <select id="history-sort-by" class="form-control form-control-sm">
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="risk_desc">Highest Risk</option>
+                      <option value="risk_asc">Lowest Risk</option>
+                    </select>
+                  </div>
+
+                  <div class="filter-group date-filter-group">
+                    <label for="history-date-start" class="filter-label">From:</label>
+                    <input type="date" id="history-date-start" class="form-control form-control-sm">
+                    <label for="history-date-end" class="filter-label">To:</label>
+                    <input type="date" id="history-date-end" class="form-control form-control-sm">
+                  </div>
+                </div>
+
+                <div class="toolbar-exports">
+                  <button type="button" class="btn btn-sm btn-outline" id="export-history-csv-btn">
+                    <span aria-hidden="true">📊</span>
+                    <span>Export CSV</span>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-primary btn-crimson" id="export-history-json-btn">
+                    <span aria-hidden="true">📥</span>
+                    <span>Export JSON</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- History Table View -->
+              <div class="reports-table-container">
+                <!-- Empty State -->
+                <div id="history-empty-state" class="empty-state-box">
+                  <span class="empty-state-icon" aria-hidden="true">📑</span>
+                  <h2 class="empty-state-title" id="history-empty-title">No Scans Recorded Yet</h2>
+                  <p class="empty-state-desc" id="history-empty-desc">Your scan history will automatically appear here as you analyze emails.</p>
+                  <a href="#/analyzer" class="btn btn-primary btn-sm">Scan an Email Now</a>
+                </div>
+
+                <!-- Active Table -->
+                <div id="history-table-wrapper" class="table-responsive hidden">
+                  <table class="history-table" id="history-table" aria-label="Email Scan History Audit Log">
+                    <thead>
+                      <tr>
+                        <th scope="col">Date & Time</th>
+                        <th scope="col">Subject / Snippet</th>
+                        <th scope="col">Source</th>
+                        <th scope="col">Risk Score</th>
+                        <th scope="col">Classification</th>
+                        <th scope="col" class="th-actions">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="history-tbody">
+                      <!-- Populated dynamically via textContent & createElement -->
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination Bar -->
+                <div class="pagination-bar hidden" id="history-pagination-bar" role="navigation" aria-label="Scan history pagination">
+                  <span class="pagination-info" id="history-pagination-info">Showing 1 to 5 of 5 scans</span>
+                  <div class="pagination-controls">
+                    <button type="button" class="btn btn-xs btn-outline" id="history-page-prev" disabled>← Previous</button>
+                    <span class="pagination-current" id="history-page-current">Page 1 of 1</span>
+                    <button type="button" class="btn btn-xs btn-outline" id="history-page-next" disabled>Next →</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <!-- VIEW 5: SETTINGS (#/settings)                                     -->
+        <!-- ================================================================ -->
+        <section class="view-panel hidden" id="view-settings" role="tabpanel" aria-labelledby="nav-settings">
+          <div class="card settings-hero-card">
+            <div class="card-maroon-header">
+              <div class="card-header-icon" aria-hidden="true">⚙️</div>
+              <div>
+                <h1 class="card-maroon-title">Settings & System Configuration</h1>
+                <p class="card-maroon-sub">Manage classification sensitivity, analysis preferences, local storage, and REST API access.</p>
+              </div>
+            </div>
+
+            <!-- Settings Navigation Tabs -->
+            <div class="settings-tabs-bar" role="tablist" aria-label="Settings Categories">
+              <button type="button" class="settings-tab-btn active" id="tab-btn-pref" role="tab" aria-selected="true" aria-controls="settings-panel-pref">
+                <span aria-hidden="true">🎛️</span>
+                <span>Preferences</span>
+              </button>
+              <button type="button" class="settings-tab-btn" id="tab-btn-api" role="tab" aria-selected="false" aria-controls="settings-panel-api">
+                <span aria-hidden="true">🔌</span>
+                <span>API Access</span>
+              </button>
+              <button type="button" class="settings-tab-btn" id="tab-btn-account" role="tab" aria-selected="false" aria-controls="settings-panel-account">
+                <span aria-hidden="true">👤</span>
+                <span>Account & Storage</span>
+              </button>
+            </div>
+
+            <div class="card-body">
+              <!-- 1. PREFERENCES TAB PANEL -->
+              <div class="settings-tab-panel" id="settings-panel-pref" role="tabpanel" aria-labelledby="tab-btn-pref">
+                <form id="settings-preferences-form" class="settings-form">
+                  <div class="settings-section">
+                    <h2 class="settings-section-title">Classification Preferences</h2>
+                    <p class="settings-section-sub">Configure how MailGuard AI evaluates email inputs and assigns threat classifications.</p>
+
+                    <!-- Sensitivity Control -->
+                    <div class="settings-control-group">
+                      <div class="settings-control-info">
+                        <label for="pref-sensitivity" class="settings-label">Detection Sensitivity Profile</label>
+                        <p class="settings-help">Select the risk threshold profile applied to calibrated probability scores.</p>
+                      </div>
+                      <div class="settings-control-input">
+                        <select id="pref-sensitivity" class="form-control select-sensitivity" aria-label="Detection Sensitivity Profile">
+                          <option value="low">Low (Conservative — Safe &lt; 50, Spam &gt; 70; Minimizes False Positives)</option>
+                          <option value="medium" selected>Medium (Balanced — Safe &lt; 40, Spam &gt; 60; Default)</option>
+                          <option value="high">High (Strict — Safe &lt; 30, Spam &gt; 45; Maximum Recall)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Scan URLs Toggle -->
+                    <div class="settings-control-group">
+                      <div class="settings-control-info">
+                        <label for="pref-scan-urls" class="settings-label">Deep URL & Link Inspection</label>
+                        <p class="settings-help">Extract hyperlinks, check IP addresses, detect shortened URLs, and flag lookalike domains.</p>
+                      </div>
+                      <div class="settings-control-input">
+                        <label class="toggle-control">
+                          <input type="checkbox" id="pref-scan-urls" checked>
+                          <span class="toggle-slider" aria-hidden="true"></span>
+                          <span class="toggle-text sr-only">Enable URL scanning</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- Scan Headers Toggle -->
+                    <div class="settings-control-group">
+                      <div class="settings-control-info">
+                        <label for="pref-analyze-headers" class="settings-label">Header & Authentication Validation</label>
+                        <p class="settings-help">Parse RFC-822 / MIME headers from raw emails to inspect SPF, DKIM, and Received relay hops.</p>
+                      </div>
+                      <div class="settings-control-input">
+                        <label class="toggle-control">
+                          <input type="checkbox" id="pref-analyze-headers" checked>
+                          <span class="toggle-slider" aria-hidden="true"></span>
+                          <span class="toggle-text sr-only">Enable header analysis</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Save / Reset Actions -->
+                  <div class="settings-actions">
+                    <button type="submit" class="btn btn-primary btn-crimson" id="save-preferences-btn">
+                      <span>Save Preferences</span>
+                    </button>
+                    <button type="button" class="btn btn-outline" id="reset-preferences-btn">
+                      <span>Reset to Defaults</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- 2. API ACCESS TAB PANEL -->
+              <div class="settings-tab-panel hidden" id="settings-panel-api" role="tabpanel" aria-labelledby="tab-btn-api">
+                <div class="settings-section">
+                  <h2 class="settings-section-title">Production REST API Integration</h2>
+                  <p class="settings-section-sub">Direct programmatic access for scripts, security bots, and automated scanning pipelines.</p>
+
+                  <div class="api-rate-limit-banner">
+                    <span class="api-rate-icon" aria-hidden="true">⚡</span>
+                    <div class="api-rate-info">
+                      <strong>Public Sane Rate Limits Enforced:</strong>
+                      <span>60 requests / minute on <code>/api/analyze</code> and <code>/api/predict</code>. 120 requests / minute on <code>/api/model-info</code>. <code>/api/health</code> is exempt. Limits are tracked in-memory per server process and reset on instance restart. Zero API key required for public guest access.</span>
+                    </div>
+                  </div>
+
+                  <div class="api-endpoint-card">
+                    <div class="endpoint-header">
+                      <span class="badge badge-accent method-badge">POST</span>
+                      <code class="endpoint-path">/api/analyze</code>
+                    </div>
+                    <p class="endpoint-desc">Comprehensive email security analysis combining Calibrated Linear SVM inference, URL threat evaluation, and MIME header parsing.</p>
+                    
+                    <div class="code-snippet-box">
+                      <div class="code-snippet-header">
+                        <span class="code-lang">cURL Example</span>
+                        <button type="button" class="btn-copy-code" data-target="code-curl-analyze" aria-label="Copy cURL snippet for analyze">📋 Copy</button>
+                      </div>
+                      <pre class="code-pre"><code id="code-curl-analyze">curl -X POST https://mailguard-ai.onrender.com/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Subject: Urgent Security Notice\n\nPlease confirm your banking password immediately at http://192.168.1.1/login",
+    "options": {
+      "scan_urls": true,
+      "analyze_headers": true,
+      "sensitivity": "medium"
+    }
+  }'</code></pre>
+                    </div>
+
+                    <div class="code-snippet-box">
+                      <div class="code-snippet-header">
+                        <span class="code-lang">Python (requests) Example</span>
+                        <button type="button" class="btn-copy-code" data-target="code-python-analyze" aria-label="Copy Python snippet for analyze">📋 Copy</button>
+                      </div>
+                      <pre class="code-pre"><code id="code-python-analyze">import requests
+
+url = "https://mailguard-ai.onrender.com/api/analyze"
+payload = {
+    "text": "Subject: Account Verification Needed\n\nPlease review your credentials.",
+    "options": {
+        "scan_urls": True,
+        "analyze_headers": True,
+        "sensitivity": "medium"
+    }
+}
+response = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=10)
+print(response.status_code)
+print(response.json())</code></pre>
+                    </div>
+                  </div>
+
+                  <div class="api-endpoint-card">
+                    <div class="endpoint-header">
+                      <span class="badge badge-accent method-badge">POST</span>
+                      <code class="endpoint-path">/api/predict</code>
+                    </div>
+                    <p class="endpoint-desc">Lightweight ML prediction returning classification label, probability, confidence, and top feature contribution cues.</p>
+                    
+                    <div class="code-snippet-box">
+                      <div class="code-snippet-header">
+                        <span class="code-lang">cURL Example</span>
+                        <button type="button" class="btn-copy-code" data-target="code-curl-predict" aria-label="Copy cURL snippet for predict">📋 Copy</button>
+                      </div>
+                      <pre class="code-pre"><code id="code-curl-predict">curl -X POST https://mailguard-ai.onrender.com/api/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subject": "Important update",
+    "body": "Here is the quarterly summary as requested.",
+    "filter_stopwords": true
+  }'</code></pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. ACCOUNT & STORAGE TAB PANEL -->
+              <div class="settings-tab-panel hidden" id="settings-panel-account" role="tabpanel" aria-labelledby="tab-btn-account">
+                <div class="settings-section">
+                  <h2 class="settings-section-title">Client Account & Device Storage</h2>
+                  <p class="settings-section-sub">MailGuard AI operates strictly client-side for storage. Zero registration, zero server database.</p>
+
+                  <div class="account-profile-box">
+                    <div class="account-avatar-large" aria-hidden="true">G</div>
+                    <div class="account-details">
+                      <h3 class="account-tier-title">Guest User</h3>
+                      <p class="account-tier-note">Guest, data stays on this device.</p>
+                      <p class="account-subtext">No email address, password, or cloud profile is required. Scan audit logs and preferences are stored exclusively within your local browser storage.</p>
+                    </div>
+                  </div>
+
+                  <div class="storage-management-box">
+                    <h3 class="storage-title">Local Browser Storage Controls</h3>
+                    <p class="storage-desc">You have full control over your local data. You can wipe all stored scan history and reset preference cookies at any time.</p>
+                    
+                    <div class="storage-actions">
+                      <button type="button" class="btn btn-outline" id="clear-local-history-btn">
+                        <span>🗑️ Clear Scan History (IndexedDB)</span>
+                      </button>
+                      <button type="button" class="btn btn-outline" id="clear-local-settings-btn">
+                        <span>🔄 Reset Stored Preferences</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <!-- VIEW 6: HOME (#/home)                                             -->
+        <!-- ================================================================ -->
+        <section class="view-panel hidden" id="view-home" role="tabpanel" aria-labelledby="top-nav-home">
+          <!-- Render-Inspired Technical Split Hero Section -->
+          <div class="card home-hero-card">
+            <div class="hero-split-container">
+              <!-- Left: Lightweight Oversized Typography & CTAs -->
+              <div class="hero-content-left">
+                <span class="hero-eyebrow">
+                  <span class="hero-eyebrow-dot" aria-hidden="true"></span>
+                  THREAT_RADAR v2.0 • Active Threat Intelligence
+                </span>
+                <h1 class="hero-headline">
+                  Your first line of defence against <span class="text-maroon-accent">email threats</span>.
+                </h1>
+                <p class="hero-subtext">
+                  A multi-model cybersecurity threat-investigation workspace combining calibrated Linear SVM, Logistic Regression, Naive Bayes consensus, deep header forensics, and client-side privacy. Zero email text stored.
+                </p>
+                <div class="hero-actions">
+                  <a href="#/analyzer" class="btn btn-primary btn-maroon-cta" id="hero-scan-cta">
+                    Start Threat Scan →
+                  </a>
+                  <a href="#/model-card" class="btn btn-outline-render" id="hero-model-cta">
+                    Explore Forensics
+                  </a>
+                </div>
+
+                <div class="hero-pills-row">
+                  <div class="hero-pill">
+                    <span class="pill-icon" aria-hidden="true">🧠</span>
+                    <div>
+                      <span class="pill-title">Calibrated SVM</span>
+                      <span class="pill-sub">LinearSVC · Platt Scaling</span>
+                    </div>
+                  </div>
+                  <div class="hero-pill">
+                    <span class="pill-icon" aria-hidden="true">🛡️</span>
+                    <div>
+                      <span class="pill-title">Strict Forensics</span>
+                      <span class="pill-sub">SPF · DKIM · Hop Relays</span>
+                    </div>
+                  </div>
+                  <div class="hero-pill">
+                    <span class="pill-icon" aria-hidden="true">🔒</span>
+                    <div>
+                      <span class="pill-title">Client Privacy</span>
+                      <span class="pill-sub">Zero Server Retention</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: Technical Infrastructure & Architecture Diagram -->
+              <div class="hero-visual-right" aria-label="MailGuard AI Architecture Network">
+                <div class="infra-diagram-canvas">
+                  <!-- Central Core Hub -->
+                  <div class="infra-hub-node">
+                    <div class="hub-pulse-ring" aria-hidden="true"></div>
+                    <div class="hub-icon-shield" aria-hidden="true">🛡️</div>
+                    <div class="hub-label-box">
+                      <span class="hub-title">MailGuard Core</span>
+                      <span class="hub-badge">Active Engine</span>
+                    </div>
+                  </div>
+
+                  <!-- Connector Lines SVG -->
+                  <svg class="infra-connectors-svg" viewBox="0 0 440 360" fill="none" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="infraLineGrad" x1="220" y1="180" x2="60" y2="40" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#C5284B" stop-opacity="0.8"/>
+                        <stop offset="1" stop-color="#292A30" stop-opacity="0.3"/>
+                      </linearGradient>
+                    </defs>
+                    <line x1="220" y1="180" x2="80" y2="40" stroke="url(#infraLineGrad)" stroke-width="1.5" stroke-dasharray="4 3"/>
+                    <line x1="220" y1="180" x2="360" y2="35" stroke="url(#infraLineGrad)" stroke-width="1.5" stroke-dasharray="4 3"/>
+                    <line x1="220" y1="180" x2="80" y2="320" stroke="url(#infraLineGrad)" stroke-width="1.5" stroke-dasharray="4 3"/>
+                    <line x1="220" y1="180" x2="360" y2="320" stroke="url(#infraLineGrad)" stroke-width="1.5" stroke-dasharray="4 3"/>
+                  </svg>
+
+                  <!-- Satellite Floating Nodes -->
+                  <div class="infra-node node-pos-1 floating-tile-1">
+                    <span class="node-icon" aria-hidden="true">🧠</span>
+                    <div class="node-info">
+                      <span class="node-title">Linear SVM</span>
+                      <span class="node-status text-accent">Platt Scaled</span>
+                    </div>
+                  </div>
+
+                  <div class="infra-node node-pos-2 floating-tile-2">
+                    <span class="node-icon" aria-hidden="true">🌐</span>
+                    <div class="node-info">
+                      <span class="node-title">URL Intelligence</span>
+                      <span class="node-status text-accent">Typosquatting</span>
+                    </div>
+                  </div>
+
+                  <div class="infra-node node-pos-3 floating-tile-3">
+                    <span class="node-icon" aria-hidden="true">🛡️</span>
+                    <div class="node-info">
+                      <span class="node-title">SPF / DKIM / DMARC</span>
+                      <span class="node-status">Hop Tracing</span>
+                    </div>
+                  </div>
+
+                  <div class="infra-node node-pos-4 floating-tile-4">
+                    <span class="node-icon" aria-hidden="true">🔒</span>
+                    <div class="node-info">
+                      <span class="node-title">SHA-256 Digest</span>
+                      <span class="node-status text-accent">Integrity Seal</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick-Analyze Sandbox Card -->
+          <div class="card home-quick-card" id="home-quick-card">
+            <div class="card-maroon-header">
+              <div class="card-header-icon" aria-hidden="true">⚡</div>
+              <div>
+                <h2 class="card-maroon-title">Quick Email Threat Scan</h2>
+                <p class="card-maroon-sub">Try synthetic attack samples or paste custom text for instant calibrated classification.</p>
+              </div>
+            </div>
+
+            <div class="card-body home-quick-body">
+              <!-- Try an Example Section -->
+              <div class="home-examples-section">
+                <div class="examples-header-row">
+                  <span class="examples-label"><span class="examples-icon" aria-hidden="true">🧪</span> Try an example:</span>
+                  <span class="examples-subtext">Safe synthetic samples (<code>example.test</code> domains)</span>
+                </div>
+                <div class="examples-chips-container" id="home-examples-chips" role="group" aria-label="Synthetic email examples">
+                  <!-- Populated dynamically from /data/examples.json with fallback -->
+                </div>
+              </div>
+
+              <!-- Quick Scan Input Form -->
+              <form id="home-quick-form" class="home-quick-form" novalidate>
+                <div class="form-group">
+                  <label for="home-quick-subject" class="form-label">Subject Line <span class="text-muted">(Optional)</span></label>
+                  <input type="text" id="home-quick-subject" class="form-input" placeholder="e.g., Urgent: Account Security Verification" maxlength="500">
+                </div>
+
+                <div class="form-group">
+                  <div class="label-with-meta">
+                    <label for="home-quick-text" class="form-label">Email Content <span class="required-indicator">*</span></label>
+                    <span class="char-count" id="home-quick-char-count">0 / 10,000</span>
+                  </div>
+                  <textarea id="home-quick-text" class="form-textarea" rows="4" placeholder="Paste email text here or select an example above..." maxlength="10000" required></textarea>
+                </div>
+
+                <div class="home-form-actions">
+                  <div class="home-action-buttons">
+                    <button type="submit" class="btn btn-primary btn-crimson" id="home-quick-analyze-btn">
+                      <span class="btn-icon" aria-hidden="true">🛡️</span> Quick Analyze
+                    </button>
+                    <button type="button" class="btn btn-outline" id="home-quick-clear-btn">Clear</button>
+                  </div>
+                  <span class="shortcut-tip"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> to analyze</span>
+                </div>
+              </form>
+
+              <!-- Cold-start Slow Request Banner -->
+              <div class="alert alert-info hidden" id="home-waking-banner" role="status" aria-live="polite">
+                <div class="waking-banner-inner">
+                  <span class="spinner-small" aria-hidden="true"></span>
+                  <span class="waking-banner-text">Waking up the server, this can take up to a minute on the free host</span>
+                </div>
+                <button type="button" class="btn btn-outline btn-xs" id="home-waking-retry-btn">Retry Connection</button>
+              </div>
+
+              <!-- Quick Analysis Result Area -->
+              <div class="home-quick-result-area" id="home-quick-result-area">
+                <!-- Skeleton Loading State -->
+                <div class="home-quick-skeleton hidden" id="home-quick-skeleton" aria-hidden="true">
+                  <div class="skeleton-line skeleton-title"></div>
+                  <div class="skeleton-row">
+                    <div class="skeleton-box"></div>
+                    <div class="skeleton-box"></div>
+                  </div>
+                  <div class="skeleton-line"></div>
+                </div>
+
+                <!-- Initial Empty State -->
+                <div class="home-quick-empty" id="home-quick-empty">
+                  <div class="empty-icon" aria-hidden="true">💡</div>
+                  <h3 class="empty-title">Ready for Quick Threat Analysis</h3>
+                  <p class="empty-text">Select one of the synthetic example chips above or paste email text to inspect real ML predictions, risk scoring, and key findings.</p>
+                </div>
+
+                <!-- Populated Result Card -->
+                <div class="home-quick-result-card hidden" id="home-quick-result-card" role="region" aria-label="Quick analysis result">
+                  <div class="quick-result-header">
+                    <div class="quick-result-verdict-box">
+                      <span class="verdict-label">Classification Verdict</span>
+                      <div class="verdict-badge-row">
+                        <span class="badge badge-lg" id="home-result-badge">Safe</span>
+                        <span class="uncertainty-pill hidden" id="home-result-uncertain">⚠️ Needs Review</span>
+                      </div>
+                    </div>
+                    <div class="quick-result-score-box">
+                      <span class="score-label">Risk Score</span>
+                      <div class="score-display">
+                        <span class="score-number" id="home-result-score">0</span>
+                        <span class="score-max">/ 100</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="quick-score-bar-track">
+                    <div class="quick-score-bar-fill" id="home-result-bar"></div>
+                  </div>
+
+                  <div class="quick-metrics-row">
+                    <div class="quick-metric">
+                      <span class="metric-name">Spam Probability</span>
+                      <span class="metric-val" id="home-result-prob">0.0%</span>
+                    </div>
+                    <div class="quick-metric">
+                      <span class="metric-name">Confidence</span>
+                      <span class="metric-val" id="home-result-conf">0.0%</span>
+                    </div>
+                    <div class="quick-metric">
+                      <span class="metric-name">Device Telemetry</span>
+                      <span class="metric-val text-success">Saved to IndexedDB</span>
+                    </div>
+                  </div>
+
+                  <!-- Key Findings List -->
+                  <div class="quick-findings-section" id="home-result-findings-sec">
+                    <h4 class="quick-findings-title">Key Findings</h4>
+                    <ul class="quick-findings-list" id="home-result-findings-list" role="list">
+                      <!-- Populated dynamically via textContent -->
+                    </ul>
+                  </div>
+
+                  <!-- Token Highlights Preview -->
+                  <div class="quick-tokens-section" id="home-result-tokens-sec">
+                    <h4 class="quick-findings-title">Top Explaining Signals</h4>
+                    <div class="quick-tokens-chips" id="home-result-tokens-chips">
+                      <!-- Populated dynamically via textContent -->
+                    </div>
+                  </div>
+
+                  <!-- Actions -->
+                  <div class="quick-result-footer">
+                    <button type="button" class="btn btn-primary btn-sm btn-crimson" id="home-open-analyzer-btn">
+                      Open in Full Analyzer &amp; View Headers →
+                    </button>
+                    <span class="quick-storage-note">Scan saved to your device only. Zero email content stored on server.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <!-- VIEW 7: FEATURES (#/features)                                     -->
+        <!-- ================================================================ -->
+        <section class="view-panel hidden" id="view-features" role="tabpanel" aria-labelledby="top-nav-features">
+          <div class="card features-container-card">
+            <div class="card-maroon-header">
+              <div class="card-header-icon" aria-hidden="true">✨</div>
+              <div>
+                <h1 class="card-maroon-title">Platform Features &amp; Capabilities</h1>
+                <p class="card-maroon-sub">Active detection mechanisms, architecture components, and operational boundaries.</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <!-- Active Features Grid -->
+              <div class="features-grid">
+                <div class="feature-card">
+                  <span class="feature-icon" aria-hidden="true">🎯</span>
+                  <h2 class="feature-title">Calibrated Probabilities</h2>
+                  <p class="feature-desc">LinearSVC paired with Platt scaling (CalibratedClassifierCV) generates reliable, well-calibrated posterior probabilities rather than raw uncalibrated distances.</p>
+                </div>
+                <div class="feature-card">
+                  <span class="feature-icon" aria-hidden="true">🔎</span>
+                  <h2 class="feature-title">Explainable Token Cues</h2>
+                  <p class="feature-desc">In-text n-gram highlighting isolates spam-driving (▲) and legitimate-driving (▼) vocabulary with accessible, non-color-only directional indicators.</p>
+                </div>
+                <div class="feature-card">
+                  <span class="feature-icon" aria-hidden="true">✉️</span>
+                  <h2 class="feature-title">MIME Header Inspection</h2>
+                  <p class="feature-desc">Parses authentic .eml files via Python's standard email module, auditing SPF, DKIM, DMARC alignment, Received hop counts, and From vs. Reply-To mismatches.</p>
+                </div>
+                <div class="feature-card">
+                  <span class="feature-icon" aria-hidden="true">🔗</span>
+                  <h2 class="feature-title">Suspicious Link Heuristics</h2>
+                  <p class="feature-desc">Identifies IP-literal hosts, known URL shorteners, multiple redirect constructs, and credential phishing link patterns within email bodies.</p>
+                </div>
+                <div class="feature-card">
+                  <span class="feature-icon" aria-hidden="true">🖼️</span>
+                  <h2 class="feature-title">Client-Side Image OCR</h2>
+                  <p class="feature-desc">Zero-upload visual spam inspection powered by self-hosted Tesseract.js running WebAssembly in an isolated in-browser Web Worker.</p>
+                </div>
+                <div class="feature-card">
+                  <span class="feature-icon" aria-hidden="true">🔒</span>
+                  <h2 class="feature-title">Local-Only Analytics</h2>
+                  <p class="feature-desc">Scan telemetry resides strictly on the user's device in IndexedDB. Zero email text or telemetry is logged or persisted to backend servers.</p>
+                </div>
+              </div>
+
+              <!-- Scope & Boundaries: What this can and can't do -->
+              <div class="scope-comparison-card" id="scope-comparison-card">
+                <div class="scope-header">
+                  <span class="scope-header-icon" aria-hidden="true">⚖️</span>
+                  <div>
+                    <h2 class="scope-title">What MailGuard AI Can and Can't Do</h2>
+                    <p class="scope-subtext">Clear, honest operational boundaries ensuring transparency and realistic security expectations.</p>
+                  </div>
+                </div>
+
+                <div class="scope-comparison-grid">
+                  <!-- Column 1: What it CAN do -->
+                  <div class="scope-column scope-column-can">
+                    <div class="scope-col-header">
+                      <span class="scope-badge badge-can">✓ What It Can Do</span>
+                    </div>
+                    <ul class="scope-list" role="list">
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✓</span>
+                        <div>
+                          <strong>Calibrated Spam &amp; Phishing Classification:</strong> Accurately predicts whether email text is Safe, Suspicious, or Spam using trained TF-IDF distributions.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✓</span>
+                        <div>
+                          <strong>Explainable Feature Importance:</strong> Provides exact directional token weights showing which words increased or decreased the threat score.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✓</span>
+                        <div>
+                          <strong>Header Authentication Auditing:</strong> Checks SPF, DKIM, and DMARC alignment from raw uploaded .eml files.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✓</span>
+                        <div>
+                          <strong>Suspicious URL Flagging:</strong> Detects IP hosts, shorteners, and obfuscated destinations in email content.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✓</span>
+                        <div>
+                          <strong>100% In-Browser Vision OCR:</strong> Analyzes promotional screenshot text locally without sending image data over the network.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✓</span>
+                        <div>
+                          <strong>Private Device History:</strong> Stores scans in local IndexedDB with CSV/JSON exports and zero server-side logging.
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <!-- Column 2: What it CANNOT do -->
+                  <div class="scope-column scope-column-cannot">
+                    <div class="scope-col-header">
+                      <span class="scope-badge badge-cannot">✕ What It Cannot Do</span>
+                    </div>
+                    <ul class="scope-list" role="list">
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✕</span>
+                        <div>
+                          <strong>Spam detection only, not malware:</strong> Does not scan binary files, executable attachments, macros, or ZIP archives for malware, trojans, or ransomware payloads.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✕</span>
+                        <div>
+                          <strong>Not an automated mail filter:</strong> Does not integrate into mail exchange gateways (SMTP/IMAP/Exchange) or auto-quarantine incoming inbox mail. It is an on-demand analysis tool.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✕</span>
+                        <div>
+                          <strong>No user accounts or cloud storage:</strong> No user registration, remote database profiles, or cross-device cloud synchronization. All telemetry remains on your current device.
+                        </div>
+                      </li>
+                      <li class="scope-item">
+                        <span class="scope-bullet" aria-hidden="true">✕</span>
+                        <div>
+                          <strong>Not ground truth for zero-day phishing:</strong> ML predictions reflect learned corpus patterns. Unseen or heavily obfuscated attacks trigger the Suspicious uncertainty band and require human review.
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <!-- VIEW 8: MODEL CARD (#/model-card)                                 -->
+        <!-- ================================================================ -->
+        <section class="view-panel hidden" id="view-model-card" role="tabpanel" aria-labelledby="top-nav-model-card">
+          <div class="card model-card-container">
+            <div class="card-maroon-header">
+              <div class="card-header-icon" aria-hidden="true">📜</div>
+              <div>
+                <h1 class="card-maroon-title">Model Card & Technical Transparency</h1>
+                <p class="card-maroon-sub">Architecture specifications, dataset provenance, held-out evaluation, and failure modes.</p>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <!-- Plain Language Scope & Safety Disclaimer -->
+              <div class="disclaimer-banner alert-warning" role="note">
+                <span class="disclaimer-icon" aria-hidden="true">⚠️</span>
+                <div>
+                  <strong>Scope & Safety Disclaimer:</strong>
+                  <span>MailGuard AI is an NLP statistical classifier designed exclusively to identify unsolicited spam and email fraud patterns. It <strong>DOES NOT</strong> detect malicious software, executable zero-days, ransomware binaries, or operating system-level malware.</span>
+                </div>
+              </div>
+
+              <!-- Collapsible Architecture & Governance Section -->
+              <details id="model-details-accordion" class="details-accordion" open>
+                <summary class="accordion-summary">
+                  <span class="summary-title">Architecture, Training & De-duplication Specifications</span>
+                  <span class="summary-hint">(Collapsible)</span>
+                </summary>
+
+                <div class="accordion-content">
+                  <div class="spec-grid">
+                    <div class="spec-item">
+                      <span class="spec-label">Model Architecture</span>
+                      <span class="spec-value" id="meta-model-type">LinearSVC + CalibratedClassifierCV (Platt Scaling, 5-Fold)</span>
+                    </div>
+                    <div class="spec-item">
+                      <span class="spec-label">Feature Extraction</span>
+                      <span class="spec-value" id="meta-vectorizer">TF-IDF (15,000 features, 1-2 n-grams, sublinear TF)</span>
+                    </div>
+                    <div class="spec-item">
+                      <span class="spec-label">Dataset Provenance</span>
+                      <span class="spec-value" id="meta-dataset-name">Enron Spam Dataset (MWiechmann / enron_spam_data)</span>
+                    </div>
+                    <div class="spec-item">
+                      <span class="spec-label">Licenses</span>
+                      <span class="spec-value" id="meta-licenses">Code: MIT | Data: GNU GPL v3.0</span>
+                    </div>
+                    <div class="spec-item">
+                      <span class="spec-label">Raw Total Samples</span>
+                      <span class="spec-value" id="meta-raw-samples">33,665</span>
+                    </div>
+                    <div class="spec-item">
+                      <span class="spec-label">Deduplication Dropped</span>
+                      <span class="spec-value" id="meta-dedup-dropped">3,203 exact duplicates removed</span>
+                    </div>
+                    <div class="spec-item">
+                      <span class="spec-label">Cleaned Dataset Total</span>
+                      <span class="spec-value" id="meta-cleaned-samples">30,462 unique samples</span>
+                    </div>
+                    <div class="spec-item">
+                      <span class="spec-label">Train / Test Split</span>
+                      <span class="spec-value" id="meta-dataset-split">24,369 Train (80%) / 6,093 Test (20%) [Stratified, seed=42]</span>
+                    </div>
+                    <div class="spec-item">
+                      <span class="spec-label">Overall Class Balance</span>
+                      <span class="spec-value" id="meta-class-balance">15,910 Ham (52.2%) / 14,552 Spam (47.8%)</span>
+                    </div>
+                    <div class="spec-item">
+                      <span class="spec-label">Test Set Balance</span>
+                      <span class="spec-value" id="meta-test-balance">3,182 Ham (52.2%) / 2,911 Spam (47.8%)</span>
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- Holdout Test Performance with Bootstrap 95% Confidence Intervals -->
+              <div class="model-metrics-section">
+                <h2 class="metrics-table-title">Holdout Test Set Performance &amp; 95% Bootstrap Confidence Intervals</h2>
+                <p class="settings-help">Side-by-side comparison of the full held-out test set (6,093 emails) and the de-duplicated test set (4,885 emails, near-duplicates &ge; 0.95 removed). All metrics computed with 1,000 bootstrap resamples (seed 42).</p>
+
+                <div class="table-responsive">
+                  <table class="metrics-table" aria-label="Holdout Test Performance and Confidence Intervals Comparison">
+                    <thead>
+                      <tr>
+                        <th scope="col">Evaluation Metric</th>
+                        <th scope="col">Full Test Set (N=6,093) [95% CI]</th>
+                        <th scope="col">De-duplicated Test Set (N=4,885) [95% CI]</th>
+                        <th scope="col">Operational Meaning &amp; Context</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Accuracy</strong></td>
+                        <td><span id="meta-acc">99.00%</span> <code>[98.74%, 99.23%]</code></td>
+                        <td><span>98.75%</span> <code>[98.44%, 99.00%]</code></td>
+                        <td>Overall proportion of correct classifications across holdout emails.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Precision (Spam)</strong></td>
+                        <td><span id="meta-prec">98.83%</span> <code>[98.41%, 99.20%]</code></td>
+                        <td><span>98.52%</span> <code>[97.99%, 98.96%]</code></td>
+                        <td>Reliability of positive spam flags; prevents business-critical legitimate emails from being lost.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Recall (Spam)</strong></td>
+                        <td><span id="meta-rec">99.07%</span> <code>[98.72%, 99.42%]</code></td>
+                        <td><span>98.82%</span> <code>[98.38%, 99.23%]</code></td>
+                        <td>Threat coverage; catches 98.8%+ of unsolicited spam and fraudulent lures.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>F1-Score (Spam)</strong></td>
+                        <td><span id="meta-f1">98.95%</span> <code>[98.68%, 99.20%]</code></td>
+                        <td><span>98.67%</span> <code>[98.33%, 98.95%]</code></td>
+                        <td>Harmonic mean between precision and recall; balanced accuracy.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>PR-AUC</strong></td>
+                        <td><span id="meta-pr-auc">0.9991</span> (Baseline: 47.78%)</td>
+                        <td><span>0.9986</span> (Baseline: 46.73%)</td>
+                        <td>Area under Precision-Recall curve across all decision thresholds.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>False Positives (Ham &rarr; Spam)</strong></td>
+                        <td><span id="meta-fp">34 / 3,182</span> (1.07% False Alarm Rate)</td>
+                        <td><span>34 / 2,602</span> (1.31% False Alarm Rate)</td>
+                        <td>Innocent emails mistakenly classified as spam (all 34 are in unique clean set).</td>
+                      </tr>
+                      <tr>
+                        <td><strong>False Negatives (Spam &rarr; Ham)</strong></td>
+                        <td><span id="meta-fn">27 / 2,911</span> (0.93% Miss Rate)</td>
+                        <td><span>27 / 2,283</span> (1.18% Miss Rate)</td>
+                        <td>Spam emails that slipped past the classifier (all 27 are in unique clean set).</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Decision Boundary Sensitivity Performance Table -->
+              <div class="model-metrics-section">
+                <h2 class="metrics-table-title">Performance by Decision Sensitivity Profile</h2>
+                <p class="settings-help">Empirical precision, recall, and false alarm trade-offs across user sensitivity levels on both holdout sets.</p>
+
+                <div class="table-responsive">
+                  <table class="metrics-table" aria-label="Performance by Decision Sensitivity Profile">
+                    <thead>
+                      <tr>
+                        <th scope="col">Sensitivity Profile</th>
+                        <th scope="col">Decision Cutoff</th>
+                        <th scope="col">Full Set (Prec / Rec / F1)</th>
+                        <th scope="col">De-duplicated Set (Prec / Rec / F1)</th>
+                        <th scope="col">False Positives</th>
+                        <th scope="col">False Negatives</th>
+                        <th scope="col">Operational Trade-off</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Low (Conservative)</strong></td>
+                        <td><code>P &ge; 0.70</code></td>
+                        <td>99.03% / 98.32% (F1: 98.67%)</td>
+                        <td>98.76% / 97.85% (F1: 98.31%)</td>
+                        <td>28 (-6 false alarms)</td>
+                        <td>49 (+22 misses)</td>
+                        <td>Minimizes false alarms; ideal for executive or legal communication channels.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Medium (Balanced Standard)</strong></td>
+                        <td><code>P &ge; 0.50</code></td>
+                        <td>98.83% / 99.07% (F1: 98.95%)</td>
+                        <td>98.52% / 98.82% (F1: 98.67%)</td>
+                        <td>34 (baseline)</td>
+                        <td>27 (baseline)</td>
+                        <td>Standard calibrated 50% probability boundary; optimal harmonic F1 balance.</td>
+                      </tr>
+                      <tr>
+                        <td><strong>High (Aggressive Catch)</strong></td>
+                        <td><code>P &ge; 0.45</code></td>
+                        <td>98.70% / 99.18% (F1: 98.94%)</td>
+                        <td>98.35% / 98.95% (F1: 98.65%)</td>
+                        <td>38 (+4 false alarms)</td>
+                        <td>24 (-3 misses)</td>
+                        <td>Captures subtle borderline spam at the expense of a modest increase in review flags.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Real Misclassified Case Studies (Names & Emails Redacted) -->
+              <div class="model-metrics-section">
+                <h2 class="metrics-table-title">Misclassified Case Studies (Held-Out Error Analysis)</h2>
+                <p class="settings-help">Authentic test set false positives and false negatives, with names, emails, and identifiers redacted, detailing root causes.</p>
+
+                <div class="table-responsive">
+                  <table class="metrics-table" aria-label="Misclassified Examples and Root Cause Analysis">
+                    <thead>
+                      <tr>
+                        <th scope="col">Case ID</th>
+                        <th scope="col">Error Type</th>
+                        <th scope="col">True / Pred</th>
+                        <th scope="col">Spam Prob</th>
+                        <th scope="col">Redacted Email Content Snippet</th>
+                        <th scope="col">Root Cause Analysis</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><code>FP-01</code></td>
+                        <td><span class="badge badge-warn">False Positive</span></td>
+                        <td>Ham &rarr; Spam</td>
+                        <td>63.49%</td>
+                        <td><code>Subject: one more . . . http : / / www . cfo . com / article ? article = [ID] ... i ' ll stop now . [Name] [domain] [email@domain.com] [Phone redacted]</code></td>
+                        <td>Terse legitimate note sharing an external news link with personal contact tokens resembles affiliate lead-generation spam templates.</td>
+                      </tr>
+                      <tr>
+                        <td><code>FP-02</code></td>
+                        <td><span class="badge badge-warn">False Positive</span></td>
+                        <td>Ham &rarr; Spam</td>
+                        <td>79.68%</td>
+                        <td><code>Subject: look here ... look what i found at [job search portal] . i thought this might help you with your job searching . comments : know anyone looking for this ?</code></td>
+                        <td>Forwarded job portal alert phrasing (&ldquo;look here&rdquo;, &ldquo;job searching&rdquo;) strongly overlaps bulk recruitment marketing patterns.</td>
+                      </tr>
+                      <tr>
+                        <td><code>FN-01</code></td>
+                        <td><span class="badge badge-fail">False Negative</span></td>
+                        <td>Spam &rarr; Ham</td>
+                        <td>38.40%</td>
+                        <td><code>Subject: participate now &amp; receive a las vegas vacation for 2 ... participate in our brief survey to claim hotel accommodations ...</code></td>
+                        <td>Contest vacation lure with sparse formatting landed in the borderline review zone (P=0.3840) rather than exceeding the 0.50 cutoff.</td>
+                      </tr>
+                      <tr>
+                        <td><code>FN-02</code></td>
+                        <td><span class="badge badge-fail">False Negative</span></td>
+                        <td>Spam &rarr; Ham</td>
+                        <td>0.83%</td>
+                        <td><code>Subject: nymex invitation - learn power trading ... power trading fundamentals : sept 15 - 16 nymex in nyc ... early bird discount now in effect ! delegates will learn : electricity markets overview ...</code></td>
+                        <td>Commercial seminar spam whose vocabulary (&ldquo;power trading&rdquo;, &ldquo;nymex&rdquo;, &ldquo;electricity markets&rdquo;) heavily mirrors authentic Enron corporate discourse.</td>
+                      </tr>
+                      <tr>
+                        <td><code>FN-03</code></td>
+                        <td><span class="badge badge-fail">False Negative</span></td>
+                        <td>Spam &rarr; Ham</td>
+                        <td>42.36%</td>
+                        <td><code>Subject: newsletter service ... hi , did you have any e mail newsletter service ? ifthere is , please send me its adress . . thank you . . kind regards [Name]</code></td>
+                        <td>Spam solicitation framed with polite conversational cues (&ldquo;hi&rdquo;, &ldquo;please&rdquo;, &ldquo;kind regards&rdquo;) counterbalancing spam weights into the uncertain band.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Visual Charts Grid (Inline SVGs computed from real test set) -->
+              <div class="model-charts-section">
+                <h2 class="metrics-table-title">Visual Model Diagnostics (Held-Out Test Set)</h2>
+                <div class="model-card-chart-grid">
+                  <!-- Chart 1: Confusion Matrix -->
+                  <div class="model-card-chart-card">
+                    <div class="chart-card-header">
+                      <h3 class="chart-card-title">Confusion Matrix</h3>
+                      <p class="chart-card-sub">Counts &amp; rates on 6,093 held-out test samples</p>
+                    </div>
+                    <div class="chart-svg-container" id="svg-container-cm">
+                      <svg class="model-card-chart-svg" viewBox="0 0 420 300" width="100%" role="img" aria-label="Holdout Test Set Confusion Matrix">
+                        <text x="250" y="22" class="cm-title">Predicted Verdict</text>
+                        <text x="180" y="44" class="cm-axis">Pred Safe (Ham)</text>
+                        <text x="320" y="44" class="cm-axis">Pred Spam</text>
+                        <text x="-165" y="24" transform="rotate(-90)" class="cm-title">Actual Class (Ground Truth)</text>
+                        <text x="75" y="115" class="cm-axis">True Safe</text>
+                        <text x="75" y="130" class="cm-axis cm-sub-count">(3,182)</text>
+                        <text x="75" y="205" class="cm-axis">True Spam</text>
+                        <text x="75" y="220" class="cm-axis cm-sub-count">(2,911)</text>
+                        <g transform="translate(115, 60)">
+                          <rect width="130" height="90" class="cm-cell-bg" fill="#15803d" fill-opacity="0.22" stroke="#15803d" stroke-width="1.5" rx="6" ry="6"/>
+                          <text x="65" y="42" class="cm-val" fill="#15803d">3,148</text>
+                          <text x="65" y="62" class="cm-sub" fill="#15803d">True Negative (98.9%)</text>
+                          <text x="65" y="78" class="cm-desc">Correct Ham</text>
+                        </g>
+                        <g transform="translate(255, 60)">
+                          <rect width="130" height="90" class="cm-cell-bg" fill="#b45309" fill-opacity="0.18" stroke="#b45309" stroke-width="1.5" rx="6" ry="6"/>
+                          <text x="65" y="42" class="cm-val" fill="#b45309">34</text>
+                          <text x="65" y="62" class="cm-sub" fill="#b45309">False Positive (1.1%)</text>
+                          <text x="65" y="78" class="cm-desc">Ham flagged as Spam</text>
+                        </g>
+                        <g transform="translate(115, 160)">
+                          <rect width="130" height="90" class="cm-cell-bg" fill="#b91c1c" fill-opacity="0.18" stroke="#b91c1c" stroke-width="1.5" rx="6" ry="6"/>
+                          <text x="65" y="42" class="cm-val" fill="#b91c1c">27</text>
+                          <text x="65" y="62" class="cm-sub" fill="#b91c1c">False Negative (0.9%)</text>
+                          <text x="65" y="78" class="cm-desc">Spam missed as Ham</text>
+                        </g>
+                        <g transform="translate(255, 160)">
+                          <rect width="130" height="90" class="cm-cell-bg" fill="#8b1e3f" fill-opacity="0.22" stroke="#8b1e3f" stroke-width="1.5" rx="6" ry="6"/>
+                          <text x="65" y="42" class="cm-val" fill="#8b1e3f">2,884</text>
+                          <text x="65" y="62" class="cm-sub" fill="#8b1e3f">True Positive (99.1%)</text>
+                          <text x="65" y="78" class="cm-desc">Spam detected</text>
+                        </g>
+                        <text x="210" y="280" class="cm-note">
+                          Total Held-Out Test Samples: 6,093 | Accuracy: 99.00%
+                        </text>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Chart 2: PR Curve -->
+                  <div class="model-card-chart-card">
+                    <div class="chart-card-header">
+                      <h3 class="chart-card-title">Precision-Recall Curve</h3>
+                      <p class="chart-card-sub">PR-AUC: 0.9991 vs Random Baseline 47.8%</p>
+                    </div>
+                    <div class="chart-svg-container" id="svg-container-pr">
+                      <svg class="model-card-chart-svg" viewBox="0 0 420 280" width="100%" role="img" aria-label="Precision-Recall Curve">
+                        <line x1="55" y1="30" x2="385" y2="30" class="pr-grid"/>
+                        <text x="47" y="34" class="pr-axis" text-anchor="end">1.0</text>
+                        <line x1="55" y1="76.25" x2="385" y2="76.25" class="pr-grid"/>
+                        <text x="47" y="80.25" class="pr-axis" text-anchor="end">0.75</text>
+                        <line x1="55" y1="122.5" x2="385" y2="122.5" class="pr-grid"/>
+                        <text x="47" y="126.5" class="pr-axis" text-anchor="end">0.50</text>
+                        <line x1="55" y1="168.75" x2="385" y2="168.75" class="pr-grid"/>
+                        <text x="47" y="172.75" class="pr-axis" text-anchor="end">0.25</text>
+                        <line x1="55" y1="215" x2="385" y2="215" class="pr-grid"/>
+                        <text x="47" y="219" class="pr-axis" text-anchor="end">0.0</text>
+                        <line x1="55" y1="30" x2="55" y2="215" class="pr-grid"/>
+                        <text x="55" y="231" class="pr-axis" text-anchor="middle">0.0</text>
+                        <line x1="137.5" y1="30" x2="137.5" y2="215" class="pr-grid"/>
+                        <text x="137.5" y="231" class="pr-axis" text-anchor="middle">0.25</text>
+                        <line x1="220.0" y1="30" x2="220.0" y2="215" class="pr-grid"/>
+                        <text x="220.0" y="231" class="pr-axis" text-anchor="middle">0.50</text>
+                        <line x1="302.5" y1="30" x2="302.5" y2="215" class="pr-grid"/>
+                        <text x="302.5" y="231" class="pr-axis" text-anchor="middle">0.75</text>
+                        <line x1="385" y1="30" x2="385" y2="215" class="pr-grid"/>
+                        <text x="385" y="231" class="pr-axis" text-anchor="middle">1.0</text>
+                        <line x1="55" y1="126.6" x2="385" y2="126.6" class="pr-baseline"/>
+                        <path d="M 385.0 126.6 L 385.0 124.8 L 385.0 122.9 L 385.0 121.0 L 385.0 119.0 L 385.0 116.9 L 385.0 114.7 L 385.0 112.4 L 385.0 109.9 L 385.0 107.4 L 385.0 104.7 L 385.0 101.9 L 385.0 99.0 L 385.0 95.9 L 385.0 92.7 L 385.0 89.1 L 385.0 85.4 L 385.0 81.0 L 385.0 76.5 L 385.0 71.8 L 385.0 61.7 L 385.0 56.2 L 384.8 50.5 L 384.7 44.3 L 384.5 37.5 L 381.3 32.0 L 369.9 30.8 L 356.9 30.3 L 343.4 30.3 L 330.1 30.2 L 316.6 30.1 L 303.0 30.1 L 289.2 30.1 L 275.6 30.1 L 261.8 30.1 L 248.2 30.0 L 234.3 30.0 L 220.7 30.0 L 207.0 30.0 L 193.1 30.0 L 179.4 30.0 L 165.9 30.0 L 152.2 30.0 L 138.3 30.0 L 124.4 30.0 L 110.8 30.0 L 97.2 30.0 L 82.3 30.0 L 68.6 30.0 L 55.0 30.0" class="pr-line"/>
+                        <path d="M 385.0 126.6 L 385.0 124.8 L 385.0 122.9 L 385.0 121.0 L 385.0 119.0 L 385.0 116.9 L 385.0 114.7 L 385.0 112.4 L 385.0 109.9 L 385.0 107.4 L 385.0 104.7 L 385.0 101.9 L 385.0 99.0 L 385.0 95.9 L 385.0 92.7 L 385.0 89.1 L 385.0 85.4 L 385.0 81.0 L 385.0 76.5 L 385.0 71.8 L 385.0 61.7 L 385.0 56.2 L 384.8 50.5 L 384.7 44.3 L 384.5 37.5 L 381.3 32.0 L 369.9 30.8 L 356.9 30.3 L 343.4 30.3 L 330.1 30.2 L 316.6 30.1 L 303.0 30.1 L 289.2 30.1 L 275.6 30.1 L 261.8 30.1 L 248.2 30.0 L 234.3 30.0 L 220.7 30.0 L 207.0 30.0 L 193.1 30.0 L 179.4 30.0 L 165.9 30.0 L 152.2 30.0 L 138.3 30.0 L 124.4 30.0 L 110.8 30.0 L 97.2 30.0 L 82.3 30.0 L 68.6 30.0 L 55.0 30.0 L 385 215 L 55 215 Z" class="pr-area"/>
+                        <text x="220.0" y="249" class="pr-title" text-anchor="middle">Recall (Sensitivity)</text>
+                        <text x="-122.5" y="16" transform="rotate(-90)" class="pr-title" text-anchor="middle">Precision (Positive Predictive Value)</text>
+                        <g transform="translate(70, 160)">
+                          <rect width="155" height="42" class="pr-badge-box" rx="4" ry="4"/>
+                          <text x="10" y="18" class="pr-badge-title">PR-AUC: 0.9991</text>
+                          <text x="10" y="32" class="pr-badge-sub">Baseline (Spam prev): 47.8%</text>
+                        </g>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Chart 3: Calibration Diagram -->
+                  <div class="model-card-chart-card">
+                    <div class="chart-card-header">
+                      <h3 class="chart-card-title">Reliability Diagram</h3>
+                      <p class="chart-card-sub">Platt Calibration (10 bins) vs Ideal y = x</p>
+                    </div>
+                    <div class="chart-svg-container" id="svg-container-cal">
+                      <svg class="model-card-chart-svg" viewBox="0 0 420 280" width="100%" role="img" aria-label="Platt Calibration Reliability Diagram">
+                        <line x1="55" y1="30" x2="385" y2="30" class="cal-grid"/>
+                        <text x="47" y="34" class="cal-axis" text-anchor="end">1.0</text>
+                        <line x1="55" y1="76.25" x2="385" y2="76.25" class="cal-grid"/>
+                        <text x="47" y="80.25" class="cal-axis" text-anchor="end">0.75</text>
+                        <line x1="55" y1="122.5" x2="385" y2="122.5" class="cal-grid"/>
+                        <text x="47" y="126.5" class="cal-axis" text-anchor="end">0.50</text>
+                        <line x1="55" y1="168.75" x2="385" y2="168.75" class="cal-grid"/>
+                        <text x="47" y="172.75" class="cal-axis" text-anchor="end">0.25</text>
+                        <line x1="55" y1="215" x2="385" y2="215" class="cal-grid"/>
+                        <text x="47" y="219" class="cal-axis" text-anchor="end">0.0</text>
+                        <line x1="55" y1="30" x2="55" y2="215" class="cal-grid"/>
+                        <text x="55" y="231" class="cal-axis" text-anchor="middle">0.0</text>
+                        <line x1="137.5" y1="30" x2="137.5" y2="215" class="cal-grid"/>
+                        <text x="137.5" y="231" class="cal-axis" text-anchor="middle">0.25</text>
+                        <line x1="220.0" y1="30" x2="220.0" y2="215" class="cal-grid"/>
+                        <text x="220.0" y="231" class="cal-axis" text-anchor="middle">0.50</text>
+                        <line x1="302.5" y1="30" x2="302.5" y2="215" class="cal-grid"/>
+                        <text x="302.5" y="231" class="cal-axis" text-anchor="middle">0.75</text>
+                        <line x1="385" y1="30" x2="385" y2="215" class="cal-grid"/>
+                        <text x="385" y="231" class="cal-axis" text-anchor="middle">1.0</text>
+                        <line x1="55" y1="215" x2="385" y2="30" class="cal-ideal"/>
+                        <path d="M 56.0 214.6 L 101.0 191.9 L 137.8 182.3 L 173.2 143.8 L 205.1 116.3 L 241.3 82.9 L 268.5 56.4 L 306.6 74.7 L 339.0 51.0 L 383.3 31.1" class="cal-line"/>
+                        <circle cx="56.0" cy="214.6" r="4" class="cal-dot"/>
+                        <circle cx="101.0" cy="191.9" r="4" class="cal-dot"/>
+                        <circle cx="137.8" cy="182.3" r="4" class="cal-dot"/>
+                        <circle cx="173.2" cy="143.8" r="4" class="cal-dot"/>
+                        <circle cx="205.1" cy="116.3" r="4" class="cal-dot"/>
+                        <circle cx="241.3" cy="82.9" r="4" class="cal-dot"/>
+                        <circle cx="268.5" cy="56.4" r="4" class="cal-dot"/>
+                        <circle cx="306.6" cy="74.7" r="4" class="cal-dot"/>
+                        <circle cx="339.0" cy="51.0" r="4" class="cal-dot"/>
+                        <circle cx="383.3" cy="31.1" r="4" class="cal-dot"/>
+                        <text x="220.0" y="249" class="cal-title" text-anchor="middle">Mean Predicted Spam Probability</text>
+                        <text x="-122.5" y="16" transform="rotate(-90)" class="cal-title" text-anchor="middle">Observed Fraction of Spam (Positives)</text>
+                        <g transform="translate(70, 42)">
+                          <rect width="165" height="38" class="cal-badge" rx="4" ry="4"/>
+                          <text x="8" y="16" class="cal-badge-title">Calibrated Linear SVM</text>
+                          <text x="8" y="29" class="cal-badge-sub">--- Ideal Calibration (y = x)</text>
+                        </g>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Known Limitations and Failure Modes -->
+              <div class="model-limitations-section">
+                <h2 class="metrics-table-title">Known Limitations &amp; Operational Failure Modes</h2>
+                <ul class="limitations-list" id="meta-limitations-list">
+                  <li><strong>Historical lexical bias:</strong> The Enron corpus reflects early-2000s corporate language and transactions; modern zero-day phrasing, cryptocurrency scams, or synthetic AI-generated lures may exhibit lower vocabulary coverage.</li>
+                  <li><strong>English-oriented preprocessing:</strong> NFKD normalization intentionally decomposes and strips diacritic marks. Non-Latin scripts (e.g. Cyrillic, CJK, Arabic) provide sparse n-gram matches and automatically trigger the uncertainty band for human review.</li>
+                  <li><strong>Short message ambiguity:</strong> Ultra-short messages (&lt;10 words) lack sufficient statistical context to differentiate casual notes from terse lures, prompting a &ldquo;Needs Review&rdquo; classification.</li>
+                  <li><strong>Adversarial obfuscation:</strong> Deliberate spaced typos (e.g. &lsquo;c a s h&rsquo;), zero-width unicode insertions, or base64 evasion in raw HTML bypass standard TF-IDF n-grams unless pre-sanitized by the heuristic signal parser.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <!-- VIEW 9: DOCS (#/docs)                                             -->
+        <!-- ================================================================ -->
+        <section class="view-panel hidden" id="view-docs" role="tabpanel" aria-labelledby="top-nav-docs">
+          <div class="card docs-container">
+            <div class="card-maroon-header">
+              <div class="card-header-icon" aria-hidden="true">📖</div>
+              <div>
+                <h1 class="card-maroon-title">API Documentation &amp; Reference</h1>
+                <p class="card-maroon-sub">Complete REST endpoints, JSON payload schemas, error structures, and rate limit rules.</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="docs-section">
+                <!-- Sane Rate Limit Notice -->
+                <div class="api-rate-limit-banner">
+                  <span class="api-rate-icon" aria-hidden="true">⚡</span>
+                  <div class="api-rate-info">
+                    <strong>Rate Limiting (Flask-Limiter):</strong>
+                    <span>All client requests are subject to sane sliding-window rate limits: <strong>60 requests / minute</strong> on <code>/api/analyze</code> and <code>/api/predict</code>; <strong>120 requests / minute</strong> on <code>/api/model-info</code>; <code>/api/health</code> is exempt. Limits are tracked in-memory per server process and reset on instance restart. Exceeding limits returns a standard HTTP 429 JSON response.</span>
+                  </div>
+                </div>
+
+                <!-- Endpoint 1: /api/analyze -->
+                <div class="docs-endpoint-block">
+                  <h2 class="docs-heading"><span class="badge badge-accent">POST</span> /api/analyze</h2>
+                  <p class="docs-text">Executes full multi-modal security analysis combining calibrated NLP inference, URL inspection, and MIME header parsing.</p>
+                  
+                  <h3 class="docs-subheading">Request Schema (JSON)</h3>
+                  <div class="code-block" tabindex="0">
+                    <code>{
+  "text": "Subject: Urgent Action Required\n\nPlease log in to http://192.168.1.1/reset to update your password.",
+  "eml": "Received: from mail.attacker.com ... (optional raw MIME RFC-822)",
+  "options": {
+    "scan_urls": true,
+    "analyze_headers": true,
+    "sensitivity": "medium"
+  }
+}</code>
+                  </div>
+
+                  <h3 class="docs-subheading">Response Schema (200 OK)</h3>
+                  <div class="code-block" tabindex="0">
+                    <code>{
+  "model": {
+    "label": "spam",
+    "probability": 0.892,
+    "confidence": 0.892,
+    "uncertain": false
+  },
+  "risk_score": 88.5,
+  "classification": "Spam",
+  "indicators": [
+    {
+      "type": "ip_in_url",
+      "severity": "critical",
+      "detail": "IP address used as hostname in link http://192.168.1.1/reset"
+    }
+  ],
+  "key_findings": [
+    "High-confidence statistical spam vocabulary detected.",
+    "Critical risk: URL links to a direct numeric IP address."
+  ],
+  "top_tokens": [
+    {"token": "password", "weight": 0.38, "direction": "spam", "is_stopword": false}
+  ],
+  "vocab_coverage": 85.5,
+  "urls": [{"url": "http://192.168.1.1/reset", "flags": ["ip_address_host"]}],
+  "headers": null
+}</code>
+                  </div>
+                </div>
+
+                <!-- Endpoint 2: /api/predict -->
+                <div class="docs-endpoint-block">
+                  <h2 class="docs-heading"><span class="badge badge-accent">POST</span> /api/predict</h2>
+                  <p class="docs-text">Fast NLP classification returning probability, confidence, uncertainty flag, and token contributions.</p>
+                  
+                  <h3 class="docs-subheading">Request Schema</h3>
+                  <div class="code-block" tabindex="0">
+                    <code>{
+  "subject": "Team Meeting Notes",
+  "body": "Here are the action items from today's discussion.",
+  "filter_stopwords": true
+}</code>
+                  </div>
+
+                  <h3 class="docs-subheading">Response Schema (200 OK)</h3>
+                  <div class="code-block" tabindex="0">
+                    <code>{
+  "prediction": "ham",
+  "label_display": "Legitimate",
+  "spam_probability": 0.021,
+  "confidence": 0.979,
+  "uncertain": false,
+  "top_tokens": [
+    {"token": "meeting", "weight": -0.25, "direction": "ham", "is_stopword": false}
+  ]
+}</code>
+                  </div>
+                </div>
+
+                <!-- Endpoint 3: /api/model-info -->
+                <div class="docs-endpoint-block">
+                  <h2 class="docs-heading"><span class="badge badge-accent">GET</span> /api/model-info</h2>
+                  <p class="docs-text">Returns transparent model metadata, dataset splits, licenses, threshold boundaries, and operational limitations.</p>
+                </div>
+
+                <!-- Endpoint 4: /api/health -->
+                <div class="docs-endpoint-block">
+                  <h2 class="docs-heading"><span class="badge badge-accent">GET</span> /api/health</h2>
+                  <p class="docs-text">Readiness and liveness probe returning service status (<code>healthy</code> or <code>degraded</code>) and model version.</p>
+                </div>
+
+                <!-- Unified Error Schemas -->
+                <div class="docs-endpoint-block">
+                  <h2 class="docs-heading">Unified Error Responses</h2>
+                  <p class="docs-text">All error codes (400, 404, 413, 415, 429, 500) follow the strict standardized JSON shape:</p>
+                  <div class="code-block" tabindex="0">
+                    <code>{
+  "error": {
+    "code": "rate_limit_exceeded",
+    "message": "Too many requests. Sane rate limit is 60 requests per minute."
+  }
+}</code>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <!-- VIEW 10: PRIVACY & ARCHITECTURE (#/privacy, #/about)              -->
+        <!-- ================================================================ -->
+        <section class="view-panel hidden" id="view-privacy" role="tabpanel" aria-labelledby="top-nav-privacy">
+          <div class="card privacy-container-card">
+            <div class="card-maroon-header">
+              <div class="card-header-icon" aria-hidden="true">🔒</div>
+              <div>
+                <h1 class="card-maroon-title">Privacy &amp; Security Architecture</h1>
+                <p class="card-maroon-sub">Zero server-side persistence, local-only client storage, and auditable security guarantees.</p>
+              </div>
+            </div>
+
+            <div class="card-body privacy-body">
+              <!-- Grid of Policy Pillars -->
+              <div class="privacy-grid">
+                <!-- Pillar 1: In-Memory Processing -->
+                <div class="privacy-card">
+                  <div class="privacy-card-header">
+                    <span class="privacy-icon" aria-hidden="true">⚡</span>
+                    <h2 class="privacy-title">What is Processed</h2>
+                  </div>
+                  <p class="privacy-desc">
+                    When you submit text or email headers to <code>POST /api/analyze</code>, the payload is processed strictly in-memory during HTTP request execution.
+                  </p>
+                  <ul class="privacy-checklist" role="list">
+                    <li>Held in volatile RAM only to compute TF-IDF feature vectors and heuristic threat rules.</li>
+                    <li>Memory buffers are cleared immediately once the JSON response is delivered.</li>
+                    <li>Zero server background logging or disk caching of raw email bodies or headers.</li>
+                  </ul>
+                </div>
+
+                <!-- Pillar 2: Local-Only Storage -->
+                <div class="privacy-card">
+                  <div class="privacy-card-header">
+                    <span class="privacy-icon" aria-hidden="true">💾</span>
+                    <h2 class="privacy-title">What is Stored (Local Only)</h2>
+                  </div>
+                  <p class="privacy-desc">
+                    Scan telemetry and configuration exist exclusively within your browser's local sandbox.
+                  </p>
+                  <ul class="privacy-checklist" role="list">
+                    <li><strong>IndexedDB (mailguard_db):</strong> Scan timestamps, truncated subject snippets (&le;60 chars), risk scores, and verdicts.</li>
+                    <li><strong>localStorage:</strong> Sensitivity levels, URL scan options, header scan options, and visual theme.</li>
+                    <li><strong>User Control:</strong> Clear all history or export to CSV/JSON at any time. History never leaves this device.</li>
+                  </ul>
+                </div>
+
+                <!-- Pillar 3: Never Stored -->
+                <div class="privacy-card">
+                  <div class="privacy-card-header">
+                    <span class="privacy-icon" aria-hidden="true">🚫</span>
+                    <h2 class="privacy-title">What is Never Stored</h2>
+                  </div>
+                  <p class="privacy-desc">
+                    MailGuard AI operates without server-side databases or third-party trackers.
+                  </p>
+                  <ul class="privacy-checklist" role="list">
+                    <li><strong>Zero Server Database:</strong> No email text or subject lines are written to disk or databases.</li>
+                    <li><strong>Zero Server Image Handling:</strong> Image OCR runs 100% in-browser via WebAssembly; images never leave your machine.</li>
+                    <li><strong>Zero Tracking:</strong> No tracking cookies, external analytics scripts, or user fingerprinting.</li>
+                  </ul>
+                </div>
+
+                <!-- Pillar 4: Architecture & Stack -->
+                <div class="privacy-card">
+                  <div class="privacy-card-header">
+                    <span class="privacy-icon" aria-hidden="true">🛠️</span>
+                    <h2 class="privacy-title">Technology Stack</h2>
+                  </div>
+                  <p class="privacy-desc">
+                    Minimal, self-contained architecture engineered for auditable security.
+                  </p>
+                  <ul class="privacy-checklist" role="list">
+                    <li><strong>ML Pipeline:</strong> scikit-learn (LinearSVC + Platt scaling via CalibratedClassifierCV, TF-IDF n-grams).</li>
+                    <li><strong>Backend API:</strong> Python 3.10+, Flask, Flask-Limiter, Werkzeug ProxyFix.</li>
+                    <li><strong>Client Runtime:</strong> Vanilla ES6+, CSS Tokens, IndexedDB, self-hosted Tesseract.js (WASM).</li>
+                    <li><strong>Content Security Policy:</strong> Strict CSP Level 3, zero CDNs, zero inline scripts or styles.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Open Source / Repo Section -->
+              <div class="privacy-repo-card">
+                <div class="repo-card-content">
+                  <div class="repo-card-icon" aria-hidden="true">📦</div>
+                  <div>
+                    <h3 class="repo-card-title">Auditable Open-Source Codebase</h3>
+                    <p class="repo-card-desc">Review our complete source code, reproducible training pipelines, and privacy safeguards.</p>
+                  </div>
+                </div>
+                <div class="repo-card-action">
+                  <a href="https://github.com/example/mailguard-ai" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+                    View on GitHub ↗
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- App Footer -->
+      <footer class="app-footer">
+        <div class="footer-inner">
+          <p class="footer-text">MailGuard AI — Explainable email threat and spam detection using Calibrated Linear SVM &amp; NLP. Trained on Enron dataset.</p>
+          <div class="footer-links" role="navigation" aria-label="Footer links">
+            <a href="#/privacy" class="footer-link">Privacy &amp; Architecture</a>
+            <span class="footer-sep" aria-hidden="true">•</span>
+            <a href="#/features" class="footer-link">Features</a>
+            <span class="footer-sep" aria-hidden="true">•</span>
+            <a href="#/model-card" class="footer-link">Model Card</a>
+            <span class="footer-sep" aria-hidden="true">•</span>
+            <a href="#/docs" class="footer-link">API Docs</a>
+            <span class="footer-sep" aria-hidden="true">•</span>
+            <a href="https://github.com/example/mailguard-ai" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub ↗</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Accessible Toast Feedback Container -->
+  <div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Runtime Configuration (defines API_BASE_URL for split Vercel/Render deployments) -->
+  <script src="/config.js"></script>
+
+  <!-- Main Application Script -->
+  <script src="/js/app.js"></script>
+</body>
+</html>

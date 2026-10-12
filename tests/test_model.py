@@ -7,8 +7,8 @@ import sys
 import pytest
 import sklearn
 
-from src.config import METADATA_PATH, MODEL_PATH
-from src.predictor import SpamPredictor, get_predictor, predict
+from src.config import METADATA_PATH, MODEL_EXPECTED_SHA256, MODEL_PATH
+from src.predictor import SpamPredictor, compute_file_sha256, get_predictor, predict
 
 
 def test_model_artifact_exists_and_loads():
@@ -138,5 +138,29 @@ def test_missing_model_raises_clear_filenotfounderror(tmp_path):
     missing_path = tmp_path / "non_existent_model.joblib"
     with pytest.raises(FileNotFoundError, match="Model artifact not found"):
         SpamPredictor(model_path=missing_path)
+
+
+def test_model_sha256_integrity_success():
+    """Verify that models/spam_pipeline.joblib matches the committed SHA-256 hash."""
+    assert MODEL_PATH.exists()
+    calculated_hash = compute_file_sha256(MODEL_PATH)
+    assert calculated_hash == MODEL_EXPECTED_SHA256.lower()
+
+    # Loading the predictor succeeds without integrity exception
+    predictor = SpamPredictor()
+    assert predictor.pipeline is not None
+
+
+def test_model_sha256_integrity_tampering_fails_closed(tmp_path):
+    """Verify that tampered model artifact fails closed with ValueError."""
+    fake_model = tmp_path / "tampered_pipeline.joblib"
+    fake_model.write_bytes(b"MALICIOUS_OR_CORRUPT_MODEL_PAYLOAD")
+
+    # Mismatched expected hash should fail closed immediately
+    with pytest.raises(ValueError, match="Model integrity verification failed"):
+        SpamPredictor(
+            model_path=fake_model,
+            expected_sha256=MODEL_EXPECTED_SHA256,
+        )
 
 

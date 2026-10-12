@@ -338,8 +338,34 @@ def test_security_headers_present(client):
     assert "default-src 'self'" in csp
     assert "style-src 'self'" in csp
     assert "'unsafe-inline'" not in csp
-    assert "script-src 'self'" in csp
+    assert "'unsafe-eval'" not in csp.replace("'wasm-unsafe-eval'", "")
+    assert "'wasm-unsafe-eval'" in csp
+    assert "worker-src 'self' blob:" in csp
+    assert "connect-src 'self' blob:" in csp
+    assert "img-src 'self' data: blob:" in csp
     assert "frame-ancestors 'none'" in csp
+
+
+def test_api_endpoints_cache_control_no_store(client):
+    """Assert all /api/* responses include Cache-Control: no-store."""
+    res_health = client.get("/api/health")
+    assert res_health.headers.get("Cache-Control") == "no-store"
+
+    res_model_info = client.get("/api/model-info")
+    assert res_model_info.headers.get("Cache-Control") == "no-store"
+
+    res_predict = client.post("/api/predict", json={"body": "Hello meeting tomorrow"})
+    assert res_predict.headers.get("Cache-Control") == "no-store"
+
+    res_analyze = client.post("/api/analyze", json={"body": "Check this link out"})
+    assert res_analyze.headers.get("Cache-Control") == "no-store"
+
+    res_404 = client.get("/api/non-existent-endpoint")
+    assert res_404.headers.get("Cache-Control") == "no-store"
+
+    # HTML page should NOT have Cache-Control: no-store forced
+    res_html = client.get("/")
+    assert res_html.headers.get("Cache-Control") != "no-store"
 
 
 def test_405_method_not_allowed_get_predict(client):
@@ -459,4 +485,126 @@ def test_500_internal_server_error(client, monkeypatch):
     assert "C:" not in raw_text
     assert "Traceback" not in raw_text
 
+
+def test_rate_limiting_enforced():
+    """Verify rate limiter returns 429 JSON when enabled and threshold is reached."""
+    rate_app = create_app({
+        "TESTING": True,
+        "RATELIMIT_ENABLED": True,
+    })
+    rate_client = rate_app.test_client()
+
+    # Health check is exempt
+    for _ in range(10):
+        res = rate_client.get("/api/health")
+        assert res.status_code == 200
+
+    # Exhaust /api/predict (60 req/min limit)
+    hit_429 = False
+    for i in range(70):
+        res = rate_client.post("/api/predict", json={"body": f"Rate test body {i}"})
+        if res.status_code == 429:
+            hit_429 = True
+            assert res.is_json
+            data = res.get_json()
+            assert data["error"]["code"] == "rate_limit_exceeded"
+            assert "Rate limit exceeded" in data["error"]["message"] or "60 per" in data["error"]["message"]
+            break
+    assert hit_429, "Expected 429 RateLimitExceeded after 60 requests"
+
+
+def test_rate_limiting_ip_forwarded_for_separation():
+    """Verify that Werkzeug ProxyFix allows Flask-Limiter to track separate IPs via X-Forwarded-For."""
+    rate_app = create_app({
+        "TESTING": True,
+        "RATELIMIT_ENABLED": True,
+    })
+    rate_client = rate_app.test_client()
+
+    ip_a = "203.0.113.195"
+    ip_b = "198.51.100.42"
+
+    # Exhaust limit for IP A (60 per minute on /api/predict)
+    hit_429 = False
+    for i in range(70):
+        res = rate_client.post(
+            "/api/predict",
+            json={"body": f"IP A body {i}"},
+            headers={"X-Forwarded-For": ip_a},
+        )
+        if res.status_code == 429:
+            hit_429 = True
+            break
+    assert hit_429, "Expected IP A to hit 429 rate limit"
+
+    # Verify IP A is indeed rate-limited
+    res_a_again = rate_client.post(
+        "/api/predict",
+        json={"body": "IP A follow-up"},
+        headers={"X-Forwarded-For": ip_a},
+    )
+    assert res_a_again.status_code == 429
+
+    # Verify IP B with distinct X-Forwarded-For is NOT rate-limited (gets 200 OK)
+    res_b = rate_client.post(
+        "/api/predict",
+        json={"body": "IP B fresh request"},
+        headers={"X-Forwarded-For": ip_b},
+    )
+    assert res_b.status_code == 200, f"Expected IP B to succeed (200), got {res_b.status_code}"
+
+
+def test_html_404_error_page(client):
+    """Browser request to non-existent route returns themed 404 HTML page."""
+    res = client.get("/non-existent-web-page", headers={"Accept": "text/html,application/xhtml+xml"})
+    assert res.status_code == 404
+    assert not res.is_json
+    html = res.get_data(as_text=True)
+    assert "404" in html
+    assert "Page Not Found" in html
+    assert "MailGuard AI" in html
+    assert "Return to Dashboard" in html
+
+
+def test_favicon_endpoints(client):
+    """Favicon ICO and SVG endpoints are served with proper content types."""
+    res_ico = client.get("/favicon.ico")
+    assert res_ico.status_code == 200
+    assert "image/vnd.microsoft.icon" in res_ico.content_type
+
+    res_svg = client.get("/favicon.svg")
+    assert res_svg.status_code == 200
+    assert "image/svg+xml" in res_svg.content_type
+
+
+def test_static_examples_dataset(client):
+    """GET /data/examples.json serves 7 validated examples with test domains."""
+    res = client.get("/data/examples.json")
+    assert res.status_code == 200
+    assert res.is_json
+    data = res.get_json()
+    assert isinstance(data, list)
+    assert len(data) == 7
+
+    categories = [ex["category"] for ex in data]
+    assert categories.count("spam") == 3
+    assert categories.count("safe") == 3
+    assert categories.count("borderline") == 1
+
+    for ex in data:
+        assert "id" in ex
+        assert "label" in ex
+        assert "subject" in ex
+        assert "body" in ex
+        # Ensure domains are strictly example.test to avoid real/defamatory targets
+        if "http" in ex["body"] or "@" in ex["body"]:
+            assert "example.test" in ex["body"]
+
+
+def test_og_preview_image(client):
+    """GET /img/og-preview.png serves valid PNG preview image."""
+    res = client.get("/img/og-preview.png")
+    assert res.status_code == 200
+    assert "image/png" in res.content_type
+    assert len(res.data) > 1000
 

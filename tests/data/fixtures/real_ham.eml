@@ -1,0 +1,16 @@
+Received: from mail.company.com (192.0.2.1) by mx.google.com; Fri, 09 Oct 2026 14:00:00 -0700
+Authentication-Results: mx.google.com; spf=pass; dkim=pass; dmarc=pass
+From: Engineering Lead <lead@company.com>
+Reply-To: lead@company.com
+To: team@company.com
+Subject: Engineering team weekly sync - Agenda & Notes
+Content-Type: text/plain; charset=utf-8
+
+Hi team,
+
+Please find attached the agenda for tomorrow's sprint planning and engineering review. We will review our quarterly API milestones and the upcoming deployment checklist.
+
+Let me know if you would like to add any items before 10 AM tomorrow.
+
+Best regards,
+Engineering Team

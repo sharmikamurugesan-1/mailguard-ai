@@ -1,0 +1,16 @@
+Received: from mail.suspicious-relay.biz (185.220.101.5) by mx.google.com; Fri, 09 Oct 2026 12:00:00 -0700
+Authentication-Results: mx.google.com; spf=fail; dmarc=fail
+From: Security Alert <service@paypal-notice.com>
+Reply-To: phisher@dark-inbox.ru
+To: victim@company.com
+Subject: URGENT: Your PayPal account has been restricted
+Content-Type: text/plain; charset=utf-8
+
+Dear valued customer,
+
+Unauthorized debit card activity was flagged on your account. Please click http://bit.ly/paypal-verify-alert immediately to confirm your credentials and avoid permanent suspension of your funds.
+
+Failure to respond within 24 hours will lead to permanent termination of your banking access.
+
+Regards,
+Account Security Team

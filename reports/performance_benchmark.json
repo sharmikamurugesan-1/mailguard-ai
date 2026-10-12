@@ -1,0 +1,52 @@
+{
+  "cold_start_sec": 2.6562,
+  "latency_stats": {
+    "runs": 100,
+    "mean_ms": 16.74,
+    "p50_ms": 16.19,
+    "p95_ms": 18.33,
+    "p99_ms": 72.72,
+    "min_ms": 12.23,
+    "max_ms": 72.72
+  },
+  "assets": [
+    {
+      "asset": "templates/index.html",
+      "raw_kb": 125.81,
+      "gzip_kb": 24.6,
+      "compression_ratio": 5.11
+    },
+    {
+      "asset": "static/css/style.css",
+      "raw_kb": 90.66,
+      "gzip_kb": 13.93,
+      "compression_ratio": 6.51
+    },
+    {
+      "asset": "static/js/app.js",
+      "raw_kb": 155.77,
+      "gzip_kb": 33.55,
+      "compression_ratio": 4.64
+    },
+    {
+      "asset": "static/data/examples.json",
+      "raw_kb": 3.19,
+      "gzip_kb": 1.42,
+      "compression_ratio": 2.25
+    },
+    {
+      "asset": "static/vendor/tesseract/tesseract.min.js",
+      "raw_kb": 65.15,
+      "gzip_kb": 10.21,
+      "compression_ratio": 6.38
+    },
+    {
+      "asset": "static/vendor/jsqr/jsQR.js",
+      "raw_kb": 250.86,
+      "gzip_kb": 55.5,
+      "compression_ratio": 4.52
+    }
+  ],
+  "total_raw_kb": 691.45,
+  "total_gzip_kb": 139.22
+}

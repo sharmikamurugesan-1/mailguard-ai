@@ -11,7 +11,7 @@ services:
     region: oregon
     branch: master
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120 --graceful-timeout 30 --max-requests 1000 --max-requests-jitter 100 --preload
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
@@ -22,3 +22,6 @@ services:
         value: models/spam_pipeline.joblib
       - key: METADATA_PATH
         value: models/metadata.json
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://mailguard-ai.vercel.app,https://mailguard-aafw79uqj-sharmikamurugesan-1.vercel.app
+
